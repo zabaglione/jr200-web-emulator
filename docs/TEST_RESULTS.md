@@ -17,6 +17,9 @@ anchorに400 ms差がある。本実装WAVを同toolでdecodeした4 CJRは入�
 一致した。これは独立decoder互換であり、物理JR-200のLOAD/MLOAD成功ではない。
 詳細は [P10_WAV_ACCEPTANCE.md](P10_WAV_ACCEPTANCE.md)。
 
+実装commit `b89a9d1717cd892ced06ea5ff8d2ffc2bfa00dfc` のGitHub Actions run
+`35666390234`はwasm-codec、Ubuntu/macOS native、sanitizedの4ジョブすべてsuccess。
+
 ## P09 音声Web出力・休止復帰受入（2026-09-22 / macOS）
 
 P05のcycle駆動44.1 kHz・3 channel固定PCM queueを維持し、決定的mono mix、一括WASM

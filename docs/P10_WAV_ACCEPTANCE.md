@@ -93,6 +93,8 @@ node --check web/app.mjs
 - `tests/browser_smoke.py`へdownloadとRIFF検査を追加したが、ローカルPython環境に
   `playwright` moduleがないため同ファイル自体は未実行である。上記Chrome試験と、
   Node wrapperの同一Emscripten/直接WASM試験を区別する。
+- 実装commit `b89a9d1717cd892ced06ea5ff8d2ffc2bfa00dfc` のGitHub Actions run
+  `35666390234`はwasm-codec、Ubuntu/macOS native、sanitizedの4ジョブすべてsuccess。
 
 ## CLIとWeb
 
