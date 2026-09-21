@@ -14,6 +14,12 @@ Emscripten 6.0.9を`EM_CACHE=$PWD/build/emcache make wasm`で実行し、正式W
 
 commit `62263249b100330b29e9baccff1b58310747275a`に対するGitHub Actions run 35619769839は、Linux native、macOS native、sanitizer、Clang直接WASM smokeの4ジョブすべて成功した。これはCJRコーデックのビルド基盤の証拠であり、ROM/BASIC/Canvas/音声を含むエミュレータのブラウザ起動証拠ではない。
 
+## P02受入再試験（2026-09-22 / macOS・ローカルブラウザ）
+
+`build/native/test_cjr`は24テスト群に成功し、12,000件の決定的変異入力を含む。Emscripten同梱LLVMを`WASM_CXX`に明示した`make wasm-smoke`は、直接WASMとJS wrapperの両試験に成功した。`cjrtool`は合成payloadのpack→inspect→copy→extractを実行し、payloadとCJR copyはそれぞれ元バイトと完全一致した。
+
+Clang直接WASM配布物をlocalhostで配信し、Codex in-app browserでWASM起動、未実装範囲の明示、検査/作成UI、入力未選択時のエラー表示を目視した。consoleのerror/warningは0件。ファイル選択・ダウンロードを含むPlaywright試験は依存未導入のため未実行であり、独立Windows実装や実機との互換証拠もP03以降に残る。
+
 記録日: 2026-09-21。以下はこのパッケージに対して実際にローカル実行した結果である。remote CI、既存Windows実装との独立対照、実機成功を意味しない。
 
 ## GitHub初期設定時の再試験（2026-09-21）
