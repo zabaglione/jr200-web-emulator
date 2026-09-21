@@ -8,6 +8,12 @@ Emscripten 6.0.9を`EM_CACHE=$PWD/build/emcache make wasm`で実行し、正式W
 
 同日の`make wasm-smoke`は、既定のAppleClang 21.0.0に`wasm32`ターゲットがないため失敗した。過去のClang直接WASM成功を取り消すものではないが、現在環境での再成功でもない。Emscripten正式ビルドの成功とは分けて記録する。`tests/browser_smoke.py`はPython環境にPlaywrightがなく、UI操作試験は未実行である。
 
+## P01受入再試験（2026-09-22 / macOS・GitHub Actions）
+
+`make test`と`make sanitize`はそれぞれCTest 3/3成功。Emscripten 6.0.9で生成したES moduleをNode.jsからinstantiateし、C ABI version 1と容量1048576を確認した。
+
+commit `62263249b100330b29e9baccff1b58310747275a`に対するGitHub Actions run 35619769839は、Linux native、macOS native、sanitizer、Clang直接WASM smokeの4ジョブすべて成功した。これはCJRコーデックのビルド基盤の証拠であり、ROM/BASIC/Canvas/音声を含むエミュレータのブラウザ起動証拠ではない。
+
 記録日: 2026-09-21。以下はこのパッケージに対して実際にローカル実行した結果である。remote CI、既存Windows実装との独立対照、実機成功を意味しない。
 
 ## GitHub初期設定時の再試験（2026-09-21）
