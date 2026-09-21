@@ -1,5 +1,13 @@
 # 初期実装の試験記録
 
+## P00受入再試験（2026-09-22 / macOS）
+
+`make test`はCTest 3/3、`python3 scripts/check_distribution.py`はPASS。`LICENSES/VJR200.txt`のGit blob SHAは上流固定値`8cad34867bad988f97fc237a9259e338f0bedf99`と一致した。
+
+Emscripten 6.0.9を`EM_CACHE=$PWD/build/emcache make wasm`で実行し、正式WASMと`build/site`を生成した。ローカルHTTP配信からトップページ、FINDライセンス全文、第三者表記をHTTP 200で取得し、配信されたライセンスのblob SHAも一致した。
+
+同日の`make wasm-smoke`は、既定のAppleClang 21.0.0に`wasm32`ターゲットがないため失敗した。過去のClang直接WASM成功を取り消すものではないが、現在環境での再成功でもない。Emscripten正式ビルドの成功とは分けて記録する。`tests/browser_smoke.py`はPython環境にPlaywrightがなく、UI操作試験は未実行である。
+
 記録日: 2026-09-21。以下はこのパッケージに対して実際にローカル実行した結果である。remote CI、既存Windows実装との独立対照、実機成功を意味しない。
 
 ## GitHub初期設定時の再試験（2026-09-21）
