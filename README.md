@@ -1,6 +1,6 @@
 # JR-200 Web Emulator
 
-**状態: P08をローカル受入済み。ブラウザBASIC起動、上限付きデバッガに加え、通常カセット経路のLOAD/MLOAD/SAVE/MSAVEを確認済みです。**
+**状態: P08まで受入完了。ブラウザBASIC起動、上限付きデバッガに加え、通常カセット経路のLOAD/MLOAD/SAVE/MSAVEを確認済みです。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 

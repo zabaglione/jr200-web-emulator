@@ -20,6 +20,10 @@ browser consoleのerror/warningは0件だった。Python Playwright moduleがな
 CJR、BIN、画面capture、内容hashはGitへ追加していない。詳細は
 [P08_CASSETTE_ACCEPTANCE.md](P08_CASSETTE_ACCEPTANCE.md)。
 
+実装commit `a0cc4c6a96b4c993d2d5bfc84f3280d75dd15426`に対する
+[Actions run 35657825103](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35657825103)は、
+Linux/macOS native、sanitizer、Clang直接WASMの4ジョブすべてsuccessだった。
+
 ## P07 デバッガ・追跡・メモリウォッチ受入（2026-09-22 / macOS・GitHub Actions）
 
 `make test`と`make sanitize`は各CTest 6/6、`make wasm-smoke`はCJR/CPU/system/

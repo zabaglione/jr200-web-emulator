@@ -83,6 +83,12 @@ REMOTE OFFとReadyになり、変更領域が元CJRの内容へ戻った。こ�
 
 ROM、font、WAV、CJR、BIN、画面capture、内容hashはGitへ追加していない。
 
+## remote受入
+
+実装commit `a0cc4c6a96b4c993d2d5bfc84f3280d75dd15426` に対する
+[Actions run 35657825103](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35657825103)は、
+Linux/macOS native、sanitizer、Clang直接WASMの4ジョブすべてsuccessだった。
+
 ## 未検証範囲
 
 - Web Audio出力と休止復帰はP09、自前CJR→WAVはP10、自前WAV→CJRはP11で扱う。
