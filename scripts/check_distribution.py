@@ -36,11 +36,13 @@ if manifest.exists():
               'src/core/6800tbl.hxx','src/wasm/cpu_api.cpp','tests/test_m6800.cpp',
               'tests/cpu_wasm_smoke.mjs','LICENSES/MAME_BSD-3-Clause.txt',
               'include/jr200/peripherals.hpp','include/jr200/system.hpp',
+              'include/jr200/debugger.hpp','src/core/debugger.cpp',
               'src/core/peripherals.cpp','src/core/system.cpp','src/wasm/system_api.cpp',
               'src/wasm/freestanding_memory.cpp',
               'tests/test_system.cpp','tests/system_wasm_smoke.mjs',
               'tests/emscripten_smoke.mjs','tests/webdriver_real_rom_smoke.py',
               'docs/P05_PERIPHERAL_AUDIT.md','docs/P06_BROWSER_ACCEPTANCE.md',
+              'docs/P07_DEBUGGER_ACCEPTANCE.md',
               '.emscripten-version','scripts/check_emscripten_version.py'}
     assert required.issubset(files),'CPU source or license missing from source inventory'
     for f in files:

@@ -8,7 +8,7 @@ const module = await createJR200Codec();
 
 assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
-assert.equal(module._jr200_system_api_version(), 2);
+assert.equal(module._jr200_system_api_version(), 3);
 
 module._jr200_system_clear();
 assert.equal(module._jr200_system_rom_capacity(), 16384);
@@ -24,6 +24,15 @@ assert.equal(module._jr200_system_cpu_register(0), 0xe000);
 assert.ok(module._jr200_system_run(200) >= 200);
 assert.equal(module._jr200_system_peek(0xc100), 0x2a);
 assert.equal(module._jr200_system_reset(), 1);
+module._jr200_system_debug_set_history(1);
+assert.equal(module._jr200_system_debug_add_breakpoint(0xe005), 1);
+assert.equal(module._jr200_system_reset(), 1);
+assert.ok(module._jr200_system_run(100) > 0);
+assert.equal(module._jr200_system_debug_field(1), 1);
+assert.equal(module._jr200_system_debug_field(2), 0xe005);
+module._jr200_system_debug_resume();
+assert.ok(module._jr200_system_debug_step() > 0);
+assert.equal(module._jr200_system_debug_field(1), 4);
 
 module._jr200_system_clear();
 module._jr200_system_poke(0xfffe, 0x10);
@@ -42,4 +51,4 @@ assert.equal(module._jr200_system_peek(0xc80e), 0x61);
 assert.equal(module._jr200_system_read(0xc80e), 0x61);
 assert.equal(module._jr200_system_field(0), 0);
 
-console.log('PASS Emscripten module: codec, CPU and system ABIs initialize; boot/run/reset, timer IRQ and peek semantics match');
+console.log('PASS Emscripten module: codec, CPU and system ABIs initialize; debugger, timer IRQ and peek semantics match');

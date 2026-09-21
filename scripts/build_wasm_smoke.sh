@@ -25,6 +25,14 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_system_pulse_nmi
          jr200_system_cpu_reset jr200_system_cpu_step
          jr200_system_cpu_register jr200_system_cpu_trace_field
+         jr200_system_debug_set_history jr200_system_debug_clear_history
+         jr200_system_debug_add_breakpoint jr200_system_debug_remove_breakpoint
+         jr200_system_debug_clear_breakpoints jr200_system_debug_breakpoint
+         jr200_system_debug_add_watchpoint jr200_system_debug_remove_watchpoint
+         jr200_system_debug_clear_watchpoints jr200_system_debug_watchpoint_field
+         jr200_system_debug_resume jr200_system_debug_step
+         jr200_system_debug_field jr200_system_debug_instruction_field
+         jr200_system_debug_access_field
          jr200_system_read jr200_system_peek jr200_system_write
          jr200_system_poke jr200_system_tick jr200_system_set_key
          jr200_system_set_cassette_input jr200_system_field
@@ -36,7 +44,8 @@ args=()
 for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
 "$CXX" --target=wasm32 -std=c++20 -O2 -ffreestanding -fno-exceptions -fno-rtti \
   -fno-builtin -nostdlib -I"$ROOT/include" "$ROOT/src/tape/cjr.cpp" \
-  "$ROOT/src/core/m6800.cpp" "$ROOT/src/core/peripherals.cpp" \
+  "$ROOT/src/core/m6800.cpp" "$ROOT/src/core/debugger.cpp" \
+  "$ROOT/src/core/peripherals.cpp" \
   "$ROOT/src/core/system.cpp" "$ROOT/src/wasm/api.cpp" \
   "$ROOT/src/wasm/cpu_api.cpp" "$ROOT/src/wasm/system_api.cpp" \
   "$ROOT/src/wasm/freestanding_memory.cpp" \

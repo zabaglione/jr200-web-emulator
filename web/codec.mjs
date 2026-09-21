@@ -16,7 +16,7 @@ export async function loadCodec() {
     memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
-  if (e.jr200_system_api_version() !== 2) throw new Error('システムABIのバージョンが一致しません');
+  if (e.jr200_system_api_version() !== 3) throw new Error('システムABIのバージョンが一致しません');
   const text = new TextDecoder();
   const checked = code => {
     if (code) {
@@ -27,6 +27,19 @@ export async function loadCodec() {
     }
   };
   let machineBooted = false;
+  const checkedAddress = address => {
+    if (!Number.isInteger(address) || address < 0 || address > 65535) {
+      throw new Error('アドレスが範囲外です');
+    }
+    return address;
+  };
+  const uint64 = (low, high) => low + high * 0x100000000;
+  const checkedLimit = (limit, capacity) => {
+    if (!Number.isInteger(limit) || limit < 0 || limit > capacity) {
+      throw new Error(`取得件数は0〜${capacity}で指定してください`);
+    }
+    return limit;
+  };
   const machine = {
     boot(rom, font) {
       if (!(rom instanceof Uint8Array) || rom.length !== e.jr200_system_rom_capacity()) {
@@ -75,8 +88,14 @@ export async function loadCodec() {
       return new Uint32Array(memory().buffer, e.jr200_system_framebuffer_ptr(), 320 * 224);
     },
     peek(address) {
-      if (!Number.isInteger(address) || address < 0 || address > 65535) throw new Error('アドレスが範囲外です');
-      return e.jr200_system_peek(address);
+      return e.jr200_system_peek(checkedAddress(address));
+    },
+    peekRange(address, length = 256) {
+      checkedAddress(address);
+      if (!Number.isInteger(length) || length < 1 || length > 256 || address + length > 65536) {
+        throw new Error('メモリ表示はアドレス範囲内の1〜256バイトで指定してください');
+      }
+      return Uint8Array.from({length}, (_, offset) => e.jr200_system_peek(address + offset));
     },
     registers() {
       const names = ['pc', 'sp', 'x', 'a', 'b', 'cc', 'waiting'];
@@ -90,6 +109,120 @@ export async function loadCodec() {
         fontInitialized: e.jr200_system_field(5) !== 0,
         frameGeneration: e.jr200_system_field(7),
       };
+    },
+  };
+  machine.debugger = {
+    setHistoryEnabled(enabled) {
+      if (typeof enabled !== 'boolean') throw new Error('履歴指定はbooleanが必要です');
+      e.jr200_system_debug_set_history(enabled ? 1 : 0);
+    },
+    clearHistory() {
+      e.jr200_system_debug_clear_history();
+    },
+    addBreakpoint(address) {
+      checkedAddress(address);
+      if (e.jr200_system_debug_add_breakpoint(address) !== 1) {
+        throw new Error('ブレークポイント上限は16件です');
+      }
+    },
+    removeBreakpoint(address) {
+      checkedAddress(address);
+      return e.jr200_system_debug_remove_breakpoint(address) === 1;
+    },
+    clearBreakpoints() {
+      e.jr200_system_debug_clear_breakpoints();
+    },
+    breakpoints() {
+      const count = e.jr200_system_debug_field(8);
+      return Array.from({length: count}, (_, index) => e.jr200_system_debug_breakpoint(index));
+    },
+    addWatchpoint(address, {read = false, write = false} = {}) {
+      checkedAddress(address);
+      if (typeof read !== 'boolean' || typeof write !== 'boolean' || (!read && !write)) {
+        throw new Error('watchpointは読出しまたは書込みを選択してください');
+      }
+      const flags = (read ? 1 : 0) | (write ? 2 : 0);
+      if (e.jr200_system_debug_add_watchpoint(address, flags) !== 1) {
+        throw new Error('watchpoint上限は16件です');
+      }
+    },
+    removeWatchpoint(address) {
+      checkedAddress(address);
+      return e.jr200_system_debug_remove_watchpoint(address) === 1;
+    },
+    clearWatchpoints() {
+      e.jr200_system_debug_clear_watchpoints();
+    },
+    watchpoints() {
+      const count = e.jr200_system_debug_field(9);
+      return Array.from({length: count}, (_, index) => ({
+        address: e.jr200_system_debug_watchpoint_field(index, 0),
+        flags: e.jr200_system_debug_watchpoint_field(index, 1),
+      }));
+    },
+    resume() {
+      if (!machineBooted) throw new Error('先にROMとフォントを読み込んでください');
+      e.jr200_system_debug_resume();
+    },
+    step() {
+      if (!machineBooted) throw new Error('先にROMとフォントを読み込んでください');
+      return e.jr200_system_debug_step();
+    },
+    state() {
+      return {
+        historyEnabled: e.jr200_system_debug_field(0) !== 0,
+        stopReason: e.jr200_system_debug_field(1),
+        stopAddress: e.jr200_system_debug_field(2),
+        stopValue: e.jr200_system_debug_field(3),
+        stopAccess: e.jr200_system_debug_field(4),
+        stopOperation: e.jr200_system_debug_field(5),
+        stopCycle: uint64(e.jr200_system_debug_field(6), e.jr200_system_debug_field(7)),
+        breakpointCount: e.jr200_system_debug_field(8),
+        watchpointCount: e.jr200_system_debug_field(9),
+        instructionCount: e.jr200_system_debug_field(10),
+        instructionDropped: uint64(e.jr200_system_debug_field(11), e.jr200_system_debug_field(12)),
+        accessCount: e.jr200_system_debug_field(13),
+        accessDropped: uint64(e.jr200_system_debug_field(14), e.jr200_system_debug_field(15)),
+        instructionCapacity: e.jr200_system_debug_field(16),
+        accessCapacity: e.jr200_system_debug_field(17),
+      };
+    },
+    instructions(limit = 32) {
+      const state = this.state();
+      checkedLimit(limit, state.instructionCapacity);
+      const start = Math.max(0, state.instructionCount - limit);
+      return Array.from({length: state.instructionCount - start}, (_, offset) => {
+        const index = start + offset;
+        const field = value => e.jr200_system_debug_instruction_field(index, value);
+        return {
+          sequence: uint64(field(0), field(1)),
+          cycle: uint64(field(2), field(3)),
+          event: field(4),
+          opcode: field(5),
+          baseCycles: field(6),
+          waitCycles: field(7),
+          totalCycles: field(8),
+          before: {pc: field(9), sp: field(11), x: field(13), a: field(15), b: field(17), cc: field(19)},
+          after: {pc: field(10), sp: field(12), x: field(14), a: field(16), b: field(18), cc: field(20)},
+        };
+      });
+    },
+    accesses(limit = 64) {
+      const state = this.state();
+      checkedLimit(limit, state.accessCapacity);
+      const start = Math.max(0, state.accessCount - limit);
+      return Array.from({length: state.accessCount - start}, (_, offset) => {
+        const index = start + offset;
+        const field = value => e.jr200_system_debug_access_field(index, value);
+        return {
+          sequence: uint64(field(0), field(1)),
+          cycle: uint64(field(2), field(3)),
+          address: field(4),
+          value: field(5),
+          access: field(6),
+          operation: field(7),
+        };
+      });
     },
   };
   return {

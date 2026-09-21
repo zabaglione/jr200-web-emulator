@@ -6,6 +6,7 @@ main{width:min(100% - 32px,980px);margin:auto;padding:56px 0 80px}
 header{margin-bottom:24px}
 h1{font-size:clamp(2.1rem,6vw,4.8rem);line-height:.95;letter-spacing:-.055em;margin:.15em 0}
 h2{font-size:1.05rem;letter-spacing:.08em;margin:0 0 18px;color:var(--accent)}
+h3{font-size:.92rem;letter-spacing:.05em;margin:18px 0 8px;color:#cce8d9}
 .eyebrow{font:700 .75rem ui-monospace,monospace;letter-spacing:.2em;color:var(--accent)}
 .lead{max-width:720px;color:var(--muted);font-size:1.08rem}
 .notice{border-left:4px solid var(--warning);background:#211f14;padding:14px 16px;margin:24px 0}
@@ -27,7 +28,16 @@ button{cursor:pointer;background:#17392b;border-color:#4b8c70;font-weight:700}
 button:hover:not(:disabled){background:#20503b}
 button:disabled{opacity:.42;cursor:not-allowed}
 .controls{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+.controls.compact{margin:10px 0}
 .fields,.file-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.debug-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.trace-grid pre{min-height:14rem;max-height:28rem}
+.inline-checks{display:flex;gap:18px;flex-wrap:wrap}
+.inline-checks label{margin:0}
+.memory-controls{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:12px;align-items:end}
+.memory-controls button{margin-bottom:12px}
+.debug-list{min-height:2rem;color:var(--muted);font-family:ui-monospace,SFMono-Regular,monospace;padding-left:1.4rem}
+.debug-list button{padding:2px 7px;margin-left:8px;font-size:.78rem}
 .asset-status{color:var(--muted);font-family:ui-monospace,SFMono-Regular,monospace;padding-left:1.4rem}
 .screen-shell{background:#020403;border:1px solid #426352;border-radius:8px;padding:12px;box-shadow:0 18px 60px #0008;overflow:auto}
 #screen{display:block;width:min(100%,960px);height:auto;aspect-ratio:320/224;margin:auto;background:#050806;image-rendering:pixelated;outline:none}
@@ -37,4 +47,4 @@ pre{white-space:pre-wrap;overflow:auto;background:#050a08;border-radius:7px;padd
 footer{margin-top:30px;color:var(--muted);font-size:.85rem}
 a{color:var(--accent)}
 [hidden]{display:none!important}
-@media(max-width:600px){main{width:min(100% - 20px,980px);padding-top:28px}section{padding:18px}.controls button{width:100%}}
+@media(max-width:600px){main{width:min(100% - 20px,980px);padding-top:28px}section{padding:18px}.controls button{width:100%}.memory-controls{grid-template-columns:1fr}.memory-controls button{margin-bottom:0}}

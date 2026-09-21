@@ -2,6 +2,7 @@
 // Copyright (c) 2026 jr200-web contributors
 #pragma once
 
+#include "jr200/debugger.hpp"
 #include "jr200/m6800.hpp"
 #include "jr200/peripherals.hpp"
 
@@ -66,6 +67,7 @@ public:
 
     [[nodiscard]] M6800Trace reset_cpu();
     [[nodiscard]] M6800Trace step();
+    [[nodiscard]] M6800Trace debug_step();
     [[nodiscard]] uint32_t run_cycles(uint32_t cycle_budget);
     void advance_cycles(uint32_t cycles) noexcept;
     void pulse_nmi() noexcept;
@@ -103,6 +105,8 @@ public:
     [[nodiscard]] const PcmQueue& pcm() const noexcept;
     [[nodiscard]] IoTraceBuffer& io_trace() noexcept;
     [[nodiscard]] const IoTraceBuffer& io_trace() const noexcept;
+    [[nodiscard]] MachineDebugger& debugger() noexcept;
+    [[nodiscard]] const MachineDebugger& debugger() const noexcept;
 
 private:
     MemoryConfig config_{};
@@ -112,7 +116,9 @@ private:
     Crtc crtc_{};
     PcmQueue pcm_{};
     IoTraceBuffer io_trace_{};
+    MachineDebugger debugger_{};
     uint64_t cycle_count_{};
+    bool cpu_access_active_{};
     M6800 cpu_;
 
     [[nodiscard]] bool is_ram(uint16_t address) const noexcept;

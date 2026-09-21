@@ -36,13 +36,14 @@ extern "C" {
 
 uint32_t jr200_system_api_version()
 {
-    return 2U;
+    return 3U;
 }
 
 void jr200_system_clear()
 {
     machine.initialize_memory();
     machine.reset_peripherals();
+    machine.debugger().clear_all();
     last_pcm = {};
     last_system_trace = {};
     assets_loaded = false;
@@ -133,6 +134,178 @@ uint32_t jr200_system_cpu_trace_field(uint32_t field)
     case 4U: return last_system_trace.total_cycles;
     case 5U: return last_system_trace.before.pc;
     case 6U: return last_system_trace.after.pc;
+    default: return 0U;
+    }
+}
+
+void jr200_system_debug_set_history(uint32_t enabled)
+{
+    machine.debugger().set_history_enabled(enabled != 0U);
+}
+
+void jr200_system_debug_clear_history()
+{
+    machine.debugger().clear_history();
+}
+
+uint32_t jr200_system_debug_add_breakpoint(uint32_t address)
+{
+    return address <= 0xffffU && machine.debugger().add_breakpoint(
+        static_cast<uint16_t>(address)) ? 1U : 0U;
+}
+
+uint32_t jr200_system_debug_remove_breakpoint(uint32_t address)
+{
+    return address <= 0xffffU && machine.debugger().remove_breakpoint(
+        static_cast<uint16_t>(address)) ? 1U : 0U;
+}
+
+void jr200_system_debug_clear_breakpoints()
+{
+    machine.debugger().clear_breakpoints();
+}
+
+uint32_t jr200_system_debug_breakpoint(uint32_t index)
+{
+    return index < machine.debugger().breakpoint_count()
+        ? machine.debugger().breakpoint_at(index)
+        : 0U;
+}
+
+uint32_t jr200_system_debug_add_watchpoint(
+    uint32_t address,
+    uint32_t flags)
+{
+    return address <= 0xffffU && flags <= 0xffU &&
+        machine.debugger().add_watchpoint(
+            static_cast<uint16_t>(address),
+            static_cast<uint8_t>(flags)) ? 1U : 0U;
+}
+
+uint32_t jr200_system_debug_remove_watchpoint(uint32_t address)
+{
+    return address <= 0xffffU && machine.debugger().remove_watchpoint(
+        static_cast<uint16_t>(address)) ? 1U : 0U;
+}
+
+void jr200_system_debug_clear_watchpoints()
+{
+    machine.debugger().clear_watchpoints();
+}
+
+uint32_t jr200_system_debug_watchpoint_field(
+    uint32_t index,
+    uint32_t field)
+{
+    if (index >= machine.debugger().watchpoint_count()) {
+        return 0U;
+    }
+    const jr200::DebugWatchpoint watchpoint =
+        machine.debugger().watchpoint_at(index);
+    switch (field) {
+    case 0U: return watchpoint.address;
+    case 1U: return watchpoint.flags;
+    default: return 0U;
+    }
+}
+
+void jr200_system_debug_resume()
+{
+    machine.debugger().resume();
+}
+
+uint32_t jr200_system_debug_step()
+{
+    last_system_trace = machine.debug_step();
+    return last_system_trace.total_cycles;
+}
+
+uint32_t jr200_system_debug_field(uint32_t field)
+{
+    const jr200::MachineDebugger& debugger = machine.debugger();
+    const jr200::DebugStop stop = debugger.stop();
+    switch (field) {
+    case 0U: return debugger.history_enabled() ? 1U : 0U;
+    case 1U: return static_cast<uint32_t>(stop.reason);
+    case 2U: return stop.address;
+    case 3U: return stop.value;
+    case 4U: return static_cast<uint32_t>(stop.access);
+    case 5U: return static_cast<uint32_t>(stop.operation);
+    case 6U: return static_cast<uint32_t>(stop.cycle);
+    case 7U: return static_cast<uint32_t>(stop.cycle >> 32U);
+    case 8U: return static_cast<uint32_t>(debugger.breakpoint_count());
+    case 9U: return static_cast<uint32_t>(debugger.watchpoint_count());
+    case 10U: return static_cast<uint32_t>(debugger.instructions().size());
+    case 11U: return static_cast<uint32_t>(debugger.instructions().dropped());
+    case 12U:
+        return static_cast<uint32_t>(debugger.instructions().dropped() >> 32U);
+    case 13U: return static_cast<uint32_t>(debugger.memory_accesses().size());
+    case 14U: return static_cast<uint32_t>(debugger.memory_accesses().dropped());
+    case 15U:
+        return static_cast<uint32_t>(debugger.memory_accesses().dropped() >> 32U);
+    case 16U:
+        return static_cast<uint32_t>(jr200::DebugInstructionBuffer::kCapacity);
+    case 17U:
+        return static_cast<uint32_t>(jr200::DebugMemoryBuffer::kCapacity);
+    default: return 0U;
+    }
+}
+
+uint32_t jr200_system_debug_instruction_field(
+    uint32_t index,
+    uint32_t field)
+{
+    const jr200::DebugInstructionBuffer& history =
+        machine.debugger().instructions();
+    if (index >= history.size()) {
+        return 0U;
+    }
+    const jr200::DebugInstructionEntry entry = history.at(index);
+    switch (field) {
+    case 0U: return static_cast<uint32_t>(entry.sequence);
+    case 1U: return static_cast<uint32_t>(entry.sequence >> 32U);
+    case 2U: return static_cast<uint32_t>(entry.cycle);
+    case 3U: return static_cast<uint32_t>(entry.cycle >> 32U);
+    case 4U: return static_cast<uint32_t>(entry.trace.event);
+    case 5U: return entry.trace.opcode;
+    case 6U: return entry.trace.base_cycles;
+    case 7U: return entry.trace.wait_cycles;
+    case 8U: return entry.trace.total_cycles;
+    case 9U: return entry.trace.before.pc;
+    case 10U: return entry.trace.after.pc;
+    case 11U: return entry.trace.before.sp;
+    case 12U: return entry.trace.after.sp;
+    case 13U: return entry.trace.before.x;
+    case 14U: return entry.trace.after.x;
+    case 15U: return entry.trace.before.a;
+    case 16U: return entry.trace.after.a;
+    case 17U: return entry.trace.before.b;
+    case 18U: return entry.trace.after.b;
+    case 19U: return entry.trace.before.cc;
+    case 20U: return entry.trace.after.cc;
+    default: return 0U;
+    }
+}
+
+uint32_t jr200_system_debug_access_field(
+    uint32_t index,
+    uint32_t field)
+{
+    const jr200::DebugMemoryBuffer& accesses =
+        machine.debugger().memory_accesses();
+    if (index >= accesses.size()) {
+        return 0U;
+    }
+    const jr200::DebugMemoryEntry entry = accesses.at(index);
+    switch (field) {
+    case 0U: return static_cast<uint32_t>(entry.sequence);
+    case 1U: return static_cast<uint32_t>(entry.sequence >> 32U);
+    case 2U: return static_cast<uint32_t>(entry.cycle);
+    case 3U: return static_cast<uint32_t>(entry.cycle >> 32U);
+    case 4U: return entry.address;
+    case 5U: return entry.value;
+    case 6U: return static_cast<uint32_t>(entry.access);
+    case 7U: return static_cast<uint32_t>(entry.operation);
     default: return 0U;
     }
 }

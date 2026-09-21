@@ -79,6 +79,7 @@ void JR200Machine::reset_peripherals() noexcept
     crtc_.reset();
     pcm_.clear();
     io_trace_.clear();
+    debugger_.reset_runtime();
     cycle_count_ = 0U;
     sync_irq();
 }
@@ -106,6 +107,7 @@ bool JR200Machine::load_font(const uint8_t* data, size_t size) noexcept
 
 M6800Trace JR200Machine::reset_cpu()
 {
+    debugger_.reset_runtime();
     sync_irq();
     return cpu_.reset();
 }
@@ -113,20 +115,43 @@ M6800Trace JR200Machine::reset_cpu()
 M6800Trace JR200Machine::step()
 {
     sync_irq();
+    const uint64_t start_cycle = cycle_count_;
+    cpu_access_active_ = true;
     const M6800Trace trace = cpu_.step();
+    cpu_access_active_ = false;
     if (trace.total_cycles != 0U) {
         advance_cycles(trace.total_cycles);
     }
+    debugger_.record_instruction(start_cycle, trace);
+    return trace;
+}
+
+M6800Trace JR200Machine::debug_step()
+{
+    debugger_.prepare_step();
+    const M6800Trace trace = step();
+    debugger_.stop_after_step(cpu_.registers().pc, cycle_count_);
     return trace;
 }
 
 uint32_t JR200Machine::run_cycles(uint32_t cycle_budget)
 {
     uint32_t elapsed = 0U;
+    if (debugger_.stopped()) {
+        return elapsed;
+    }
     while (elapsed < cycle_budget) {
+        if (debugger_.check_breakpoint(
+                cpu_.registers().pc,
+                cycle_count_)) {
+            break;
+        }
         const M6800Trace trace = step();
         if (trace.total_cycles != 0U) {
             elapsed += trace.total_cycles;
+            if (debugger_.stopped()) {
+                break;
+            }
             continue;
         }
         if (!cpu_.waiting()) {
@@ -162,8 +187,15 @@ M6800Read JR200Machine::read(
     uint16_t address,
     M6800BusAccess access)
 {
-    (void)access;
     const uint8_t value = read_mapped(address);
+    if (cpu_access_active_) {
+        debugger_.observe_memory(
+            cycle_count_,
+            address,
+            value,
+            access,
+            DebugMemoryOperation::Read);
+    }
     const uint8_t wait = is_ram(address) && address <= 0xbfffU ? 1U : 0U;
     return {value, wait};
 }
@@ -173,8 +205,15 @@ uint8_t JR200Machine::write(
     uint8_t value,
     M6800BusAccess access)
 {
-    (void)access;
     write_mapped(address, value);
+    if (cpu_access_active_) {
+        debugger_.observe_memory(
+            cycle_count_,
+            address,
+            value,
+            access,
+            DebugMemoryOperation::Write);
+    }
     return is_ram(address) && address <= 0xbfffU ? 1U : 0U;
 }
 
@@ -304,6 +343,16 @@ IoTraceBuffer& JR200Machine::io_trace() noexcept
 const IoTraceBuffer& JR200Machine::io_trace() const noexcept
 {
     return io_trace_;
+}
+
+MachineDebugger& JR200Machine::debugger() noexcept
+{
+    return debugger_;
+}
+
+const MachineDebugger& JR200Machine::debugger() const noexcept
+{
+    return debugger_;
 }
 
 bool JR200Machine::is_ram(uint16_t address) const noexcept

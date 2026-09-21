@@ -68,8 +68,63 @@
     <p class="hint">起動後、画面をクリックして入力します。フォーカスを失うとキーを解放して自動的に一時停止します。音声とカセットは後続Issueの対象です。</p>
   </section>
 
+  <section aria-labelledby="debugger-heading">
+    <h2 id="debugger-heading">02 / デバッガ</h2>
+    <p>停止条件と上限付き履歴はWASMメモリ内だけに保持します。メモリ表示は副作用のないpeekで最大256バイトを読み、ROM全体を自動表示・送信しません。</p>
+
+    <div class="controls">
+      <button id="debug-run" class="debug-control" type="button" disabled>実行 / 再開</button>
+      <button id="debug-pause" class="debug-control" type="button" disabled>一時停止</button>
+      <button id="debug-step" class="debug-control" type="button" disabled>1命令step</button>
+      <button id="debug-refresh" class="debug-control" type="button" disabled>表示更新</button>
+    </div>
+    <label class="check permission"><input id="debug-history-enabled" class="debug-control" type="checkbox" disabled> 命令履歴とCPUメモリアクセス履歴を記録</label>
+    <pre id="debug-registers" aria-live="polite">ROM起動後にレジスタを表示します。</pre>
+
+    <div class="debug-grid">
+      <div>
+        <h3>ブレークポイント</h3>
+        <label>命令アドレス（16進）<input id="debug-breakpoint-address" class="debug-control" value="E000" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
+        <div class="controls compact">
+          <button id="debug-add-breakpoint" class="debug-control" type="button" disabled>追加</button>
+          <button id="debug-clear-breakpoints" class="debug-control" type="button" disabled>全解除</button>
+        </div>
+        <ul id="debug-breakpoints" class="debug-list"><li>未設定</li></ul>
+      </div>
+      <div>
+        <h3>watchpoint</h3>
+        <label>メモリアドレス（16進）<input id="debug-watch-address" class="debug-control" value="C80D" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
+        <div class="inline-checks">
+          <label class="check"><input id="debug-watch-read" class="debug-control" type="checkbox" checked disabled> 読出し</label>
+          <label class="check"><input id="debug-watch-write" class="debug-control" type="checkbox" checked disabled> 書込み</label>
+        </div>
+        <div class="controls compact">
+          <button id="debug-add-watchpoint" class="debug-control" type="button" disabled>追加 / 更新</button>
+          <button id="debug-clear-watchpoints" class="debug-control" type="button" disabled>全解除</button>
+        </div>
+        <ul id="debug-watchpoints" class="debug-list"><li>未設定</li></ul>
+      </div>
+    </div>
+
+    <h3>メモリpeek</h3>
+    <div class="memory-controls">
+      <label>開始アドレス（16進）<input id="debug-memory-address" class="debug-control" value="0000" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
+      <button id="debug-memory-read" class="debug-control" type="button" disabled>最大256バイト表示</button>
+    </div>
+    <pre id="debug-memory">手動で表示してください。peekはI/O読出し副作用を起こしません。</pre>
+
+    <div class="controls compact">
+      <button id="debug-clear-history" class="debug-control" type="button" disabled>履歴を消去</button>
+    </div>
+    <p id="debug-history-status" class="hint">命令履歴 0 / 256、CPUアクセス履歴 0 / 512。</p>
+    <div class="debug-grid trace-grid">
+      <div><h3>直近の命令</h3><pre id="debug-instructions">履歴記録は無効です。</pre></div>
+      <div><h3>直近のCPUアクセス</h3><pre id="debug-accesses">履歴記録は無効です。</pre></div>
+    </div>
+  </section>
+
   <section aria-labelledby="inspect-heading">
-    <h2 id="inspect-heading">02 / CJRを検査</h2>
+    <h2 id="inspect-heading">03 / CJRを検査</h2>
     <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
     <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
     <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
@@ -77,7 +132,7 @@
   </section>
 
   <section aria-labelledby="pack-heading">
-    <h2 id="pack-heading">03 / BINから標準CJRを作成</h2>
+    <h2 id="pack-heading">04 / BINから標準CJRを作成</h2>
     <p>既存バイナリを1つの連続領域として格納します。BASICのトークナイズは行いません。</p>
     <form id="pack">
       <label>BINファイル<input id="bin" type="file" required disabled></label>

@@ -10,6 +10,8 @@ namespace {
 
 using jr200::IoDevice;
 using jr200::IoOperation;
+using jr200::DebugMemoryOperation;
+using jr200::DebugStopReason;
 using jr200::JR200Machine;
 using jr200::M6800BusAccess;
 using jr200::M6800Event;
@@ -295,6 +297,176 @@ void test_cpu_scheduler_boundary()
           "cycle-budget scheduler advances peripherals while CPU is waiting");
 }
 
+void install_debug_program(JR200Machine& machine)
+{
+    machine.poke(0xfffeU, 0x10U);
+    machine.poke(0xffffU, 0x00U);
+    machine.poke(0x0010U, 0x4cU);
+    machine.poke(0x1000U, 0x86U);  // LDAA #$2A
+    machine.poke(0x1001U, 0x2aU);
+    machine.poke(0x1002U, 0xb7U);  // STAA $2000
+    machine.poke(0x1003U, 0x20U);
+    machine.poke(0x1004U, 0x00U);
+    machine.poke(0x1005U, 0x96U);  // LDAA $10
+    machine.poke(0x1006U, 0x10U);
+    machine.poke(0x1007U, 0x20U);  // BRA $1000
+    machine.poke(0x1008U, 0xf7U);
+}
+
+void test_debugger_stop_and_bounded_history()
+{
+    JR200Machine machine;
+    install_debug_program(machine);
+    auto& debugger = machine.debugger();
+    debugger.set_history_enabled(true);
+    check(debugger.add_breakpoint(0x1002U), "breakpoint slot is accepted");
+    (void)machine.reset_cpu();
+    const uint8_t value_before_breakpoint = machine.peek_byte(0x2000U);
+
+    const uint32_t before_breakpoint = machine.run_cycles(100U);
+    check(before_breakpoint > 0U && machine.cpu().registers().pc == 0x1002U,
+          "run stops before the instruction at a breakpoint");
+    check(debugger.stop().reason == DebugStopReason::Breakpoint &&
+              debugger.stop().address == 0x1002U &&
+              machine.peek_byte(0x2000U) == value_before_breakpoint,
+          "breakpoint reports its PC without executing the instruction");
+    check(machine.run_cycles(100U) == 0U,
+          "stopped machine does not consume cycles until resumed");
+
+    debugger.resume();
+    check(machine.run_cycles(1U) > 0U &&
+              machine.cpu().registers().pc == 0x1005U &&
+              machine.peek_byte(0x2000U) == 0x2aU,
+          "resume passes the current breakpoint once");
+    check(machine.run_cycles(100U) > 0U &&
+              debugger.stop().reason == DebugStopReason::Breakpoint,
+          "looping back to the breakpoint stops again");
+
+    check(debugger.remove_breakpoint(0x1002U),
+          "breakpoint can be removed");
+    check(debugger.add_watchpoint(0x2000U, jr200::kDebugWatchWrite),
+          "write watchpoint is accepted");
+    machine.cpu().set_registers({0x1002U, 0x7fffU, 0U, 0x7bU, 0U, 0U});
+    debugger.resume();
+    check(machine.run_cycles(100U) > 0U &&
+              debugger.stop().reason == DebugStopReason::WriteWatchpoint &&
+              debugger.stop().address == 0x2000U &&
+              debugger.stop().value == 0x7bU &&
+              debugger.stop().operation == DebugMemoryOperation::Write &&
+              machine.cpu().registers().pc == 0x1005U,
+          "write watchpoint stops after the matching instruction");
+
+    debugger.clear_watchpoints();
+    check(debugger.add_watchpoint(0x0010U, jr200::kDebugWatchRead),
+          "read watchpoint is accepted");
+    machine.cpu().set_registers({0x1005U, 0x7fffU, 0U, 0U, 0U, 0U});
+    debugger.resume();
+    check(machine.run_cycles(100U) > 0U &&
+              debugger.stop().reason == DebugStopReason::ReadWatchpoint &&
+              debugger.stop().address == 0x0010U &&
+              debugger.stop().value == 0x4cU &&
+              debugger.stop().operation == DebugMemoryOperation::Read,
+          "read watchpoint reports the value consumed by the CPU");
+
+    debugger.clear_watchpoints();
+    machine.cpu().set_registers({0x1000U, 0x7fffU, 0U, 0U, 0U, 0U});
+    const auto stepped = machine.debug_step();
+    check(stepped.opcode == 0x86U &&
+              debugger.stop().reason == DebugStopReason::Step &&
+              debugger.stop().address == 0x1002U,
+          "single step executes one instruction and remains stopped");
+
+    debugger.resume();
+    debugger.clear_history();
+    machine.poke(0x3000U, 0x01U);  // NOP
+    machine.poke(0x3001U, 0x20U);  // BRA $3000
+    machine.poke(0x3002U, 0xfdU);
+    machine.cpu().set_registers({0x3000U, 0x7fffU, 0U, 0U, 0U, 0U});
+    for (size_t i = 0U; i < 400U; ++i) {
+        (void)machine.step();
+    }
+    check(debugger.instructions().size() ==
+              jr200::DebugInstructionBuffer::kCapacity &&
+              debugger.instructions().dropped() == 144U,
+          "instruction history evicts old entries at its fixed capacity");
+    check(debugger.memory_accesses().size() ==
+              jr200::DebugMemoryBuffer::kCapacity &&
+              debugger.memory_accesses().dropped() == 88U,
+          "CPU access history evicts old entries at its fixed capacity");
+    check(debugger.instructions().at(0U).sequence == 144U &&
+              debugger.instructions().at(255U).sequence == 399U,
+          "bounded instruction history preserves chronological order");
+}
+
+void test_debugger_peek_and_trace_invariance()
+{
+    JR200Machine observed;
+    observed.write_byte(0xc80aU, 0x87U);
+    observed.poke(0x1000U, 0xb6U);  // LDAA $C80A
+    observed.poke(0x1001U, 0xc8U);
+    observed.poke(0x1002U, 0x0aU);
+    observed.cpu().set_registers({0x1000U, 0x7fffU, 0U, 0U, 0U, 0U});
+    observed.debugger().set_history_enabled(true);
+    observed.debugger().clear_history();
+    const size_t io_before = observed.io_trace().size();
+    check(observed.peek_byte(0xc80aU) == 0x87U &&
+              observed.debugger().memory_accesses().size() == 0U &&
+              observed.io_trace().size() == io_before,
+          "debug peek creates no CPU-access or I/O trace entry");
+    (void)observed.step();
+    bool saw_cpu_data_read = false;
+    for (size_t i = 0U;
+         i < observed.debugger().memory_accesses().size();
+         ++i) {
+        const auto entry = observed.debugger().memory_accesses().at(i);
+        if (entry.address == 0xc80aU && entry.value == 0x87U &&
+            entry.access == M6800BusAccess::Data &&
+            entry.operation == DebugMemoryOperation::Read) {
+            saw_cpu_data_read = true;
+        }
+    }
+    check(saw_cpu_data_read && observed.peek_byte(0xc80aU) == 0U &&
+              observed.io_trace().size() == io_before + 1U,
+          "side-effectful CPU read is recorded and clears the device register");
+
+    JR200Machine traced;
+    JR200Machine untraced;
+    install_debug_program(traced);
+    install_debug_program(untraced);
+    traced.debugger().set_history_enabled(true);
+    untraced.debugger().set_history_enabled(false);
+    (void)traced.reset_cpu();
+    (void)untraced.reset_cpu();
+    const uint32_t traced_cycles = traced.run_cycles(1000U);
+    const uint32_t untraced_cycles = untraced.run_cycles(1000U);
+    const auto traced_registers = traced.cpu().registers();
+    const auto untraced_registers = untraced.cpu().registers();
+    bool same_memory = true;
+    for (uint32_t address = 0U; address <= 0xffffU; ++address) {
+        if (traced.memory()[address] != untraced.memory()[address]) {
+            same_memory = false;
+            break;
+        }
+    }
+    check(traced_cycles == untraced_cycles &&
+              traced.cycle_count() == untraced.cycle_count() &&
+              traced.cpu().total_cycles() == untraced.cpu().total_cycles() &&
+              traced_registers.pc == untraced_registers.pc &&
+              traced_registers.sp == untraced_registers.sp &&
+              traced_registers.x == untraced_registers.x &&
+              traced_registers.a == untraced_registers.a &&
+              traced_registers.b == untraced_registers.b &&
+              traced_registers.cc == untraced_registers.cc &&
+              traced.pcm().size() == untraced.pcm().size() &&
+              same_memory,
+          "history enabled and disabled produce identical machine state");
+    check(traced.debugger().instructions().size() > 0U &&
+              traced.debugger().memory_accesses().size() > 0U &&
+              untraced.debugger().instructions().size() == 0U &&
+              untraced.debugger().memory_accesses().size() == 0U,
+          "history toggle changes only bounded observation buffers");
+}
+
 }  // namespace
 
 int main()
@@ -304,10 +476,12 @@ int main()
     test_keyboard_handshake();
     test_cassette_audio_and_framebuffer();
     test_cpu_scheduler_boundary();
+    test_debugger_stop_and_bounded_history();
+    test_debugger_peek_and_trace_invariance();
     if (failures != 0) {
         std::cerr << failures << " system test(s) failed\n";
         return 1;
     }
-    std::cout << "PASS system: map, mirrors, trace, timers, keyboard, cassette, PCM, framebuffer, cycle clock\n";
+    std::cout << "PASS system: map, peripherals, cycle clock, bounded debugger and side-effect-free peek\n";
     return 0;
 }

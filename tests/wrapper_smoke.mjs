@@ -39,12 +39,35 @@ try {
   assert.equal(codec.machine.boot(rom,font).pc,0xe000);
   assert.ok(codec.machine.run(200)>=200);
   assert.equal(codec.machine.peek(0xc100),0x2a);
+  assert.deepEqual(Array.from(codec.machine.peekRange(0xc100,4)),[0x2a,0,0,0]);
+  codec.machine.debugger.setHistoryEnabled(true);
+  codec.machine.debugger.addBreakpoint(0xe005);
+  codec.machine.reset();
+  assert.ok(codec.machine.run(100)>0);
+  assert.equal(codec.machine.debugger.state().stopReason,1);
+  assert.equal(codec.machine.debugger.state().stopAddress,0xe005);
+  assert.equal(codec.machine.run(100),0);
+  assert.ok(codec.machine.debugger.instructions().length>0);
+  assert.ok(codec.machine.debugger.accesses().length>0);
+  codec.machine.debugger.resume();
+  assert.ok(codec.machine.debugger.step()>0);
+  assert.equal(codec.machine.debugger.state().stopReason,4);
+  codec.machine.debugger.removeBreakpoint(0xe005);
+  codec.machine.debugger.addWatchpoint(0xc100,{write:true});
+  codec.machine.reset();
+  assert.ok(codec.machine.run(100)>0);
+  assert.equal(codec.machine.debugger.state().stopReason,3);
+  assert.equal(codec.machine.debugger.state().stopValue,0x2a);
+  assert.deepEqual(codec.machine.debugger.watchpoints(),[{address:0xc100,flags:2}]);
+  codec.machine.debugger.clearWatchpoints();
+  assert.throws(()=>codec.machine.debugger.addWatchpoint(0x1000),/読出しまたは書込み/);
+  assert.throws(()=>codec.machine.peekRange(0,257),/1〜256/);
   assert.equal(codec.machine.render().length,320*224);
   assert.equal(codec.machine.reset().pc,0xe000);
   assert.throws(()=>codec.machine.boot(rom.subarray(1),font),/16384/);
   codec.machine.clear();
   assert.throws(()=>codec.machine.run(1),/ROM/);
-  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, machine boot/run/reset/framebuffer, input guards');
+  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, machine boot/run/reset, bounded debugger, framebuffer, input guards');
 } finally {
   globalThis.fetch=originalFetch;
 }

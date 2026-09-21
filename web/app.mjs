@@ -5,6 +5,9 @@ const $ = id => document.getElementById(id);
 const CPU_HZ = 1_339_285;
 const FRAME_WIDTH = 320;
 const FRAME_HEIGHT = 224;
+const DEBUG_STOP_NAMES = ['実行可能', 'breakpoint', 'read watchpoint', 'write watchpoint', 'step'];
+const DEBUG_EVENT_NAMES = ['RESET', 'instruction', 'IRQ', 'NMI', 'waiting'];
+const DEBUG_ACCESS_NAMES = ['opcode', 'operand', 'data', 'stack', 'vector'];
 const state = {
   romMode: 'combined',
   rom: null,
@@ -66,6 +69,11 @@ function runFrame(timestamp) {
     state.cycleBalance = Math.min(state.cycleBalance + seconds * CPU_HZ, CPU_HZ * 0.1);
     if (state.cycleBalance >= 1) {
       state.cycleBalance -= codec.machine.run(Math.floor(state.cycleBalance));
+      const debug = codec.machine.debugger.state();
+      if (debug.stopReason !== 0) {
+        state.cycleBalance = 0;
+        setPaused(true, describeDebugStop(debug));
+      }
     }
     paintMachine();
     if (timestamp - state.lastStatus >= 500) {
@@ -200,6 +208,7 @@ $('start').addEventListener('click', async () => {
     state.lastFrame = 0;
     $('pause').disabled = false;
     $('reset').disabled = false;
+    setDebuggerEnabled(true);
     $('pause').textContent = '一時停止';
     setNotice('running', `選択したROMとフォントでCPUを起動しました。RESET vector $${hex4(resetVector)}。画面をクリックして入力してください。`);
     if ($('remember-assets').checked) {
@@ -212,6 +221,7 @@ $('start').addEventListener('click', async () => {
     }
     paintMachine();
     showMachineStatus();
+    refreshDebugger();
     canvas.focus();
   } catch (error) {
     setNotice('error', `起動できません: ${error.message}`);
@@ -221,6 +231,7 @@ $('start').addEventListener('click', async () => {
 $('pause').addEventListener('click', () => {
   if (!state.booted) return;
   releaseKeys();
+  if (state.paused) codec.machine.debugger.resume();
   setPaused(!state.paused, state.paused ? '再開しました' : '手動で一時停止しました');
   canvas.focus();
 });
@@ -236,6 +247,7 @@ $('reset').addEventListener('click', () => {
     setNotice('running', 'ROMとフォントを保持してリセットしました。');
     paintMachine();
     showMachineStatus();
+    refreshDebugger();
     canvas.focus();
   } catch (error) {
     setNotice('error', `リセットできません: ${error.message}`);
@@ -248,6 +260,7 @@ function setPaused(paused, reason) {
   $('pause').textContent = paused ? '再開' : '一時停止';
   setNotice(paused ? 'paused' : 'running', reason);
   showMachineStatus();
+  refreshDebugger();
 }
 
 function setNotice(kind, text) {
@@ -262,9 +275,163 @@ function showMachineStatus() {
   }
   const registers = codec.machine.registers();
   const machine = codec.machine.state();
-  const mode = state.paused ? '一時停止' : '実行中';
+  const debug = codec.machine.debugger.state();
+  const mode = debug.stopReason !== 0 ? `デバッガ停止 (${DEBUG_STOP_NAMES[debug.stopReason]})` : state.paused ? '一時停止' : '実行中';
   $('machine-status').textContent = `${mode} / PC $${hex4(registers.pc)} / cycles ${machine.cycles} / font ${machine.fontInitialized ? '初期化済み' : '転送中'}`;
 }
+
+function setDebuggerEnabled(enabled) {
+  for (const control of document.querySelectorAll('.debug-control')) control.disabled = !enabled;
+}
+
+function parseDebugAddress(id) {
+  const value = $(id).value.trim();
+  if (!/^[0-9a-fA-F]{1,4}$/.test(value)) throw new Error('アドレスは0000〜FFFFの16進数で指定してください');
+  return parseInt(value, 16);
+}
+
+function describeDebugStop(debug) {
+  if (debug.stopReason === 1) return `breakpoint $${hex4(debug.stopAddress)} で命令実行前に停止しました。`;
+  if (debug.stopReason === 2) return `CPU読出し watchpoint $${hex4(debug.stopAddress)} = $${debug.stopValue.toString(16).toUpperCase().padStart(2, '0')} で命令完了後に停止しました。`;
+  if (debug.stopReason === 3) return `CPU書込み watchpoint $${hex4(debug.stopAddress)} = $${debug.stopValue.toString(16).toUpperCase().padStart(2, '0')} で命令完了後に停止しました。`;
+  if (debug.stopReason === 4) return `1命令step後、$${hex4(debug.stopAddress)} で停止しました。`;
+  return '実行可能です。';
+}
+
+function replaceDebugList(id, items, render) {
+  const list = $(id);
+  if (items.length === 0) {
+    const item = document.createElement('li');
+    item.textContent = '未設定';
+    list.replaceChildren(item);
+    return;
+  }
+  list.replaceChildren(...items.map(render));
+}
+
+function refreshDebugger() {
+  if (!codec || !state.booted) return;
+  const registers = codec.machine.registers();
+  const debug = codec.machine.debugger.state();
+  $('debug-history-enabled').checked = debug.historyEnabled;
+  $('debug-registers').textContent = [
+    `状態  ${DEBUG_STOP_NAMES[debug.stopReason] || 'unknown'}${debug.stopReason ? ` / address $${hex4(debug.stopAddress)} / cycle ${debug.stopCycle}` : ''}`,
+    `PC $${hex4(registers.pc)}  SP $${hex4(registers.sp)}  X $${hex4(registers.x)}`,
+    `A  $${registers.a.toString(16).toUpperCase().padStart(2, '0')}    B  $${registers.b.toString(16).toUpperCase().padStart(2, '0')}    CC $${registers.cc.toString(16).toUpperCase().padStart(2, '0')}    WAI ${registers.waiting}`,
+  ].join('\n');
+
+  replaceDebugList('debug-breakpoints', codec.machine.debugger.breakpoints(), address => {
+    const item = document.createElement('li');
+    item.append(`$${hex4(address)}`);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '解除';
+    remove.addEventListener('click', () => {
+      codec.machine.debugger.removeBreakpoint(address);
+      refreshDebugger();
+    });
+    item.append(remove);
+    return item;
+  });
+
+  replaceDebugList('debug-watchpoints', codec.machine.debugger.watchpoints(), watchpoint => {
+    const modes = [];
+    if (watchpoint.flags & 1) modes.push('read');
+    if (watchpoint.flags & 2) modes.push('write');
+    const item = document.createElement('li');
+    item.append(`$${hex4(watchpoint.address)} / ${modes.join('+')}`);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '解除';
+    remove.addEventListener('click', () => {
+      codec.machine.debugger.removeWatchpoint(watchpoint.address);
+      refreshDebugger();
+    });
+    item.append(remove);
+    return item;
+  });
+
+  $('debug-history-status').textContent = `命令履歴 ${debug.instructionCount} / ${debug.instructionCapacity}（破棄 ${debug.instructionDropped}）、CPUアクセス履歴 ${debug.accessCount} / ${debug.accessCapacity}（破棄 ${debug.accessDropped}）。`;
+  const instructions = codec.machine.debugger.instructions(32).reverse();
+  $('debug-instructions').textContent = instructions.length === 0
+    ? debug.historyEnabled ? '記録はまだありません。' : '履歴記録は無効です。'
+    : instructions.map(entry => {
+        const event = DEBUG_EVENT_NAMES[entry.event] || `event-${entry.event}`;
+        return `#${entry.sequence} C${entry.cycle} $${hex4(entry.before.pc)} ${event} OP $${entry.opcode.toString(16).toUpperCase().padStart(2, '0')} -> $${hex4(entry.after.pc)} +${entry.totalCycles} (wait ${entry.waitCycles})`;
+      }).join('\n');
+  const accesses = codec.machine.debugger.accesses(64).reverse();
+  $('debug-accesses').textContent = accesses.length === 0
+    ? debug.historyEnabled ? '記録はまだありません。' : '履歴記録は無効です。'
+    : accesses.map(entry => {
+        const operation = entry.operation === 0 ? 'R' : 'W';
+        const access = DEBUG_ACCESS_NAMES[entry.access] || `type-${entry.access}`;
+        return `#${entry.sequence} C${entry.cycle} ${operation} $${hex4(entry.address)} = $${entry.value.toString(16).toUpperCase().padStart(2, '0')} (${access})`;
+      }).join('\n');
+}
+
+function debugAction(action) {
+  try {
+    action();
+    refreshDebugger();
+  } catch (error) {
+    setNotice('error', `デバッガ操作エラー: ${error.message}`);
+  }
+}
+
+$('debug-run').addEventListener('click', () => debugAction(() => {
+  releaseKeys();
+  codec.machine.debugger.resume();
+  state.cycleBalance = 0;
+  setPaused(false, 'デバッガから実行を再開しました。');
+  canvas.focus();
+}));
+
+$('debug-pause').addEventListener('click', () => debugAction(() => {
+  releaseKeys();
+  setPaused(true, 'デバッガで一時停止しました。');
+}));
+
+$('debug-step').addEventListener('click', () => debugAction(() => {
+  releaseKeys();
+  state.paused = true;
+  state.cycleBalance = 0;
+  codec.machine.debugger.step();
+  paintMachine();
+  setPaused(true, describeDebugStop(codec.machine.debugger.state()));
+}));
+
+$('debug-refresh').addEventListener('click', refreshDebugger);
+$('debug-history-enabled').addEventListener('change', event => debugAction(() => {
+  codec.machine.debugger.setHistoryEnabled(event.target.checked);
+}));
+$('debug-clear-history').addEventListener('click', () => debugAction(() => {
+  codec.machine.debugger.clearHistory();
+}));
+$('debug-add-breakpoint').addEventListener('click', () => debugAction(() => {
+  codec.machine.debugger.addBreakpoint(parseDebugAddress('debug-breakpoint-address'));
+}));
+$('debug-clear-breakpoints').addEventListener('click', () => debugAction(() => {
+  codec.machine.debugger.clearBreakpoints();
+}));
+$('debug-add-watchpoint').addEventListener('click', () => debugAction(() => {
+  codec.machine.debugger.addWatchpoint(parseDebugAddress('debug-watch-address'), {
+    read: $('debug-watch-read').checked,
+    write: $('debug-watch-write').checked,
+  });
+}));
+$('debug-clear-watchpoints').addEventListener('click', () => debugAction(() => {
+  codec.machine.debugger.clearWatchpoints();
+}));
+$('debug-memory-read').addEventListener('click', () => debugAction(() => {
+  const start = parseDebugAddress('debug-memory-address');
+  const bytes = codec.machine.peekRange(start, Math.min(256, 65536 - start));
+  const rows = [];
+  for (let offset = 0; offset < bytes.length; offset += 16) {
+    const values = Array.from(bytes.subarray(offset, offset + 16), value => value.toString(16).toUpperCase().padStart(2, '0'));
+    rows.push(`${hex4(start + offset)}: ${values.join(' ')}`);
+  }
+  $('debug-memory').textContent = rows.join('\n');
+}));
 
 function keyCodeFor(event) {
   const special = {
