@@ -9,6 +9,14 @@ const module = await createJR200Codec();
 assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
 assert.equal(module._jr200_system_api_version(), 5);
+assert.equal(module._jr200_wav_api_version(), 1);
+
+const golden = Uint8Array.from([2,42,0,26,255,255,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,255,255,255,255,255,255,255,255,149,2,42,1,1,112,0,171,73,2,42,255,255,112,1]);
+module.HEAPU8.set(golden, module._jr200_wav_input_ptr());
+assert.equal(module._jr200_wav_begin(golden.length, 44100, 2400), 0);
+assert.equal(module._jr200_wav_field(5), 168609);
+assert.equal(new TextDecoder().decode(module.HEAPU8.subarray(
+  module._jr200_wav_header_ptr(), module._jr200_wav_header_ptr() + 4)), 'RIFF');
 
 module._jr200_system_clear();
 assert.equal(module._jr200_system_rom_capacity(), 16384);

@@ -144,6 +144,14 @@ CassetteError CassetteDeck::mount(
     const uint8_t* input,
     size_t size) noexcept
 {
+    return mount(input, size, CassetteDataBaud::FromHeader);
+}
+
+CassetteError CassetteDeck::mount(
+    const uint8_t* input,
+    size_t size,
+    CassetteDataBaud data_baud) noexcept
+{
     eject();
     if (input == nullptr && size != 0U) {
         set_error(CassetteError::NullBuffer);
@@ -163,6 +171,22 @@ CassetteError CassetteDeck::mount(
     }
     if (!next.has_header || next.file_type > 1U) {
         set_error(CassetteError::UnsupportedType, next.file_type);
+        return error_;
+    }
+    switch (data_baud) {
+    case CassetteDataBaud::FromHeader:
+        data_samples_per_bit_ = next.baud_flag == 0U ? 2U : 8U;
+        break;
+    case CassetteDataBaud::Baud600:
+        data_samples_per_bit_ = 8U;
+        break;
+    case CassetteDataBaud::Baud2400:
+        data_samples_per_bit_ = 2U;
+        break;
+    default:
+        set_error(
+            CassetteError::InvalidBaud,
+            static_cast<uint32_t>(data_baud));
         return error_;
     }
     input_ = input;
@@ -197,6 +221,7 @@ void CassetteDeck::eject() noexcept
     sample_position_ = 0U;
     total_samples_ = 0U;
     phase_ = Phase::Done;
+    data_samples_per_bit_ = 8U;
 }
 
 bool CassetteDeck::rewind() noexcept
@@ -360,9 +385,9 @@ bool CassetteDeck::calculate_total_samples() noexcept
         if (length > input_size_ - offset) {
             return false;
         }
-        const uint32_t samples_per_bit = blocks == 0U || summary_.baud_flag != 0U
+        const uint32_t samples_per_bit = blocks == 0U
             ? 8U
-            : 2U;
+            : data_samples_per_bit_;
         data_samples += static_cast<uint64_t>(length) * 12U * samples_per_bit;
         ++blocks;
         offset += length;
@@ -398,9 +423,9 @@ void CassetteDeck::start_block() noexcept
     block_byte_ = 0U;
     frame_bit_ = 0U;
     bit_sample_ = 0U;
-    block_samples_per_bit_ = block_offset_ == 0U || summary_.baud_flag != 0U
+    block_samples_per_bit_ = block_offset_ == 0U
         ? 8U
-        : 2U;
+        : data_samples_per_bit_;
     phase_ = Phase::Block;
     phase_sample_ = 0U;
 }
@@ -639,6 +664,7 @@ const char* cassette_error_message(CassetteError error) noexcept
     case CassetteError::DecodeFailed: return "cassette waveform could not be decoded as CJR";
     case CassetteError::EmptyCapture: return "cassette recording stopped without waveform data";
     case CassetteError::RecordingInterrupted: return "cassette recording was interrupted by reset";
+    case CassetteError::InvalidBaud: return "cassette data baud must be 600 or 2400";
     }
     return "unknown cassette error";
 }

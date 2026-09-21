@@ -55,6 +55,18 @@ try {
   assert.deepEqual(codec.machine.audio.state(),{available:0,capacity:4096,sampleRate:44100,dropped:0});
   assert.deepEqual(codec.machine.audio.drain(0),new Int16Array());
   assert.throws(()=>codec.machine.audio.drain(4097),/0〜4096/);
+  const rendered = codec.wav.encode(preserved,{sampleRate:48000,baud:2400});
+  assert.equal(rendered.bytes.length,367084);
+  assert.equal(rendered.pcmSamples,183520);
+  assert.equal(rendered.signalSamples,18352);
+  assert.equal(rendered.durationSeconds,183520/48000);
+  assert.equal(new TextDecoder().decode(rendered.bytes.subarray(0,4)),'RIFF');
+  assert.equal(new DataView(rendered.bytes.buffer).getUint32(24,true),48000);
+  assert.deepEqual(Array.from(rendered.bytes.subarray(44,48)),[0,192,0,192]);
+  const inherited = codec.wav.encode(external600,{sampleRate:48000});
+  assert.equal(inherited.baud,600);
+  assert.throws(()=>codec.wav.encode(preserved,{sampleRate:32000,baud:2400}),/44100/);
+  assert.throws(()=>codec.wav.encode(preserved,{sampleRate:48000,baud:1200}),/600/);
   assert.ok(codec.machine.run(200)>=200);
   assert.equal(codec.machine.peek(0xc100),0x2a);
   assert.deepEqual(Array.from(codec.machine.peekRange(0xc100,4)),[0x2a,0,0,0]);

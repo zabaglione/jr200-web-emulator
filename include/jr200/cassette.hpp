@@ -28,6 +28,12 @@ enum class CassetteState : uint8_t {
     Error = 7,
 };
 
+enum class CassetteDataBaud : uint16_t {
+    FromHeader = 0,
+    Baud600 = 600,
+    Baud2400 = 2400,
+};
+
 enum class CassetteError : uint32_t {
     None = 0,
     NullBuffer = 1,
@@ -40,11 +46,13 @@ enum class CassetteError : uint32_t {
     DecodeFailed = 8,
     EmptyCapture = 9,
     RecordingInterrupted = 10,
+    InvalidBaud = 11,
 };
 
 class CassetteDeck {
 public:
     static constexpr uint32_t kCyclesPerSample = 280U;
+    static constexpr uint32_t kSignalSampleRate = 4800U;
 
     void configure_recording_storage(
         uint8_t* capture,
@@ -55,6 +63,10 @@ public:
     [[nodiscard]] CassetteError mount(
         const uint8_t* input,
         size_t size) noexcept;
+    [[nodiscard]] CassetteError mount(
+        const uint8_t* input,
+        size_t size,
+        CassetteDataBaud data_baud) noexcept;
     void eject() noexcept;
     [[nodiscard]] bool rewind() noexcept;
     [[nodiscard]] CassetteError arm_record() noexcept;
@@ -114,6 +126,7 @@ private:
     uint8_t frame_bit_{};
     uint8_t bit_sample_{};
     uint8_t block_samples_per_bit_{8U};
+    uint8_t data_samples_per_bit_{8U};
     int8_t sign_{1};
 
     void set_error(CassetteError error, uint32_t detail = 0U) noexcept;

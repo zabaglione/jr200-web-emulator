@@ -159,6 +159,23 @@ def main() -> None:
                 summary=json.loads(page.locator('#result').inner_text())
                 assert summary['payloadBytes']==1 and summary['firstAddress']==0x7000
                 assert summary['hardwareVerified'] is False and summary['nameAscii']=='X'
+                with page.expect_download() as wav_event:
+                    page.locator('#wav-create').click()
+                wav_download=wav_event.value
+                assert wav_download.suggested_filename=='golden-2400baud-48000Hz.wav'
+                with tempfile.TemporaryDirectory() as directory:
+                    wav_output=Path(directory)/'golden.wav'
+                    wav_download.save_as(wav_output)
+                    wav_bytes=wav_output.read_bytes()
+                    assert len(wav_bytes)==367084
+                    assert wav_bytes[:4]==b'RIFF' and wav_bytes[8:16]==b'WAVEfmt '
+                    assert int.from_bytes(wav_bytes[4:8],'little')==len(wav_bytes)-8
+                    assert int.from_bytes(wav_bytes[20:22],'little')==1
+                    assert int.from_bytes(wav_bytes[22:24],'little')==1
+                    assert int.from_bytes(wav_bytes[24:28],'little')==48000
+                    assert int.from_bytes(wav_bytes[34:36],'little')==16
+                expect(page.locator('#wav-status')).to_contain_text('mono 16-bit / 2400 baud')
+                expect(page.locator('#wav-status')).to_contain_text('P12で未検証')
                 page.locator('#tape-cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 page.locator('#tape-mount').click()
                 expect(page.locator('#tape-status')).to_contain_text('状態: 停止')

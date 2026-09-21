@@ -47,6 +47,11 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_system_tape_rewind jr200_system_tape_arm_record
          jr200_system_tape_output_ptr jr200_system_tape_output_size
          jr200_system_tape_error_message jr200_system_tape_field
+         jr200_wav_api_version jr200_wav_input_ptr
+         jr200_wav_input_capacity jr200_wav_begin
+         jr200_wav_header_ptr jr200_wav_header_size
+         jr200_wav_pcm_ptr jr200_wav_pcm_capacity jr200_wav_drain
+         jr200_wav_field jr200_wav_error_offset jr200_wav_error_message
          __wasm_call_ctors)
 args=()
 for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
@@ -54,8 +59,10 @@ for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
   -fno-builtin -nostdlib -I"$ROOT/include" "$ROOT/src/tape/cjr.cpp" \
   "$ROOT/src/core/m6800.cpp" "$ROOT/src/core/debugger.cpp" \
   "$ROOT/src/core/peripherals.cpp" "$ROOT/src/tape/cassette.cpp" \
+  "$ROOT/src/tape/wav.cpp" \
   "$ROOT/src/core/system.cpp" "$ROOT/src/wasm/api.cpp" \
   "$ROOT/src/wasm/cpu_api.cpp" "$ROOT/src/wasm/system_api.cpp" \
+  "$ROOT/src/wasm/wav_api.cpp" \
   "$ROOT/src/wasm/freestanding_memory.cpp" \
   -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=16777216 \
   -Wl,--max-memory=16777216 "${args[@]}" -o "$ROOT/build/wasm-smoke/jr200_codec.wasm"
@@ -65,3 +72,4 @@ node "$ROOT/tests/cpu_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/system_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/wrapper_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/audio_output_smoke.mjs"
+node "$ROOT/tests/wav_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"

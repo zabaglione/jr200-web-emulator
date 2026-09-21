@@ -1,5 +1,22 @@
 # 初期実装の試験記録
 
+## P10 CJR信号生成・WAVエンコード受入（2026-09-22 / macOS）
+
+P08の共通4800 Hz信号源から12-bit frame、固定600 baud header、600/2400 data、
+VJR-200固定commitのleader/intervalをRIFF PCM mono16の44.1/48 kHzへ変換した。
+sample位置は累積有理時刻で決め、CLIはstream、WASMは4096 sample chunk、Webは
+256 MiB上限と自動再生なしで保存する。baud無指定はCJR headerへ従う。
+
+`make test`と`make sanitize`は各CTest 8/8、`make wasm-smoke`はCJR/CPU/system/
+JS wrapper/Web Audio/WAV ABIの6試験、Emscripten 6.0.9の`make wasm`とChromeの
+44.1 kHz/16-bit/mono/2400生成も成功した。
+
+JR2Rescue 0.6.2との48/44.1 kHz、600/2400の4波形比較ではhalf-spanと全3 blockの
+位相patternが一致した。参照toolは固定VJR-200よりleader/intervalが短く、各block
+anchorに400 ms差がある。本実装WAVを同toolでdecodeした4 CJRは入力52 byteと全byte
+一致した。これは独立decoder互換であり、物理JR-200のLOAD/MLOAD成功ではない。
+詳細は [P10_WAV_ACCEPTANCE.md](P10_WAV_ACCEPTANCE.md)。
+
 ## P09 音声Web出力・休止復帰受入（2026-09-22 / macOS）
 
 P05のcycle駆動44.1 kHz・3 channel固定PCM queueを維持し、決定的mono mix、一括WASM

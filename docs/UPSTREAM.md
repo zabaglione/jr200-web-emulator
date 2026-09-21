@@ -58,6 +58,10 @@ P09ではP05の固定PCM queueをWASMから一括drainし、利用者操作後�
 44.1 kHz bufferとdevice contextのsample rate差、休止復帰の境界はS14を根拠とし、
 DirectSound、音声device API、wall clockはC++コアへ移植していない。詳細は
 [P09_AUDIO_ACCEPTANCE.md](P09_AUDIO_ACCEPTANCE.md)。
+P10ではS3の`BitGetterD`、`WaveGetter`、`GetLoadData`をP08の共通信号源からRIFF PCMへ
+変換し、S5のJR2Rescue 0.6.2を独立した波形・decode基準にした。JR2Rescueで観測した
+短いleader/inter-block intervalへは合わせず、S3固定commitの136/36 byteを維持した。
+比較値と未検証範囲は [P10_WAV_ACCEPTANCE.md](P10_WAV_ACCEPTANCE.md)。
 
 ## ライセンス台帳
 | 対象 | 観測した表示/条件 | 初期成果物への取込 | 方針 |

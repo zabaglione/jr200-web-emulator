@@ -17,6 +17,7 @@ export async function loadCodec() {
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
   if (e.jr200_system_api_version() !== 5) throw new Error('システムABIのバージョンが一致しません');
+  if (e.jr200_wav_api_version() !== 1) throw new Error('WAV ABIのバージョンが一致しません');
   const text = new TextDecoder();
   const readCString = start => {
     const heap = memory();
@@ -31,6 +32,11 @@ export async function loadCodec() {
   };
   const checkedTape = code => {
     if (code) throw new Error(readCString(e.jr200_system_tape_error_message()));
+  };
+  const checkedWav = code => {
+    if (code) {
+      throw new Error(`${readCString(e.jr200_wav_error_message())} (detail ${e.jr200_wav_error_offset()})`);
+    }
   };
   let machineBooted = false;
   const checkedAddress = address => {
@@ -304,8 +310,60 @@ export async function loadCodec() {
       };
     },
   };
+  const wav = {
+    encode(bytes, {sampleRate = 48000, baud = 0} = {}) {
+      if (!(bytes instanceof Uint8Array) || bytes.length === 0 ||
+          bytes.length > e.jr200_wav_input_capacity()) {
+        throw new Error('CJR入力は1バイト以上1 MiB以下で指定してください');
+      }
+      if (sampleRate !== 44100 && sampleRate !== 48000) {
+        throw new Error('WAV sample rateは44100または48000 Hzです');
+      }
+      if (baud !== 0 && baud !== 600 && baud !== 2400) {
+        throw new Error('WAVデータ速度は0（CJRヘッダー）、600、2400のいずれかです');
+      }
+      memory().set(bytes, e.jr200_wav_input_ptr());
+      checkedWav(e.jr200_wav_begin(bytes.length, sampleRate, baud));
+      const field64 = index => uint64(e.jr200_wav_field(index), e.jr200_wav_field(index + 1));
+      const signalSamples = field64(3);
+      const pcmSamples = field64(5);
+      const dataBytes = field64(7);
+      const totalBytes = field64(9);
+      if (!Number.isSafeInteger(totalBytes) || totalBytes > 256 * 1024 * 1024) {
+        throw new Error('ブラウザWAV出力上限は256 MiBです。CLIを使用してください');
+      }
+      const output = new Uint8Array(totalBytes);
+      const headerSize = e.jr200_wav_header_size();
+      output.set(memory().subarray(
+        e.jr200_wav_header_ptr(),
+        e.jr200_wav_header_ptr() + headerSize));
+      let offset = headerSize;
+      while (e.jr200_wav_field(13) === 0) {
+        const count = e.jr200_wav_drain(e.jr200_wav_pcm_capacity());
+        if (count === 0) throw new Error('WAV PCM生成が完了前に停止しました');
+        const byteCount = count * 2;
+        output.set(memory().subarray(
+          e.jr200_wav_pcm_ptr(),
+          e.jr200_wav_pcm_ptr() + byteCount), offset);
+        offset += byteCount;
+      }
+      if (offset !== totalBytes || offset !== headerSize + dataBytes) {
+        throw new Error('WAV出力サイズが事前計算と一致しません');
+      }
+      return {
+        bytes: output,
+        sampleRate,
+        baud: e.jr200_wav_field(1),
+        amplitude: e.jr200_wav_field(2),
+        signalSamples,
+        pcmSamples,
+        durationSeconds: pcmSamples / sampleRate,
+      };
+    },
+  };
   return {
     machine,
+    wav,
     inspect(bytes, allowHeaderless=false) {
       if (!(bytes instanceof Uint8Array) || bytes.length > e.jr200_capacity()) throw new Error('入力上限は1 MiBです');
       memory().set(bytes,e.jr200_input_ptr());

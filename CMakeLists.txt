@@ -12,7 +12,8 @@ add_library(jr200_system STATIC
   src/core/debugger.cpp
   src/core/peripherals.cpp
   src/core/system.cpp
-  src/tape/cassette.cpp)
+  src/tape/cassette.cpp
+  src/tape/wav.cpp)
 target_include_directories(jr200_system PUBLIC include)
 target_link_libraries(jr200_system PUBLIC jr200_cpu jr200_cjr)
 if(MSVC)
@@ -33,7 +34,7 @@ if(JR200_SANITIZE AND NOT EMSCRIPTEN AND NOT MSVC)
   target_link_options(jr200_system PUBLIC -fsanitize=address,undefined)
 endif()
 if(EMSCRIPTEN)
-  add_executable(jr200_codec src/wasm/api.cpp src/wasm/cpu_api.cpp src/wasm/system_api.cpp)
+  add_executable(jr200_codec src/wasm/api.cpp src/wasm/cpu_api.cpp src/wasm/system_api.cpp src/wasm/wav_api.cpp)
   target_link_libraries(jr200_codec PRIVATE jr200_cjr jr200_system)
   set_target_properties(jr200_codec PROPERTIES SUFFIX ".mjs" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/web")
   target_link_options(jr200_codec PRIVATE
@@ -41,11 +42,11 @@ if(EMSCRIPTEN)
     "-sEXPORT_ES6=1" "-sENVIRONMENT=web,node" "-sFILESYSTEM=0"
     "-sEXPORTED_RUNTIME_METHODS=['HEAPU8']"
     "-sALLOW_MEMORY_GROWTH=0" "-sINITIAL_MEMORY=16777216"
-    "-sEXPORTED_FUNCTIONS=['_jr200_codec_api_version','_jr200_input_ptr','_jr200_output_ptr','_jr200_capacity','_jr200_output_size','_jr200_error_offset','_jr200_error_message','_jr200_inspect','_jr200_summary_field','_jr200_name_ptr','_jr200_encode','_jr200_cpu_api_version','_jr200_cpu_memory_ptr','_jr200_cpu_clear_memory','_jr200_cpu_set_wait','_jr200_cpu_reset','_jr200_cpu_set_registers','_jr200_cpu_set_irq','_jr200_cpu_pulse_nmi','_jr200_cpu_step','_jr200_cpu_register','_jr200_cpu_trace_field','_jr200_system_api_version','_jr200_system_clear','_jr200_system_rom_ptr','_jr200_system_rom_capacity','_jr200_system_font_ptr','_jr200_system_font_capacity','_jr200_system_boot','_jr200_system_reset','_jr200_system_run','_jr200_system_pulse_nmi','_jr200_system_cpu_reset','_jr200_system_cpu_step','_jr200_system_cpu_register','_jr200_system_cpu_trace_field','_jr200_system_debug_set_history','_jr200_system_debug_clear_history','_jr200_system_debug_add_breakpoint','_jr200_system_debug_remove_breakpoint','_jr200_system_debug_clear_breakpoints','_jr200_system_debug_breakpoint','_jr200_system_debug_add_watchpoint','_jr200_system_debug_remove_watchpoint','_jr200_system_debug_clear_watchpoints','_jr200_system_debug_watchpoint_field','_jr200_system_debug_resume','_jr200_system_debug_step','_jr200_system_debug_field','_jr200_system_debug_instruction_field','_jr200_system_debug_access_field','_jr200_system_read','_jr200_system_peek','_jr200_system_write','_jr200_system_poke','_jr200_system_tick','_jr200_system_set_key','_jr200_system_set_cassette_input','_jr200_system_field','_jr200_system_trace_field','_jr200_system_render','_jr200_system_framebuffer_ptr','_jr200_system_pcm_pop','_jr200_system_pcm_sample','_jr200_system_pcm_sample_rate','_jr200_system_pcm_capacity','_jr200_system_pcm_buffer_ptr','_jr200_system_pcm_drain','_jr200_system_pcm_discard','_jr200_system_pcm_dropped','_jr200_system_cassette_pop','_jr200_system_tape_input_ptr','_jr200_system_tape_capacity','_jr200_system_tape_mount','_jr200_system_tape_eject','_jr200_system_tape_rewind','_jr200_system_tape_arm_record','_jr200_system_tape_output_ptr','_jr200_system_tape_output_size','_jr200_system_tape_error_message','_jr200_system_tape_field']")
+    "-sEXPORTED_FUNCTIONS=['_jr200_codec_api_version','_jr200_input_ptr','_jr200_output_ptr','_jr200_capacity','_jr200_output_size','_jr200_error_offset','_jr200_error_message','_jr200_inspect','_jr200_summary_field','_jr200_name_ptr','_jr200_encode','_jr200_cpu_api_version','_jr200_cpu_memory_ptr','_jr200_cpu_clear_memory','_jr200_cpu_set_wait','_jr200_cpu_reset','_jr200_cpu_set_registers','_jr200_cpu_set_irq','_jr200_cpu_pulse_nmi','_jr200_cpu_step','_jr200_cpu_register','_jr200_cpu_trace_field','_jr200_system_api_version','_jr200_system_clear','_jr200_system_rom_ptr','_jr200_system_rom_capacity','_jr200_system_font_ptr','_jr200_system_font_capacity','_jr200_system_boot','_jr200_system_reset','_jr200_system_run','_jr200_system_pulse_nmi','_jr200_system_cpu_reset','_jr200_system_cpu_step','_jr200_system_cpu_register','_jr200_system_cpu_trace_field','_jr200_system_debug_set_history','_jr200_system_debug_clear_history','_jr200_system_debug_add_breakpoint','_jr200_system_debug_remove_breakpoint','_jr200_system_debug_clear_breakpoints','_jr200_system_debug_breakpoint','_jr200_system_debug_add_watchpoint','_jr200_system_debug_remove_watchpoint','_jr200_system_debug_clear_watchpoints','_jr200_system_debug_watchpoint_field','_jr200_system_debug_resume','_jr200_system_debug_step','_jr200_system_debug_field','_jr200_system_debug_instruction_field','_jr200_system_debug_access_field','_jr200_system_read','_jr200_system_peek','_jr200_system_write','_jr200_system_poke','_jr200_system_tick','_jr200_system_set_key','_jr200_system_set_cassette_input','_jr200_system_field','_jr200_system_trace_field','_jr200_system_render','_jr200_system_framebuffer_ptr','_jr200_system_pcm_pop','_jr200_system_pcm_sample','_jr200_system_pcm_sample_rate','_jr200_system_pcm_capacity','_jr200_system_pcm_buffer_ptr','_jr200_system_pcm_drain','_jr200_system_pcm_discard','_jr200_system_pcm_dropped','_jr200_system_cassette_pop','_jr200_system_tape_input_ptr','_jr200_system_tape_capacity','_jr200_system_tape_mount','_jr200_system_tape_eject','_jr200_system_tape_rewind','_jr200_system_tape_arm_record','_jr200_system_tape_output_ptr','_jr200_system_tape_output_size','_jr200_system_tape_error_message','_jr200_system_tape_field','_jr200_wav_api_version','_jr200_wav_input_ptr','_jr200_wav_input_capacity','_jr200_wav_begin','_jr200_wav_header_ptr','_jr200_wav_header_size','_jr200_wav_pcm_ptr','_jr200_wav_pcm_capacity','_jr200_wav_drain','_jr200_wav_field','_jr200_wav_error_offset','_jr200_wav_error_message']")
 else()
   include(CTest)
   add_executable(cjrtool tools/cjrtool.cpp)
-  target_link_libraries(cjrtool PRIVATE jr200_cjr)
+  target_link_libraries(cjrtool PRIVATE jr200_system)
   add_executable(test_cjr tests/test_cjr.cpp src/wasm/api.cpp)
   target_link_libraries(test_cjr PRIVATE jr200_cjr)
   add_executable(test_m6800 tests/test_m6800.cpp)
@@ -54,10 +55,13 @@ else()
   target_link_libraries(test_system PRIVATE jr200_system)
   add_executable(test_cassette tests/test_cassette.cpp)
   target_link_libraries(test_cassette PRIVATE jr200_system)
+  add_executable(test_wav tests/test_wav.cpp)
+  target_link_libraries(test_wav PRIVATE jr200_system)
   add_test(NAME cjr_native COMMAND test_cjr)
   add_test(NAME m6800_native COMMAND test_m6800)
   add_test(NAME system_native COMMAND test_system)
   add_test(NAME cassette_native COMMAND test_cassette)
+  add_test(NAME wav_native COMMAND test_wav)
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
   add_test(NAME cjrtool_cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_cjrtool.py $<TARGET_FILE:cjrtool>)
   add_test(NAME license_guard COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_distribution.py)

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 jr200-web contributors
 #include "jr200/cjr.hpp"
+#include "jr200/wav.hpp"
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -28,6 +30,30 @@ void write_file(const std::string& path, const std::vector<uint8_t>& bytes) {
     if (!stream || !stream.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size())))
         throw std::runtime_error("failed to write output: " + path);
 }
+void write_wave_file(const std::string& path, jr200::wav::Encoder& encoder) {
+    if (std::filesystem::exists(path)) throw std::runtime_error("refusing to overwrite: " + path);
+    std::array<uint8_t, jr200::wav::kHeaderSize> header{};
+    const jr200::wav::Result header_result = encoder.write_header({header.data(), header.size()});
+    if (!header_result) throw std::runtime_error(jr200::wav::error_message(header_result.error));
+    std::ofstream stream(path, std::ios::binary);
+    if (!stream || !stream.write(reinterpret_cast<const char*>(header.data()),
+                                  static_cast<std::streamsize>(header.size())))
+        throw std::runtime_error("failed to write WAV header: " + path);
+    std::array<int16_t, 4096U> samples{};
+    std::array<uint8_t, 8192U> bytes{};
+    while (!encoder.finished()) {
+        const size_t count = encoder.drain(samples.data(), samples.size());
+        if (count == 0U) throw std::runtime_error("WAV encoder stopped before completion");
+        for (size_t i = 0U; i < count; ++i) {
+            const uint16_t sample = static_cast<uint16_t>(samples[i]);
+            bytes[i * 2U] = static_cast<uint8_t>(sample);
+            bytes[i * 2U + 1U] = static_cast<uint8_t>(sample >> 8U);
+        }
+        if (!stream.write(reinterpret_cast<const char*>(bytes.data()),
+                          static_cast<std::streamsize>(count * 2U)))
+            throw std::runtime_error("failed to write complete WAV: " + path);
+    }
+}
 void require(Result result) {
     if (!result) throw std::runtime_error(std::string(error_message(result.error)) + " at byte " + std::to_string(result.offset));
 }
@@ -45,7 +71,8 @@ int main(int argc, char** argv) {
             std::cerr << "Usage:\n  cjrtool inspect file.cjr [--allow-headerless]\n"
                       << "  cjrtool copy in.cjr out.cjr [--allow-headerless]\n"
                       << "  cjrtool extract in.cjr out.bin [--allow-headerless]\n"
-                      << "  cjrtool pack in.bin out.cjr NAME address_hex [--basic] [--600]\n";
+                      << "  cjrtool pack in.bin out.cjr NAME address_hex [--basic] [--600]\n"
+                      << "  cjrtool wav in.cjr out.wav [--rate 44100|48000] [--600|--2400]\n";
             return 2;
         }
         const std::string command = argv[1];
@@ -73,6 +100,41 @@ int main(int argc, char** argv) {
             require(encode_binary(filename, view(input), uint16_t(address), basic, baud, {output.data(), output.size()}, size));
             write_file(argv[3], output);
             std::cout << "Wrote " << size << " bytes. Hardware compatibility is not yet verified.\n";
+            return 0;
+        }
+        if (command == "wav") {
+            if (argc < 4) throw std::runtime_error("wav requires input and output paths");
+            jr200::wav::Options options{};
+            bool baud_selected = false;
+            for (int i = 4; i < argc; ++i) {
+                const std::string flag = argv[i];
+                if (flag == "--600") {
+                    if (baud_selected) throw std::runtime_error("choose only one data baud");
+                    options.data_baud = jr200::CassetteDataBaud::Baud600;
+                    baud_selected = true;
+                } else if (flag == "--2400") {
+                    if (baud_selected) throw std::runtime_error("choose only one data baud");
+                    options.data_baud = jr200::CassetteDataBaud::Baud2400;
+                    baud_selected = true;
+                } else if (flag == "--rate") {
+                    if (++i >= argc) throw std::runtime_error("--rate requires 44100 or 48000");
+                    const std::string value = argv[i];
+                    if (value == "44100") options.sample_rate = 44100U;
+                    else if (value == "48000") options.sample_rate = 48000U;
+                    else throw std::runtime_error("--rate requires 44100 or 48000");
+                } else {
+                    throw std::runtime_error("unknown wav option: " + flag);
+                }
+            }
+            jr200::wav::Encoder encoder;
+            const jr200::wav::Result result = encoder.begin(view(input), options);
+            if (!result) throw std::runtime_error(jr200::wav::error_message(result.error));
+            const jr200::wav::Info info = encoder.info();
+            write_wave_file(argv[3], encoder);
+            std::cout << "Wrote " << info.total_bytes << " bytes, "
+                      << info.pcm_samples << " samples, " << info.sample_rate
+                      << " Hz, mono 16-bit, " << info.data_baud
+                      << " baud. Hardware compatibility is not yet verified.\n";
             return 0;
         }
         if (command != "inspect" && command != "copy" && command != "extract")

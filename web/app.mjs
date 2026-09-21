@@ -24,6 +24,8 @@ const state = {
   lastStatus: 0,
   activeKeys: new Map(),
   tapeName: '',
+  wavCjr: null,
+  wavName: '',
 };
 
 let codec;
@@ -37,7 +39,7 @@ try {
   codec = await loadCodec();
   audioOutput = new WebAudioOutput(codec.machine.audio, {onChange: () => showAudioStatus()});
   $('status').textContent = 'WASM起動済み / 処理はローカルのみ';
-  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'audio-enable', 'audio-volume', 'audio-mute']) {
+  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'audio-enable', 'audio-volume', 'audio-mute', 'wav-rate', 'wav-baud']) {
     $(id).disabled = false;
   }
   updateAssetStatus();
@@ -754,12 +756,25 @@ $('tape-replay-output').addEventListener('click', () => {
 
 async function inspectFile() {
   try {
-    const summary = codec.inspect(await readLimited($('cjr').files[0]), $('headerless').checked);
+    const file = $('cjr').files[0];
+    const bytes = await readLimited(file);
+    const summary = codec.inspect(bytes, $('headerless').checked);
     const flags = [[1, 'ヘッダーなし：形式・速度は不明'], [2, 'ブロック番号が非連続'], [4, 'アドレスが非連続：単純なBIN連結は不可'], [8, 'フッターアドレスが最終領域末尾と異なる'], [16, '未知のファイル種別'], [32, '標準と異なるヘッダーアドレス'], [64, 'データブロックなし']]
       .filter(([bit]) => summary.warnings & bit)
       .map(([, text]) => text);
     $('result').textContent = JSON.stringify({...summary, diagnostics: flags, hardwareVerified: false}, null, 2);
+    state.wavCjr = summary.hasHeader && summary.fileType <= 1 ? bytes : null;
+    state.wavName = state.wavCjr ? file.name : '';
+    if (state.wavCjr) $('wav-baud').value = summary.baudFlag === 0 ? '2400' : '600';
+    $('wav-create').disabled = !state.wavCjr;
+    $('wav-status').textContent = state.wavCjr
+      ? '標準CJRをWAVへ変換できます。生成しても自動再生しません。'
+      : 'ヘッダー付き標準BASIC/マシン語CJRだけをWAVへ変換できます。';
   } catch (error) {
+    state.wavCjr = null;
+    state.wavName = '';
+    $('wav-create').disabled = true;
+    $('wav-status').textContent = '検証済みCJRを選択してください。';
     $('result').textContent = `エラー: ${error.message}`;
   }
 }
@@ -767,6 +782,24 @@ async function inspectFile() {
 $('cjr').addEventListener('change', inspectFile);
 $('headerless').addEventListener('change', () => {
   if ($('cjr').files.length) inspectFile();
+});
+
+$('wav-create').addEventListener('click', () => {
+  try {
+    if (!state.wavCjr) throw new Error('先に標準CJRを選択してください');
+    const sampleRate = Number($('wav-rate').value);
+    const baud = Number($('wav-baud').value);
+    const rendered = codec.wav.encode(state.wavCjr, {sampleRate, baud});
+    const url = URL.createObjectURL(new Blob([rendered.bytes], {type: 'audio/wav'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = state.wavName.replace(/\.[^.]*$/, '') + `-${baud}baud-${sampleRate}Hz.wav`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    $('wav-status').textContent = `${rendered.bytes.length}バイト / ${rendered.pcmSamples} samples / ${rendered.durationSeconds.toFixed(3)}秒 / ${sampleRate} Hz / mono 16-bit / ${rendered.baud} baud。実機互換はP12で未検証です。`;
+  } catch (error) {
+    $('wav-status').textContent = `エラー: ${error.message}`;
+  }
 });
 
 $('pack').addEventListener('submit', async event => {

@@ -159,10 +159,18 @@
 
   <section aria-labelledby="inspect-heading">
     <h2 id="inspect-heading">05 / CJRを検査</h2>
-    <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
+    <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。検証済みの標準CJRはカセットWAVへ変換できます。</p>
     <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
     <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
     <pre id="result" aria-live="polite">ファイルを選択してください。</pre>
+    <h3>CJRからWAVを作成</h3>
+    <p class="hint">12-bit frame、固定600 baud header、leader/ブロック間隔を保ち、データ部を600または2400 baudで出力します。音量は50%、自動再生はしません。</p>
+    <div class="fields">
+      <label>sample rate<select id="wav-rate" disabled><option value="48000">48000 Hz</option><option value="44100">44100 Hz</option></select></label>
+      <label>データ速度<select id="wav-baud" disabled><option value="2400">2400 baud</option><option value="600">600 baud</option></select></label>
+    </div>
+    <button id="wav-create" type="button" disabled>検証済みCJRからWAVを保存</button>
+    <p id="wav-status" role="status">検証済みCJRを選択してください。生成WAVの実機互換はP12で確認します。</p>
   </section>
 
   <section aria-labelledby="pack-heading">
