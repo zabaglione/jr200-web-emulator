@@ -1,0 +1,126 @@
+[
+  {
+    "id": "P00",
+    "title": "[P00] 出典固定・取込済コードのライセンス監査",
+    "depends_on": [],
+    "file": "docs/issues/P00.md",
+    "status_at_creation": "取込済CJR部分をローカル確認済み。上流全ファイルの網羅監査ではない。"
+  },
+  {
+    "id": "P01",
+    "title": "[P01] C++20共通コア・native/WASMビルド基盤",
+    "depends_on": [
+      "P00"
+    ],
+    "file": "docs/issues/P01.md",
+    "status_at_creation": "nativeとClang WASMをローカル検証。Emscriptenとremote CIは未実行。"
+  },
+  {
+    "id": "P02",
+    "title": "[P02] CJR構造・検証・損失なし保存・BIN包装",
+    "depends_on": [
+      "P01"
+    ],
+    "file": "docs/issues/P02.md",
+    "status_at_creation": "初期実装と合成テストあり。独立した既存実装との互換はP03。"
+  },
+  {
+    "id": "P03",
+    "title": "[P03] Windows基準実装とのCJR差分試験",
+    "depends_on": [
+      "P02"
+    ],
+    "file": "docs/issues/P03.md",
+    "status_at_creation": "未着手。Windows実行結果または権利確認済み対照検体が必要。"
+  },
+  {
+    "id": "P04",
+    "title": "[P04] CPUコア・メモリバスの移植",
+    "depends_on": [
+      "P03"
+    ],
+    "file": "docs/issues/P04.md",
+    "status_at_creation": "未実装。MAME等のライセンス確認はこの取込前に追加する。"
+  },
+  {
+    "id": "P05",
+    "title": "[P05] MN1271・MN1544・CRTCとシステム時刻",
+    "depends_on": [
+      "P04"
+    ],
+    "file": "docs/issues/P05.md",
+    "status_at_creation": "未実装。画面が出るだけで周辺回路の完了としない。"
+  },
+  {
+    "id": "P06",
+    "title": "[P06] ブラウザBASIC起動・ROM選択・入力と画面",
+    "depends_on": [
+      "P05"
+    ],
+    "file": "docs/issues/P06.md",
+    "status_at_creation": "未実装。現在のWebページはCJR検査ツールのみ。"
+  },
+  {
+    "id": "P07",
+    "title": "[P07] 開発用デバッガ・追跡・メモリウォッチ",
+    "depends_on": [
+      "P06"
+    ],
+    "file": "docs/issues/P07.md",
+    "status_at_creation": "未実装。JR-800等での利用方針を反映した検証機能。"
+  },
+  {
+    "id": "P08",
+    "title": "[P08] CJRカセットLOAD/MLOAD/SAVE/MSAVE統合",
+    "depends_on": [
+      "P07"
+    ],
+    "file": "docs/issues/P08.md",
+    "status_at_creation": "未実装。CJRファイルの検査成功と通常カセット動作を区別する。"
+  },
+  {
+    "id": "P09",
+    "title": "[P09] 音声のWeb出力・休止復帰",
+    "depends_on": [
+      "P08"
+    ],
+    "file": "docs/issues/P09.md",
+    "status_at_creation": "未実装。音声デバイスの確認が必要。"
+  },
+  {
+    "id": "P10",
+    "title": "[P10] CJR信号生成・WAVエンコード",
+    "depends_on": [
+      "P09"
+    ],
+    "file": "docs/issues/P10.md",
+    "status_at_creation": "未実装。GetLoadData/WaveGetterに公開根拠はある。実機成功はP12で判定。"
+  },
+  {
+    "id": "P11",
+    "title": "[P11] 録音WAV解析・CJR復元",
+    "depends_on": [
+      "P10"
+    ],
+    "file": "docs/issues/P11.md",
+    "status_at_creation": "未実装。合成WAVと実機録音を別のテスト分類にする。"
+  },
+  {
+    "id": "P12",
+    "title": "[P12] 実機とのWAV往復受入試験",
+    "depends_on": [
+      "P11"
+    ],
+    "file": "docs/issues/P12.md",
+    "status_at_creation": "未実施。JR-200実機と録再生環境の利用可能性は未確認。"
+  },
+  {
+    "id": "P13",
+    "title": "[P13] 配布監査・再現可能ビルド・初版受入",
+    "depends_on": [
+      "P12"
+    ],
+    "file": "docs/issues/P13.md",
+    "status_at_creation": "未着手。初版の一般公開はこのIssueにも含めない。"
+  }
+]

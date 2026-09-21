@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: BSD-3-Clause
+# Compile the allocation-free codec with Clang, without downloading an SDK.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CXX="${WASM_CXX:-clang++}"
+command -v "$CXX" >/dev/null || { echo 'clang++ is required' >&2; exit 1; }
+mkdir -p "$ROOT/build/wasm-smoke"
+exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
+         jr200_output_size jr200_error_offset jr200_error_message jr200_inspect
+         jr200_summary_field jr200_name_ptr jr200_encode)
+args=()
+for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
+"$CXX" --target=wasm32 -std=c++20 -O2 -ffreestanding -fno-exceptions -fno-rtti \
+  -fno-builtin -nostdlib -I"$ROOT/include" "$ROOT/src/tape/cjr.cpp" "$ROOT/src/wasm/api.cpp" \
+  -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=4194304 \
+  -Wl,--max-memory=16777216 "${args[@]}" -o "$ROOT/build/wasm-smoke/jr200_codec.wasm"
+python3 "$ROOT/scripts/stage_web.py" --backend clang
+node "$ROOT/tests/wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
+node "$ROOT/tests/wrapper_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
