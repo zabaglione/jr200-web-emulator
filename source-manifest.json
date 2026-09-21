@@ -1,6 +1,7 @@
 {
   "files": [
     ".editorconfig",
+    ".emscripten-version",
     ".gitattributes",
     ".github/ISSUE_TEMPLATE/bug_report.md",
     ".github/ISSUE_TEMPLATE/development_task.md",
@@ -23,6 +24,7 @@
     "docs/P03_REFERENCE_RESULTS.md",
     "docs/P04_CPU_AUDIT.md",
     "docs/P05_PERIPHERAL_AUDIT.md",
+    "docs/P06_BROWSER_ACCEPTANCE.md",
     "docs/SOW.md",
     "docs/STATUS.md",
     "docs/TEST_RESULTS.md",
@@ -49,6 +51,7 @@
     "scripts/bootstrap_github.py",
     "scripts/build_wasm_smoke.sh",
     "scripts/check_distribution.py",
+    "scripts/check_emscripten_version.py",
     "scripts/stage_web.py",
     "scripts/update_manifest.py",
     "source-manifest.json",
@@ -72,6 +75,7 @@
     "tests/test_m6800.cpp",
     "tests/test_system.cpp",
     "tests/wasm_smoke.mjs",
+    "tests/webdriver_real_rom_smoke.py",
     "tests/wrapper_smoke.mjs",
     "tools/cjrtool.cpp",
     "web/app.mjs",

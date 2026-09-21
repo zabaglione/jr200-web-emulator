@@ -8,7 +8,22 @@ const module = await createJR200Codec();
 
 assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
-assert.equal(module._jr200_system_api_version(), 1);
+assert.equal(module._jr200_system_api_version(), 2);
+
+module._jr200_system_clear();
+assert.equal(module._jr200_system_rom_capacity(), 16384);
+assert.equal(module._jr200_system_font_capacity(), 2048);
+const rom = new Uint8Array(module.HEAPU8.buffer, module._jr200_system_rom_ptr(), 16384);
+const font = new Uint8Array(module.HEAPU8.buffer, module._jr200_system_font_ptr(), 2048);
+rom.fill(0);
+font.fill(0x5a);
+rom.set([0x86, 0x2a, 0xb7, 0xc1, 0x00, 0x20, 0xfe], 8192);
+rom.set([0xe0, 0x00], 16382);
+assert.equal(module._jr200_system_boot(rom.length, font.length), 1);
+assert.equal(module._jr200_system_cpu_register(0), 0xe000);
+assert.ok(module._jr200_system_run(200) >= 200);
+assert.equal(module._jr200_system_peek(0xc100), 0x2a);
+assert.equal(module._jr200_system_reset(), 1);
 
 module._jr200_system_clear();
 module._jr200_system_poke(0xfffe, 0x10);
@@ -27,4 +42,4 @@ assert.equal(module._jr200_system_peek(0xc80e), 0x61);
 assert.equal(module._jr200_system_read(0xc80e), 0x61);
 assert.equal(module._jr200_system_field(0), 0);
 
-console.log('PASS Emscripten module: codec, CPU and system ABIs initialize; timer IRQ and peek semantics match');
+console.log('PASS Emscripten module: codec, CPU and system ABIs initialize; boot/run/reset, timer IRQ and peek semantics match');

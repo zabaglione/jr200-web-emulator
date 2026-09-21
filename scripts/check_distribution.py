@@ -12,6 +12,7 @@ mame=(ROOT/'LICENSES/MAME_BSD-3-Clause.txt').read_bytes()
 mame_blob=hashlib.sha1(b'blob '+str(len(mame)).encode()+b'\0'+mame).hexdigest()
 assert mame_blob=='cc9ab753198e41128dc651e0adb4f5e8c1be932a','MAME BSD license bytes changed'
 assert (ROOT/'LICENSE').exists() and (ROOT/'THIRD_PARTY_NOTICES.md').exists()
+assert (ROOT/'.emscripten-version').read_text().strip()=='6.0.9'
 html=(ROOT/'web/index.html').read_text()
 assert 'LICENSES/VJR200.txt' in html and 'LICENSES/MAME_BSD-3-Clause.txt' in html
 assert 'THIRD_PARTY_NOTICES.md' in html
@@ -38,7 +39,9 @@ if manifest.exists():
               'src/core/peripherals.cpp','src/core/system.cpp','src/wasm/system_api.cpp',
               'src/wasm/freestanding_memory.cpp',
               'tests/test_system.cpp','tests/system_wasm_smoke.mjs',
-              'tests/emscripten_smoke.mjs','docs/P05_PERIPHERAL_AUDIT.md'}
+              'tests/emscripten_smoke.mjs','tests/webdriver_real_rom_smoke.py',
+              'docs/P05_PERIPHERAL_AUDIT.md','docs/P06_BROWSER_ACCEPTANCE.md',
+              '.emscripten-version','scripts/check_emscripten_version.py'}
     assert required.issubset(files),'CPU source or license missing from source inventory'
     for f in files:
         p=Path(f)

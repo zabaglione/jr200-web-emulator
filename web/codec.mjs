@@ -16,6 +16,7 @@ export async function loadCodec() {
     memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
+  if (e.jr200_system_api_version() !== 2) throw new Error('システムABIのバージョンが一致しません');
   const text = new TextDecoder();
   const checked = code => {
     if (code) {
@@ -25,7 +26,74 @@ export async function loadCodec() {
       throw new Error(`${text.decode(heap.subarray(start,end))} (offset ${e.jr200_error_offset()})`);
     }
   };
+  let machineBooted = false;
+  const machine = {
+    boot(rom, font) {
+      if (!(rom instanceof Uint8Array) || rom.length !== e.jr200_system_rom_capacity()) {
+        throw new Error('結合ROMは16384バイト（ROM1、ROM2の順）が必要です');
+      }
+      if (!(font instanceof Uint8Array) || font.length !== e.jr200_system_font_capacity()) {
+        throw new Error('フォントは2048バイトが必要です');
+      }
+      const heap = memory();
+      heap.set(rom, e.jr200_system_rom_ptr());
+      heap.set(font, e.jr200_system_font_ptr());
+      if (e.jr200_system_boot(rom.length, font.length) !== 1) {
+        machineBooted = false;
+        throw new Error('ROMとフォントをシステムへ読み込めませんでした');
+      }
+      machineBooted = true;
+      return this.registers();
+    },
+    clear() {
+      e.jr200_system_clear();
+      machineBooted = false;
+    },
+    reset() {
+      if (e.jr200_system_reset() !== 1) {
+        machineBooted = false;
+        throw new Error('先にROMとフォントを読み込んでください');
+      }
+      return this.registers();
+    },
+    run(cycles) {
+      if (!machineBooted) throw new Error('先にROMとフォントを読み込んでください');
+      if (!Number.isInteger(cycles) || cycles < 0 || cycles > 10_000_000) {
+        throw new Error('実行cycle数が範囲外です');
+      }
+      return e.jr200_system_run(cycles);
+    },
+    setKey(code, pressed) {
+      if (!Number.isInteger(code) || code < 0 || code > 255) throw new Error('キーコードが範囲外です');
+      e.jr200_system_set_key(code, pressed ? 1 : 0);
+    },
+    pulseNmi() {
+      e.jr200_system_pulse_nmi();
+    },
+    render() {
+      e.jr200_system_render();
+      return new Uint32Array(memory().buffer, e.jr200_system_framebuffer_ptr(), 320 * 224);
+    },
+    peek(address) {
+      if (!Number.isInteger(address) || address < 0 || address > 65535) throw new Error('アドレスが範囲外です');
+      return e.jr200_system_peek(address);
+    },
+    registers() {
+      const names = ['pc', 'sp', 'x', 'a', 'b', 'cc', 'waiting'];
+      return Object.fromEntries(names.map((name, field) => [name, e.jr200_system_cpu_register(field)]));
+    },
+    state() {
+      return {
+        irq: e.jr200_system_field(0) !== 0,
+        cassetteRemote: e.jr200_system_field(1) !== 0,
+        cycles: e.jr200_system_field(2),
+        fontInitialized: e.jr200_system_field(5) !== 0,
+        frameGeneration: e.jr200_system_field(7),
+      };
+    },
+  };
   return {
+    machine,
     inspect(bytes, allowHeaderless=false) {
       if (!(bytes instanceof Uint8Array) || bytes.length > e.jr200_capacity()) throw new Error('入力上限は1 MiBです');
       memory().set(bytes,e.jr200_input_ptr());

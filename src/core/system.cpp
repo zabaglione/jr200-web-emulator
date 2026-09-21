@@ -120,6 +120,27 @@ M6800Trace JR200Machine::step()
     return trace;
 }
 
+uint32_t JR200Machine::run_cycles(uint32_t cycle_budget)
+{
+    uint32_t elapsed = 0U;
+    while (elapsed < cycle_budget) {
+        const M6800Trace trace = step();
+        if (trace.total_cycles != 0U) {
+            elapsed += trace.total_cycles;
+            continue;
+        }
+        if (!cpu_.waiting()) {
+            break;
+        }
+
+        const uint32_t remaining = cycle_budget - elapsed;
+        const uint32_t idle_cycles = remaining < 10U ? remaining : 10U;
+        advance_cycles(idle_cycles);
+        elapsed += idle_cycles;
+    }
+    return elapsed;
+}
+
 void JR200Machine::advance_cycles(uint32_t cycles) noexcept
 {
     if (cycles == 0U) {

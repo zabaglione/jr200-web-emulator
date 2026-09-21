@@ -1,14 +1,14 @@
 # JR-200 Web Emulator
 
-**状態: CJR、MC6800、JR-200周辺回路の合成試験まで完了。ROM/BASICはまだ起動していません。**
+**状態: P06まで受入完了。ローカルROM/フォントによるJR BASIC 5.0の起動、Canvas表示、キーボード入力を確認済みです。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 
 ## 今回入っているもの
 
-CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、C++を実行するWASM版検査ページ、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、PCMキュー、ARGBフレームバッファ、native/WASM合成テスト、14件のIssue本文です。
+CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、PCMキュー、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、キーボード入力、ポーズ/リセット、native/WASM/ブラウザ試験、14件のIssue本文です。
 
-**入っていないもの:** メーカーROM/fontの選択とBASIC起動、Canvas/Web Audio接続、通常カセットLOAD/SAVE、WAVエンコーダ/デコーダ、ROM/メーカー由来フォント本体、実機互換の確認結果。
+**入っていないもの:** Web Audio接続、通常カセットLOAD/SAVE、WAVエンコーダ/デコーダ、ROM/メーカー由来フォント本体、実機互換の確認結果。ROM、フォント、録音は利用者のローカルファイルとしてのみ扱います。
 
 リポジトリ: [zabaglione/jr200-web-emulator](https://github.com/zabaglione/jr200-web-emulator)（private）。開発順と実際のIssue番号は [Issue一覧](docs/ISSUE_INDEX.md) を参照してください。CIの結果は [Actions](https://github.com/zabaglione/jr200-web-emulator/actions) で確認できます。
 
@@ -37,7 +37,7 @@ make sanitize    # clang++ と sanitizer が必要
 
 CLIは `inspect` / `copy` / `extract` / `pack` を持ちます。引数は引数なしのヘルプで確認できます。既存出力への上書きは拒否します。離れたアドレスのCJRを単純に連結してBINへ変換することも拒否します。
 
-## WASM版CJR検査ページ
+## WASM版Webエミュレータ
 
 依存なしのCJRコーデック、MC6800、周辺回路コアはClangのWASMターゲットでも動作します。
 
@@ -47,9 +47,9 @@ make serve
 # ブラウザで http://127.0.0.1:8000 を開く
 ```
 
-CJR検査とBIN→標準CJR包装の画面を用意しています。WASM本体とJSラッパーはNode.jsで検証し、ローカル配信ページの起動表示とライセンス導線をブラウザで確認しました。Playwright自動試験は現在のPython環境に依存がなく未実行です。入力ファイルはブラウザ内部のみで処理し、サーバーにはアップロードしません。ローカルHTTPサーバーは静的ファイルの配信だけを行います。
+結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査とBIN→標準CJR包装も同じ画面から利用できます。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
 
-正式なエミュレータ移植用のEmscripten設定を同梱し、Emscripten 6.0.9でCJR/CPU/周辺回路を含むmoduleの生成とNode.js起動を確認しています。
+Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。詳細と未検証範囲は [P06ブラウザ受入記録](docs/P06_BROWSER_ACCEPTANCE.md) を参照してください。
 
 ```sh
 # emsdk を導入・有効化済みの環境で
@@ -63,6 +63,8 @@ make serve
 # Playwrightを導入済み、使用するChromium実行ファイルを指定
 CHROMIUM_EXECUTABLE=/path/to/chromium python3 tests/browser_smoke.py
 ```
+
+権利確認済みのROM/フォントを使う任意試験には `tests/webdriver_real_rom_smoke.py` を利用できます。引数のファイルパスはWebDriver側から見える読み取り専用パスを指定し、検体自体はGitへ追加しないでください。
 
 ## 開発の開始
 

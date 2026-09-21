@@ -9,6 +9,26 @@ namespace {
 jr200::JR200Machine machine;
 jr200::PcmFrame last_pcm{};
 jr200::M6800Trace last_system_trace{};
+alignas(16) uint8_t rom_buffer[16384]{};
+alignas(16) uint8_t font_buffer[jr200::Mn1544::kFontSize]{};
+bool assets_loaded{};
+
+bool reset_loaded_machine()
+{
+    if (!assets_loaded) {
+        return false;
+    }
+    machine.initialize_memory();
+    machine.reset_peripherals();
+    if (!machine.load_rom(rom_buffer, sizeof(rom_buffer)) ||
+        !machine.load_font(font_buffer, sizeof(font_buffer))) {
+        assets_loaded = false;
+        return false;
+    }
+    last_pcm = {};
+    last_system_trace = machine.reset_cpu();
+    return true;
+}
 
 }  // namespace
 
@@ -16,7 +36,7 @@ extern "C" {
 
 uint32_t jr200_system_api_version()
 {
-    return 1U;
+    return 2U;
 }
 
 void jr200_system_clear()
@@ -25,6 +45,55 @@ void jr200_system_clear()
     machine.reset_peripherals();
     last_pcm = {};
     last_system_trace = {};
+    assets_loaded = false;
+    for (size_t i = 0U; i < sizeof(rom_buffer); ++i) {
+        rom_buffer[i] = 0U;
+    }
+    for (size_t i = 0U; i < sizeof(font_buffer); ++i) {
+        font_buffer[i] = 0U;
+    }
+}
+
+uint8_t* jr200_system_rom_ptr()
+{
+    return rom_buffer;
+}
+
+uint32_t jr200_system_rom_capacity()
+{
+    return static_cast<uint32_t>(sizeof(rom_buffer));
+}
+
+uint8_t* jr200_system_font_ptr()
+{
+    return font_buffer;
+}
+
+uint32_t jr200_system_font_capacity()
+{
+    return static_cast<uint32_t>(sizeof(font_buffer));
+}
+
+uint32_t jr200_system_boot(uint32_t rom_size, uint32_t font_size)
+{
+    assets_loaded = rom_size == sizeof(rom_buffer) &&
+        font_size == sizeof(font_buffer);
+    return reset_loaded_machine() ? 1U : 0U;
+}
+
+uint32_t jr200_system_reset()
+{
+    return reset_loaded_machine() ? 1U : 0U;
+}
+
+uint32_t jr200_system_run(uint32_t cycle_budget)
+{
+    return machine.run_cycles(cycle_budget);
+}
+
+void jr200_system_pulse_nmi()
+{
+    machine.pulse_nmi();
 }
 
 uint32_t jr200_system_cpu_reset()

@@ -21,4 +21,4 @@ else:
     shutil.copy2(ROOT / 'build/emscripten/web/jr200_codec.mjs', site / 'jr200_codec.mjs')
     shutil.copy2(ROOT / 'build/emscripten/web/jr200_codec.wasm', site / 'jr200_codec.wasm')
 (site / 'backend.json').write_text('{"backend":"' + a.backend + '"}\n')
-print('Staged local CJR inspector:', site)
+print('Staged local JR-200 emulator:', site)

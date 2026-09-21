@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: BSD-3-Clause
-"""Exercise the staged CJR inspector in real Chromium; no network outside localhost.
-Requires Playwright and a Chromium binary. Does not test emulator/ROM/hardware.
+"""Exercise the staged UI in real Chromium; no network outside localhost.
+
+Uses a synthetic ROM to test the browser wiring. It is not evidence that a
+manufacturer ROM reaches BASIC or that hardware interchange works.
 """
 from __future__ import annotations
 import functools
@@ -15,6 +17,11 @@ import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = bytes([2,42,0,26,255,255,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,255,255,255,255,255,255,255,255,149,2,42,1,1,112,0,171,73,2,42,255,255,112,1])
+ROM = bytearray(16384)
+ROM[0] = 1
+ROM[8192:8199] = bytes([0x86,0x2a,0xb7,0xc1,0x00,0x20,0xfe])
+ROM[16382:16384] = bytes([0xe0,0x00])
+FONT = bytes(index & 0xff for index in range(2048))
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_args: object) -> None:
@@ -52,7 +59,18 @@ def main() -> None:
                 page.route('**/*',guard)
                 page.goto(base+'/',wait_until='networkidle')
                 expect(page.locator('#status')).to_contain_text('WASM起動済み')
-                assert '未実装' in page.locator('.notice').inner_text()
+                expect(page.locator('#emulator-notice')).to_contain_text('未起動')
+                expect(page.locator('#machine-status')).to_contain_text('CPUは実行していません')
+                page.locator('#rom-combined').set_input_files({'name':'synthetic.rom','mimeType':'application/octet-stream','buffer':bytes(ROM)})
+                page.locator('#font').set_input_files({'name':'synthetic-font.bin','mimeType':'application/octet-stream','buffer':FONT})
+                expect(page.locator('#start')).to_be_enabled()
+                page.locator('#start').click()
+                expect(page.locator('#emulator-notice')).to_contain_text('CPUを起動')
+                expect(page.locator('#machine-status')).to_contain_text('実行中')
+                page.locator('#pause').click()
+                expect(page.locator('#machine-status')).to_contain_text('一時停止')
+                page.locator('#reset').click()
+                expect(page.locator('#machine-status')).to_contain_text('実行中')
                 page.locator('#cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 expect(page.locator('#result')).to_contain_text('payloadBytes')
                 summary=json.loads(page.locator('#result').inner_text())
@@ -81,7 +99,7 @@ def main() -> None:
                 assert '40' in page.locator('#result').inner_text()
                 assert not errors, errors
                 assert not external, external
-                print('PASS Chromium: WASM startup, CJR inspect, exact BIN->CJR download, corrupt input, license links, no external requests')
+                print('PASS Chromium: no-ROM boundary, synthetic boot/pause/reset/canvas, CJR tools, license links, no external requests')
                 print('Browser:',browser.version)
             finally:
                 browser.close()

@@ -287,6 +287,12 @@ void test_cpu_scheduler_boundary()
           "machine step combines CPU base cycle and RAM wait");
     check(machine.cycle_count() == 3U,
           "peripherals advance from returned CPU cycles only");
+
+    machine.poke(0x1000U, 0x3eU);
+    machine.cpu().set_registers({0x1000U, 0x7fffU, 0U, 0U, 0U, 0U});
+    const uint32_t elapsed = machine.run_cycles(25U);
+    check(elapsed == 25U && machine.cpu().waiting(),
+          "cycle-budget scheduler advances peripherals while CPU is waiting");
 }
 
 }  // namespace

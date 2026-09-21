@@ -1,19 +1,105 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'">
-<title>JR-200 Web — CJR検査ツール</title><link rel="stylesheet" href="style.css"></head>
-<body><main><header><p class="eyebrow">JR-200 WEB / DEVELOPMENT BUILD</p><h1>CJR検査ツール</h1><p class="lead">C++コアをWebAssemblyで実行。ファイルはこのブラウザ内で処理します。</p></header>
-<div class="notice"><strong>エミュレータ本体はまだ起動できません。</strong> MC6800と周辺回路コアはnative/WASM合成試験済みですが、この画面はCJR解析・BIN→CJR作成用です。ROM/font選択、BASIC起動、Canvas/Web Audio接続、WAV変換・実機互換は未検証です。</div>
-<p id="status" role="status">WASMを読み込んでいます…</p>
-<section><h2>01 / CJRを検査</h2><p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
-<label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
-<label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
-<pre id="result" aria-live="polite">ファイルを選択してください。</pre></section>
-<section><h2>02 / BINから標準CJRを作成</h2><p>既存バイナリを1つの連続領域として格納します。BASICのトークナイズは行いません。</p>
-<form id="pack"><label>BINファイル<input id="bin" type="file" required disabled></label>
-<div class="fields"><label>JRファイル名（ASCII）<input id="name" value="TEST" maxlength="16" required></label><label>開始アドレス（16進）<input id="address" value="7000" pattern="[0-9a-fA-F]{1,4}" required></label>
-<label>形式<select id="kind"><option value="1">マシン語 / MLOAD</option><option value="0">BASICバイト列 / LOAD（$0801）</option></select></label>
-<label>ボーレート指定<select id="baud"><option value="0">2400（フラグ0）</option><option value="100">600（フラグ100）</option></select></label></div>
-<button id="create" disabled>検証してCJRを保存</button></form><p id="pack-status" role="status"></p></section>
-<footer><p>非公式の独立プロジェクトです。VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。</p>
-<a href="LICENSE.txt">本プロジェクトのライセンス</a> · <a href="LICENSES/VJR200.txt">FIND / VJR-200 ライセンス全文</a> · <a href="LICENSES/MAME_BSD-3-Clause.txt">MAME MC6800 BSD-3-Clause全文</a> · <a href="THIRD_PARTY_NOTICES.md">第三者表記</a></footer>
-</main><script type="module" src="app.mjs"></script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'">
+  <title>JR-200 Web Emulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">JR-200 WEB / DEVELOPMENT BUILD</p>
+    <h1>JR-200 Web Emulator</h1>
+    <p class="lead">利用者が選んだROMとフォントだけを、このブラウザ内で実行します。</p>
+  </header>
+
+  <div id="emulator-notice" class="notice" data-state="waiting">
+    <strong>未起動です。</strong> ROMとフォントは同梱していません。正しいローカルファイルを選択してください。
+  </div>
+  <p id="status" role="status">WASMを読み込んでいます…</p>
+
+  <section aria-labelledby="emulator-heading">
+    <h2 id="emulator-heading">01 / JR-200を起動</h2>
+    <p>ファイルは外部送信しません。通常はページを閉じると失われ、明示的に許可した場合だけIndexedDBへ保存します。</p>
+
+    <fieldset class="rom-choice">
+      <legend>ROM形式</legend>
+      <label class="check"><input type="radio" name="rom-mode" value="combined" checked> 結合ROM（16384バイト、ROM1→ROM2）</label>
+      <label class="check"><input type="radio" name="rom-mode" value="split"> ROM1 / ROM2を別々に選択</label>
+    </fieldset>
+
+    <div id="combined-fields">
+      <label class="file">結合ROM
+        <input id="rom-combined" type="file" accept=".rom,.bin,application/octet-stream" disabled>
+      </label>
+    </div>
+    <div id="split-fields" class="file-grid" hidden>
+      <label class="file">ROM1（$A000、8192バイト）
+        <input id="rom1" type="file" accept=".rom,.bin,application/octet-stream" disabled>
+      </label>
+      <label class="file">ROM2（$E000、8192バイト）
+        <input id="rom2" type="file" accept=".rom,.bin,application/octet-stream" disabled>
+      </label>
+    </div>
+    <label class="file">フォント（2048バイト）
+      <input id="font" type="file" accept=".rom,.bin,application/octet-stream" disabled>
+    </label>
+
+    <ul id="asset-status" class="asset-status" aria-live="polite">
+      <li>ROM: 未選択</li>
+      <li>フォント: 未選択</li>
+    </ul>
+
+    <label class="check permission"><input id="remember-assets" type="checkbox"> このブラウザにROMとフォントを保存することを許可</label>
+    <div class="controls">
+      <button id="start" type="button" disabled>起動</button>
+      <button id="pause" type="button" disabled>一時停止</button>
+      <button id="reset" type="button" disabled>リセット</button>
+      <button id="restore-assets" type="button" disabled>保存済みファイルを復元</button>
+      <button id="forget-assets" type="button" disabled>保存済みファイルを削除</button>
+    </div>
+    <p id="machine-status" role="status">ROM未提供のためCPUは実行していません。</p>
+
+    <div class="screen-shell">
+      <canvas id="screen" width="320" height="224" tabindex="0" aria-label="JR-200画面。起動後にクリックするとキーボード入力できます。"></canvas>
+    </div>
+    <p class="hint">起動後、画面をクリックして入力します。フォーカスを失うとキーを解放して自動的に一時停止します。音声とカセットは後続Issueの対象です。</p>
+  </section>
+
+  <section aria-labelledby="inspect-heading">
+    <h2 id="inspect-heading">02 / CJRを検査</h2>
+    <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
+    <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
+    <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
+    <pre id="result" aria-live="polite">ファイルを選択してください。</pre>
+  </section>
+
+  <section aria-labelledby="pack-heading">
+    <h2 id="pack-heading">03 / BINから標準CJRを作成</h2>
+    <p>既存バイナリを1つの連続領域として格納します。BASICのトークナイズは行いません。</p>
+    <form id="pack">
+      <label>BINファイル<input id="bin" type="file" required disabled></label>
+      <div class="fields">
+        <label>JRファイル名（ASCII）<input id="name" value="TEST" maxlength="16" required></label>
+        <label>開始アドレス（16進）<input id="address" value="7000" pattern="[0-9a-fA-F]{1,4}" required></label>
+        <label>形式<select id="kind"><option value="1">マシン語 / MLOAD</option><option value="0">BASICバイト列 / LOAD（$0801）</option></select></label>
+        <label>ボーレート指定<select id="baud"><option value="0">2400（フラグ0）</option><option value="100">600（フラグ100）</option></select></label>
+      </div>
+      <button id="create" disabled>検証してCJRを保存</button>
+    </form>
+    <p id="pack-status" role="status"></p>
+  </section>
+
+  <footer>
+    <p>非公式の独立プロジェクトです。VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。</p>
+    <a href="LICENSE.txt">本プロジェクトのライセンス</a> ·
+    <a href="LICENSES/VJR200.txt">FIND / VJR-200ライセンス全文</a> ·
+    <a href="LICENSES/MAME_BSD-3-Clause.txt">MAME MC6800 BSD-3-Clause全文</a> ·
+    <a href="THIRD_PARTY_NOTICES.md">第三者表記</a>
+  </footer>
+</main>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>

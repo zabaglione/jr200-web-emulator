@@ -3,7 +3,13 @@
 # Compile the allocation-free codec with Clang, without downloading an SDK.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CXX="${WASM_CXX:-clang++}"
+if [[ -n "${WASM_CXX:-}" ]]; then
+  CXX="$WASM_CXX"
+elif [[ -x /opt/homebrew/opt/emscripten/libexec/llvm/bin/clang++ ]]; then
+  CXX=/opt/homebrew/opt/emscripten/libexec/llvm/bin/clang++
+else
+  CXX=clang++
+fi
 command -v "$CXX" >/dev/null || { echo 'clang++ is required' >&2; exit 1; }
 mkdir -p "$ROOT/build/wasm-smoke"
 exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
@@ -13,6 +19,10 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_cpu_reset jr200_cpu_set_registers jr200_cpu_set_irq
          jr200_cpu_pulse_nmi jr200_cpu_step jr200_cpu_register
          jr200_cpu_trace_field jr200_system_api_version jr200_system_clear
+         jr200_system_rom_ptr jr200_system_rom_capacity
+         jr200_system_font_ptr jr200_system_font_capacity
+         jr200_system_boot jr200_system_reset jr200_system_run
+         jr200_system_pulse_nmi
          jr200_system_cpu_reset jr200_system_cpu_step
          jr200_system_cpu_register jr200_system_cpu_trace_field
          jr200_system_read jr200_system_peek jr200_system_write

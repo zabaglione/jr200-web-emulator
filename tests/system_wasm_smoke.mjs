@@ -7,8 +7,27 @@ const { instance } = await WebAssembly.instantiate(bytes, {});
 const e = instance.exports;
 e.__wasm_call_ctors();
 
-assert.equal(e.jr200_system_api_version(), 1);
+assert.equal(e.jr200_system_api_version(), 2);
 e.jr200_system_clear();
+
+assert.equal(e.jr200_system_rom_capacity(), 16384);
+assert.equal(e.jr200_system_font_capacity(), 2048);
+const rom = new Uint8Array(e.memory.buffer, e.jr200_system_rom_ptr(), 16384);
+const font = new Uint8Array(e.memory.buffer, e.jr200_system_font_ptr(), 2048);
+rom.fill(0);
+font.fill(0x5a);
+rom.set([0x86, 0x2a, 0xb7, 0xc1, 0x00, 0x20, 0xfe], 8192);
+rom[16382] = 0xe0;
+rom[16383] = 0x00;
+assert.equal(e.jr200_system_boot(rom.length, font.length), 1);
+assert.equal(e.jr200_system_cpu_register(0), 0xe000);
+assert.ok(e.jr200_system_run(200) >= 200);
+assert.equal(e.jr200_system_peek(0xc100), 0x2a);
+assert.equal(e.jr200_system_reset(), 1);
+assert.equal(e.jr200_system_cpu_register(0), 0xe000);
+e.jr200_system_clear();
+assert.equal(e.jr200_system_boot(16383, font.length), 0);
+assert.equal(e.jr200_system_reset(), 0);
 
 e.jr200_system_poke(0xfffe, 0x10);
 e.jr200_system_poke(0xffff, 0x00);

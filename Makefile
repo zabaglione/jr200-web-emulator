@@ -9,8 +9,9 @@ sanitize:
 	cmake --build build/sanitize --parallel
 	ctest --test-dir build/sanitize --output-on-failure
 wasm:
-	emcmake cmake -S . -B build/emscripten -DCMAKE_BUILD_TYPE=Release
-	cmake --build build/emscripten --parallel
+	python3 scripts/check_emscripten_version.py
+	EM_CACHE=$(CURDIR)/build/emcache emcmake cmake -S . -B build/emscripten -DCMAKE_BUILD_TYPE=Release
+	EM_CACHE=$(CURDIR)/build/emcache cmake --build build/emscripten --parallel
 	node tests/emscripten_smoke.mjs build/emscripten/web/jr200_codec.mjs
 	python3 scripts/stage_web.py --backend emscripten
 wasm-smoke:

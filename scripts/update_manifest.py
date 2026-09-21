@@ -4,7 +4,7 @@
 import json
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
-top_files=['README.md','LICENSE','THIRD_PARTY_NOTICES.md','AGENTS.md','CMakeLists.txt','Makefile','.gitignore','.gitattributes','.editorconfig','source-manifest.json']
+top_files=['README.md','LICENSE','THIRD_PARTY_NOTICES.md','AGENTS.md','CMakeLists.txt','Makefile','.gitignore','.gitattributes','.editorconfig','.emscripten-version','source-manifest.json']
 files=[x for x in top_files if (root/x).is_file() or x=='source-manifest.json']
 for folder in ['include','src','tests','tools','scripts','docs','LICENSES','web','.github']:
  for p in (root/folder).rglob('*'):

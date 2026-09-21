@@ -31,7 +31,20 @@ try {
   assert.throws(()=>codec.pack(Uint8Array.of(0),'X',65536,false,0),/アドレス/);
   assert.throws(()=>codec.pack([1],'X',0,false,0),/Uint8Array/);
   assert.throws(()=>codec.pack(Uint8Array.of(0),'X',0,false,NaN),/ボーレート/);
-  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, copied output, diagnostics, input guards');
+  const rom = new Uint8Array(16384);
+  const font = new Uint8Array(2048);
+  rom.set([0x86,0x2a,0xb7,0xc1,0x00,0x20,0xfe],8192);
+  rom.set([0xe0,0x00],16382);
+  assert.throws(()=>codec.machine.run(1),/ROM/);
+  assert.equal(codec.machine.boot(rom,font).pc,0xe000);
+  assert.ok(codec.machine.run(200)>=200);
+  assert.equal(codec.machine.peek(0xc100),0x2a);
+  assert.equal(codec.machine.render().length,320*224);
+  assert.equal(codec.machine.reset().pc,0xe000);
+  assert.throws(()=>codec.machine.boot(rom.subarray(1),font),/16384/);
+  codec.machine.clear();
+  assert.throws(()=>codec.machine.run(1),/ROM/);
+  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, machine boot/run/reset/framebuffer, input guards');
 } finally {
   globalThis.fetch=originalFetch;
 }

@@ -66,6 +66,7 @@ public:
 
     [[nodiscard]] M6800Trace reset_cpu();
     [[nodiscard]] M6800Trace step();
+    [[nodiscard]] uint32_t run_cycles(uint32_t cycle_budget);
     void advance_cycles(uint32_t cycles) noexcept;
     void pulse_nmi() noexcept;
 

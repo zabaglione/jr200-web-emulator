@@ -1,5 +1,24 @@
 # 初期実装の試験記録
 
+## P06 ブラウザBASIC起動受入（2026-09-22 / macOS・Firefox隔離コンテナ）
+
+Emscriptenを6.0.9へ固定し、`make test`、`make sanitize`、`make wasm-smoke`、
+`make wasm`、`make check`を実行した。native/sanitizerは各CTest 6/6、直接WASMは
+CJR/CPU/system/JS wrapperの4試験、正式Emscripten moduleはNodeから
+boot/run/resetとtimer/peekを確認した。
+
+利用者提供の実機MSAVE録音3本はGit対象外の`local-assets/`だけで扱い、
+JR2Rescue 0.6.2でROM1 8192 byte `$A000`、ROM2 8192 byte `$E000`、font 2048 byte
+`$D000`を復元した。参照ツールでの復元であり、自前WAV decoderや実機往復の
+合格には含めない。
+
+正式Emscripten配信を実ROMで起動し、Chrome 153.0.8010.48ではprogram入力、
+`LIST`、`RUN`、出力`5`、Safari 26.6.2では`PRINT 7`と出力`7`を目視した。
+Firefox 156.0はSelenium 4.49.0の隔離コンテナで同じ`LIST`/`RUN`/`5`を確認し、
+tab切替での自動停止も検査した。Safariは情報dialog表示によるblur後に自動停止した。
+Chrome consoleのerror/warningは0件だった。詳しい環境、コマンド、境界は
+[P06_BROWSER_ACCEPTANCE.md](P06_BROWSER_ACCEPTANCE.md) に記録した。
+
 ## P05 周辺回路受入（2026-09-22 / macOS）
 
 VJR-200のAddress、MN1271、MN1544、CRTC、JRSystemの10ファイルをGit blobで
