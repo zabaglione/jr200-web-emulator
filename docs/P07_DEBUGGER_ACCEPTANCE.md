@@ -83,4 +83,9 @@ ROM、font、録音、画面capture、内容hashはGitへ追加していない�
 - デバッガは開発用であり、逆アセンブラ、条件式breakpoint、永続設定、remote debug、
   ROMやメモリの外部送信機能は実装していない。
 
-commitとGitHub Actionsの実測結果は、remote受入後にこの記録へ追記する。
+## commitとremote CI
+
+- 実装commit: `f85aa1d3db234db71baf91b59779ea84aafe01df`
+- GitHub Actions: [source-and-codec / run 35650269016](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35650269016)
+- 結果: `completed / success`。Linux native、macOS native、sanitizer、
+  Clang直接WASM smokeの4ジョブがすべて成功した。

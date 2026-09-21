@@ -1,5 +1,26 @@
 # 初期実装の試験記録
 
+## P07 デバッガ・追跡・メモリウォッチ受入（2026-09-22 / macOS・GitHub Actions）
+
+`make test`と`make sanitize`は各CTest 6/6、`make wasm-smoke`はCJR/CPU/system/
+JS wrapperの4試験、Emscripten 6.0.9の`make wasm`も成功した。breakpointの実行前停止と
+1回通過、step、read/write watchpoint、固定長ring eviction、peek非記録を確認した。
+
+履歴有効・無効の2台を同じ1000 cycle以上で実行し、全65536 byte、全CPU register、
+CPU/機械cycle、PCM queueが一致した。400命令の記録後は命令256件・破棄144件、
+CPUアクセス512件・破棄88件となり、無制限に増えないことを確認した。
+
+正式Emscripten siteを実ROMで起動し、in-app browserで実行前breakpoint、1命令step、
+read watchpoint、手動256 byte peekを操作した。peek前後でCPUアクセス履歴件数は不変、
+console error/warningは0件で、デスクトップ表示も目視した。ROM/font/captureはGitへ
+追加していない。Python Playwright moduleがないため`tests/browser_smoke.py`自身は
+import時点で未実行であり、ブラウザ手動操作と区別する。
+
+実装commit `f85aa1d3db234db71baf91b59779ea84aafe01df`に対する
+[Actions run 35650269016](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35650269016)は、
+Linux/macOS native、sanitizer、Clang直接WASMの4ジョブすべてsuccessだった。詳細と
+未検証範囲は [P07_DEBUGGER_ACCEPTANCE.md](P07_DEBUGGER_ACCEPTANCE.md)。
+
 ## P06 ブラウザBASIC起動受入（2026-09-22 / macOS・Firefox隔離コンテナ）
 
 Emscriptenを6.0.9へ固定し、`make test`、`make sanitize`、`make wasm-smoke`、
