@@ -50,6 +50,7 @@ int main() {
         test("boundary lengths 1 255 256 257 511 512 513 65024",[]{for(size_t n : {1u,255u,256u,257u,511u,512u,513u,65024u}) { auto b=encode(patterned(n),0); Summary s{}; CHECK(inspect(view(b),s)); CHECK(s.payload_bytes==n); CHECK(s.data_blocks==(n+255)/256); CHECK(s.footer_address==n); CHECK(s.warnings==0); }});
         test("all 256 byte values",[]{auto data=patterned(256); auto b=encode(data); CHECK(b[36]==0); CHECK(std::equal(data.begin(),data.end(),b.begin()+39));});
         test("BASIC address and baud flag",[]{ auto b=encode({0,0,0},0x7000,true,1); Summary s{}; CHECK(inspect(view(b),s)); CHECK(s.first_address==0x801 && s.file_type==0 && s.baud_flag==1); });
+        test("JR2Rescue 600 baud convention",[]{ auto b=encode({0xab},0x7000,false,kBaudFlag600); Summary s{}; CHECK(b[23]==100 && b[32]==0xf9); CHECK(inspect(view(b),s)); CHECK(s.baud_flag==kBaudFlag600); });
         test("every truncated prefix",[]{ auto b=golden(); for(size_t n=0;n<b.size();++n){ Summary s{}; CHECK(!inspect({b.data(),n},s)); }});
         test("header checksum",[]{ auto b=golden(); b[32]^=1; Summary s{}; auto r=inspect(view(b),s); CHECK(r.error==Error::bad_checksum && r.offset==32); });
         test("data checksum",[]{ auto b=golden(); b[40]^=1; Summary s{}; CHECK(inspect(view(b),s).error==Error::bad_checksum); });

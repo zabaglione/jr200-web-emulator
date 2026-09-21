@@ -21,7 +21,8 @@ try {
   assert.equal(summary.warnings,0);
   assert.equal(packed.length,47);
   const preserved = Uint8Array.from(packed);
-  codec.pack(Uint8Array.of(0x12,0x34),'SECOND',0x6000,false,1);
+  const external600 = codec.pack(Uint8Array.of(0x12,0x34),'SECOND',0x6000,false,100);
+  assert.equal(codec.inspect(external600).baudFlag,100);
   assert.deepEqual(packed,preserved); // returned bytes must not alias wasm memory
   packed[40]^=1;
   assert.throws(()=>codec.inspect(packed),/checksum.*offset 40/);

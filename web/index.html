@@ -12,7 +12,7 @@
 <form id="pack"><label>BINファイル<input id="bin" type="file" required disabled></label>
 <div class="fields"><label>JRファイル名（ASCII）<input id="name" value="TEST" maxlength="16" required></label><label>開始アドレス（16進）<input id="address" value="7000" pattern="[0-9a-fA-F]{1,4}" required></label>
 <label>形式<select id="kind"><option value="1">マシン語 / MLOAD</option><option value="0">BASICバイト列 / LOAD（$0801）</option></select></label>
-<label>ボーレート指定<select id="baud"><option value="0">2400（フラグ0）</option><option value="1">600（フラグ1）</option></select></label></div>
+<label>ボーレート指定<select id="baud"><option value="0">2400（フラグ0）</option><option value="100">600（フラグ100）</option></select></label></div>
 <button id="create" disabled>検証してCJRを保存</button></form><p id="pack-status" role="status"></p></section>
 <footer><p>非公式の独立プロジェクトです。VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。</p>
 <a href="LICENSE.txt">本プロジェクトのライセンス</a> · <a href="LICENSES/VJR200.txt">FIND / VJR-200 ライセンス全文</a> · <a href="THIRD_PARTY_NOTICES.md">第三者表記</a></footer>

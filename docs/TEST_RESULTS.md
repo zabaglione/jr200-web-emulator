@@ -1,5 +1,15 @@
 # 初期実装の試験記録
 
+## P03独立対照（2026-09-22 / JR2Rescue 0.6.2）
+
+上流commit `8f14894706443288bb9838a28f4e828b7ee551b8`のJR2Rescue 0.6.2 Windows向けバイナリを、Ubuntu 24.04 arm64の隔離コンテナ上のMono 6.8.0.105で実行した。参照ZIPのSHA-256を固定し、自作の全ゼロBIN 1/255/256/257/512バイトと自作BASICメモリ像をGUIでCJR化した。標準MSAVEとBASICは本コーデック出力と全バイト一致した。
+
+本コーデックの257バイトCJRをJR2RescueがWAV化・再読込でき、2400 baudは全バイト一致、600 baudはbaud生値`100`とそのヘッダーチェックサムだけが変化した。この実測に合わせてCLI/Webの600 baud writerを`100`へ変更し、任意の既存非0値を保持するreader/copy契約は維持した。JR2Rescue作成の2領域CJRは警告付きで解析・無変更コピーでき、ヘッダーなしCJRは明示指定時だけ本コーデックが受理し、JR2Rescueもbaud上書き無効時にJR2へ変換した。
+
+検体hash、手順、WAVメタデータ、差分、未検証範囲は [P03_REFERENCE_RESULTS.md](P03_REFERENCE_RESULTS.md)。生成物と参照バイナリはGitに含めていない。ネイティブWindows、VJR-200、自前WAV実装、実機録音、JR-200実機は未検証である。
+
+互換修正後の`make test`と`make sanitize`は各CTest 4/4成功。ネイティブ本体は25テスト群（決定的変異入力12,000件を含む）、新設のCLI試験は`--600`が生値100と正しいチェックサムを出すことを確認した。Emscripten同梱LLVMによる`make wasm-smoke`、Emscripten 6.0.9正式ビルド、JS wrapper、`make check`も成功した。生成サイトをCodex in-app browserで開き、WASM起動表示と`600（フラグ100）`の選択肢を目視した。Playwright自動試験はPythonモジュール未導入のため実行できなかった。
+
 ## P00受入再試験（2026-09-22 / macOS）
 
 `make test`はCTest 3/3、`python3 scripts/check_distribution.py`はPASS。`LICENSES/VJR200.txt`のGit blob SHAは上流固定値`8cad34867bad988f97fc237a9259e338f0bedf99`と一致した。
@@ -16,7 +26,7 @@ commit `62263249b100330b29e9baccff1b58310747275a`に対するGitHub Actions run 
 
 ## P02受入再試験（2026-09-22 / macOS・ローカルブラウザ）
 
-`build/native/test_cjr`は24テスト群に成功し、12,000件の決定的変異入力を含む。Emscripten同梱LLVMを`WASM_CXX`に明示した`make wasm-smoke`は、直接WASMとJS wrapperの両試験に成功した。`cjrtool`は合成payloadのpack→inspect→copy→extractを実行し、payloadとCJR copyはそれぞれ元バイトと完全一致した。
+`build/native/test_cjr`は24テスト群に成功し、12,000件の決定的変異入力を含む。Emscripten同梱LLVMを`WASM_CXX`に明示した`make wasm-smoke`は、直接WASMとJS wrapperの両試験に成功した。`cjrtool`は合成payloadのpack→inspect→copy→extractを実行し、payloadとCJR copyはそれぞれ元バイトと完全一致した。これはP03変更前のP02受入時点の件数である。
 
 Clang直接WASM配布物をlocalhostで配信し、Codex in-app browserでWASM起動、未実装範囲の明示、検査/作成UI、入力未選択時のエラー表示を目視した。consoleのerror/warningは0件。ファイル選択・ダウンロードを含むPlaywright試験は依存未導入のため未実行であり、独立Windows実装や実機との互換証拠もP03以降に残る。
 

@@ -52,11 +52,11 @@ int main(int argc, char** argv) {
         auto input = read_file(argv[2]);
         if (command == "pack") {
             if (argc < 6) throw std::runtime_error("pack requires input, output, name, address_hex");
-            bool basic = false; uint8_t baud = 0;
+            bool basic = false; uint8_t baud = kBaudFlag2400;
             for (int i = 6; i < argc; ++i) {
                 const std::string flag = argv[i];
                 if (flag == "--basic") basic = true;
-                else if (flag == "--600") baud = 1;
+                else if (flag == "--600") baud = kBaudFlag600;
                 else throw std::runtime_error("unknown pack option: " + flag);
             }
             size_t consumed = 0;

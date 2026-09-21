@@ -11,6 +11,8 @@ namespace jr200::cjr {
 struct Bytes { const uint8_t* data; size_t size; };
 struct MutableBytes { uint8_t* data; size_t size; };
 constexpr size_t kMaxInput = 1024 * 1024;
+inline constexpr uint8_t kBaudFlag2400 = 0;
+inline constexpr uint8_t kBaudFlag600 = 100;
 
 enum class Error : uint32_t {
     ok = 0, null_buffer, input_too_large, truncated, bad_magic,
@@ -31,7 +33,7 @@ enum Warning : uint32_t {
 struct Summary {
     bool has_header = false;
     uint8_t file_type = 0;  // 0 BASIC, 1 machine code; other values preserved.
-    uint8_t baud_flag = 0;  // Original byte; upstream interprets 0 as 2400, nonzero as 600.
+    uint8_t baud_flag = 0;  // Original byte; 0 is 2400, nonzero is 600. CLI/Web pass 100 for JR2Rescue.
     uint8_t name[16] = {};
     uint32_t data_blocks = 0;
     uint32_t payload_bytes = 0;

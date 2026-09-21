@@ -11,6 +11,7 @@ assert blob=='8cad34867bad988f97fc237a9259e338f0bedf99','Upstream license bytes 
 assert (ROOT/'LICENSE').exists() and (ROOT/'THIRD_PARTY_NOTICES.md').exists()
 html=(ROOT/'web/index.html').read_text()
 assert 'LICENSES/VJR200.txt' in html and 'THIRD_PARTY_NOTICES.md' in html
+assert 'value="100">600（フラグ100）' in html
 for f in ['src/tape/cjr.cpp','include/jr200/cjr.hpp']:
     t=(ROOT/f).read_text();assert 'FIND' in t and 'SPDX-License-Identifier: BSD-3-Clause' in t
 manifest=ROOT/'source-manifest.json'
