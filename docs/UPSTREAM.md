@@ -26,12 +26,24 @@
 - m6800.h blob: `5483a691f2654e9b80d3352ec3b2ce470b5a7237`
 - 6800ops.hxx blob: `f22d6510f1d83a60f8837cff2088f48aa7670928`
 - 6800tbl.hxx blob: `2f2f0df8a3890187c10125d26b5e2a90bbe4b9af`
+- Address.h blob: `f61c7072f4a30ffc1110bf17a95968cd0955d5c1`
+- Address.cpp blob: `e43a1d440a2077730f0be721d9f9b1febafea0dc`
+- Mn1271.h blob: `9f955734ae49f4b3c3448b6cf2749ac14431fc26`
+- Mn1271.cpp blob: `7e64da67c1ebbe5b16c452d514666edff191b0f4`
+- Mn1544.h blob: `8169d810aeec5040ef7f660e0d2ae21c17e4f5b8`
+- Mn1544.cpp blob: `e1c1f99a9d07f53ecfa4cc2f8beb9518b2cfe21a`
+- Crtc.h blob: `7c8509d83c08a612197eb5604e9769a8ada81299`
+- Crtc.cpp blob: `1aba9556d8f6e87cf1f7b674cd9185f196b9111b`
+- JRSystem.h blob: `e2e1749e5ac3aa51feec21b45c5abdaf7d73a798`
+- JRSystem.cpp blob: `0e12ee0ab487f5d25b18f3ac392ce10c06b6daf1`
 
 ## 移植境界の観測
 `JRSystem.h`はAddress、Crtc、Mn1271、Mn1544、m6800、FDD、プリンタを集約している。`Mn1271.h`はDirectSound/OpenSL ESとcerealに依存する。`Address.cpp`の読み出しにはグローバルなデバッガやDRAM wait制御が混在する。したがって`stdafx.h`の置換だけで移植したとは扱わず、CPU/バスとホスト表示・入出力を分離する。
 
 対象ファイルの基準URLはS1と同じcommitを使う。CPU4ファイルの個別監査、
 MAME側の照合blob、取込/除外判断は [P04_CPU_AUDIT.md](P04_CPU_AUDIT.md) に記録した。
+MN1271、MN1544、CRTC、Address、JRSystemの個別監査、OS依存機能の除外、
+register traceと近似範囲は [P05_PERIPHERAL_AUDIT.md](P05_PERIPHERAL_AUDIT.md) に記録した。
 
 ## ライセンス台帳
 | 対象 | 観測した表示/条件 | 初期成果物への取込 | 方針 |

@@ -1,5 +1,27 @@
 # 初期実装の試験記録
 
+## P05 周辺回路受入（2026-09-22 / macOS）
+
+VJR-200のAddress、MN1271、MN1544、CRTC、JRSystemの10ファイルをGit blobで
+固定し、メモリmap、32 byte mirror、timer/IRQ、KTEST/KACK、CMT、描画規則を
+対照した。ファイル別判断と実機未確認範囲は
+[P05_PERIPHERAL_AUDIT.md](P05_PERIPHERAL_AUDIT.md) に記録した。
+
+`make test`はCTest 6/6、`make sanitize`はASan/UBSan付きで6/6成功した。
+周辺回路試験はRAM/ROM/open領域、DRAM wait、I/O trace、side-effect-free peek、
+TCA IRQ、2049 byteのfont/baud bootstrap、key/joystick handshake、CMT REMOTE、
+44.1 kHz 3 channel PCM queue、320×224 ARGB framebuffer、CPU cycle接続を確認した。
+
+Emscripten同梱LLVMを指定した`make wasm-smoke`はCJR、CPU、周辺回路、JS wrapperの
+4試験に成功した。Emscripten 6.0.9の`make wasm`も成功し、生成ES moduleを
+Node.jsで起動してcodec/CPU/system ABI versionとtimer IRQ/peekを確認した。
+
+Playwrightは現在のPython環境にないためブラウザ自動操作試験は未実行である。
+正式Emscripten配信をlocalhostで開き、`WASM起動済み`とP05後の未実装境界表示を
+Codex in-app browserで目視した。Node/WASM試験とこの起動確認はCanvas/Web Audio、
+メーカーROM/fontによるBASIC起動、実機register/timing、保存済みWAVの検証を
+代替しない。
+
 ## P04 CPU単体受入（2026-09-22 / macOS）
 
 VJR-200の`m6800.h`、`m6800.cpp`、`6800ops.hxx`、`6800tbl.hxx`を個別に

@@ -2,7 +2,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'">
 <title>JR-200 Web — CJR検査ツール</title><link rel="stylesheet" href="style.css"></head>
 <body><main><header><p class="eyebrow">JR-200 WEB / DEVELOPMENT BUILD</p><h1>CJR検査ツール</h1><p class="lead">C++コアをWebAssemblyで実行。ファイルはこのブラウザ内で処理します。</p></header>
-<div class="notice"><strong>エミュレータ本体は未実装です。</strong> MC6800単体コアはnative/WASM合成試験済みですが、この画面はCJR解析・BIN→CJR作成用です。ROM・周辺回路との接続、BASIC起動、画面・音声・WAV変換・実機互換は未検証です。</div>
+<div class="notice"><strong>エミュレータ本体はまだ起動できません。</strong> MC6800と周辺回路コアはnative/WASM合成試験済みですが、この画面はCJR解析・BIN→CJR作成用です。ROM/font選択、BASIC起動、Canvas/Web Audio接続、WAV変換・実機互換は未検証です。</div>
 <p id="status" role="status">WASMを読み込んでいます…</p>
 <section><h2>01 / CJRを検査</h2><p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
 <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>

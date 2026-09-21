@@ -26,6 +26,18 @@ endian-sensitive register union with a fixed-width CPU and explicit bus,
 interrupt, and wait-state interfaces. No MAME disassembler or M6801-only
 device implementation was imported.
 
+The peripheral behavior in `include/jr200/peripherals.hpp`,
+`src/core/peripherals.cpp`, and the address-map portion of
+`src/core/system.cpp` is adapted from FIND's `Address`, `Mn1271`, `Mn1544`,
+`Crtc`, and `JRSystem` files at the pinned VJR-200 commit above. The complete
+applicable terms remain in [LICENSES/VJR200.txt](LICENSES/VJR200.txt).
+
+The port removes DirectSound, Direct2D, Win32 input and file APIs, OpenSL ES,
+cereal, global host timing, printer, and FDD coupling. It exposes an explicit
+cycle clock, fixed PCM queue, ARGB framebuffer, translated key-state input,
+and side-effect-free debug peek. These interfaces do not establish physical
+MN1271/MN1544/CRTC accuracy.
+
 No X88000 code, cereal, TinyXML-2, manufacturer ROM, manufacturer font data,
 commercial tape image, user recording, JR2Rescue binary, or JR2WAV Editor
 binary is included. Any later import requires an updated per-file license

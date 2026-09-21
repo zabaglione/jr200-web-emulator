@@ -1,14 +1,14 @@
 # JR-200 Web Emulator
 
-**状態: CJRコーデックとMC6800単体コアを実装。JR-200エミュレータ本体はまだ動きません。**
+**状態: CJR、MC6800、JR-200周辺回路の合成試験まで完了。ROM/BASICはまだ起動していません。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 
 ## 今回入っているもの
 
-CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、C++を実行するWASM版検査ページ、OS非依存のMC6800単体コアと明示的メモリバス、native/WASM合成テスト、14件のIssue本文です。
+CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、C++を実行するWASM版検査ページ、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、PCMキュー、ARGBフレームバッファ、native/WASM合成テスト、14件のIssue本文です。
 
-**入っていないもの:** CPUとJR-200周辺回路の統合、BASIC起動、画面・音声、通常カセットLOAD/SAVE、WAVエンコーダ/デコーダ、ROM/メーカー由来フォント、実機互換の確認結果。
+**入っていないもの:** メーカーROM/fontの選択とBASIC起動、Canvas/Web Audio接続、通常カセットLOAD/SAVE、WAVエンコーダ/デコーダ、ROM/メーカー由来フォント本体、実機互換の確認結果。
 
 リポジトリ: [zabaglione/jr200-web-emulator](https://github.com/zabaglione/jr200-web-emulator)（private）。開発順と実際のIssue番号は [Issue一覧](docs/ISSUE_INDEX.md) を参照してください。CIの結果は [Actions](https://github.com/zabaglione/jr200-web-emulator/actions) で確認できます。
 
@@ -39,7 +39,7 @@ CLIは `inspect` / `copy` / `extract` / `pack` を持ちます。引数は引数
 
 ## WASM版CJR検査ページ
 
-依存なしのCJRコーデックとMC6800単体コアはClangのWASMターゲットでも動作します。
+依存なしのCJRコーデック、MC6800、周辺回路コアはClangのWASMターゲットでも動作します。
 
 ```sh
 make wasm-smoke   # clang++、wasm-ld、Node.jsが必要
@@ -49,7 +49,7 @@ make serve
 
 CJR検査とBIN→標準CJR包装の画面を用意しています。WASM本体とJSラッパーはNode.jsで検証し、ローカル配信ページの起動表示とライセンス導線をブラウザで確認しました。Playwright自動試験は現在のPython環境に依存がなく未実行です。入力ファイルはブラウザ内部のみで処理し、サーバーにはアップロードしません。ローカルHTTPサーバーは静的ファイルの配信だけを行います。
 
-正式なエミュレータ移植用のEmscripten設定を同梱し、Emscripten 6.0.9でCJR/CPUを含むmoduleの生成とNode.js起動を確認しています。
+正式なエミュレータ移植用のEmscripten設定を同梱し、Emscripten 6.0.9でCJR/CPU/周辺回路を含むmoduleの生成とNode.js起動を確認しています。
 
 ```sh
 # emsdk を導入・有効化済みの環境で

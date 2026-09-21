@@ -21,13 +21,23 @@ for f in ['src/tape/cjr.cpp','include/jr200/cjr.hpp']:
 for f in ['src/core/m6800.cpp','src/core/6800ops.hxx','src/core/6800tbl.hxx','include/jr200/m6800.hpp']:
     t=(ROOT/f).read_text();assert 'Aaron Giles' in t and 'SPDX-License-Identifier: BSD-3-Clause' in t
     assert not any(token in t for token in ['JRSystem','stdafx.h','cereal::','TCHAR','DirectSound','Direct2D'])
+for f in ['include/jr200/peripherals.hpp','src/core/peripherals.cpp','src/core/system.cpp']:
+    t=(ROOT/f).read_text();assert 'FIND' in t and 'SPDX-License-Identifier: BSD-3-Clause' in t
+    assert not any(token in t for token in ['stdafx.h','cereal::','TCHAR','DirectSound','Direct2D','MMSystem.h','windows.h'])
+for f in ['include/jr200/peripherals.hpp','include/jr200/system.hpp','src/core/peripherals.cpp','src/core/system.cpp']:
+    t=(ROOT/f).read_text()
+    assert not any(token in t for token in ['system_clock','steady_clock','high_resolution_clock','requestAnimationFrame'])
 manifest=ROOT/'source-manifest.json'
 if manifest.exists():
     forbidden={'.rom','.bin','.wav','.cjr','.jr2','.d88','.d20','.exe','.dll','.wasm'}
     files=json.loads(manifest.read_text())['files']
     required={'include/jr200/m6800.hpp','src/core/m6800.cpp','src/core/6800ops.hxx',
               'src/core/6800tbl.hxx','src/wasm/cpu_api.cpp','tests/test_m6800.cpp',
-              'tests/cpu_wasm_smoke.mjs','LICENSES/MAME_BSD-3-Clause.txt'}
+              'tests/cpu_wasm_smoke.mjs','LICENSES/MAME_BSD-3-Clause.txt',
+              'include/jr200/peripherals.hpp','include/jr200/system.hpp',
+              'src/core/peripherals.cpp','src/core/system.cpp','src/wasm/system_api.cpp',
+              'tests/test_system.cpp','tests/system_wasm_smoke.mjs',
+              'tests/emscripten_smoke.mjs','docs/P05_PERIPHERAL_AUDIT.md'}
     assert required.issubset(files),'CPU source or license missing from source inventory'
     for f in files:
         p=Path(f)

@@ -11,6 +11,7 @@ sanitize:
 wasm:
 	emcmake cmake -S . -B build/emscripten -DCMAKE_BUILD_TYPE=Release
 	cmake --build build/emscripten --parallel
+	node tests/emscripten_smoke.mjs build/emscripten/web/jr200_codec.mjs
 	python3 scripts/stage_web.py --backend emscripten
 wasm-smoke:
 	bash scripts/build_wasm_smoke.sh
