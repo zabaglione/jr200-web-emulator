@@ -72,6 +72,9 @@ suspended、active source 0、queue 0になり、再開操作でcontext running�
 音声停止後はWeb Audio無効、context suspended、active source 0、queue 0だった。
 browser consoleのerror/warningは0件。ROM、font、音声captureはGitへ追加していない。
 
+実装commit `904781db9c1e2cfefed6237d3d088ee171c3fe33` のGitHub Actions run
+`35661382620`はwasm-codec、Ubuntu/macOS native、sanitizedの4ジョブすべてsuccessだった。
+
 ## 未検証範囲
 
 - 自動試験とbrowser statusはPCMがWeb Audio destinationへ到達した証拠であるが、

@@ -17,6 +17,9 @@ sourceとqueueが0で、console error/warningは0件だった。物理出力の�
 未計測であり、カセットWAV生成とは別である。詳細は
 [P09_AUDIO_ACCEPTANCE.md](P09_AUDIO_ACCEPTANCE.md)。
 
+実装commit `904781db9c1e2cfefed6237d3d088ee171c3fe33` のGitHub Actions run
+`35661382620`はwasm-codec、Ubuntu/macOS native、sanitizedの4ジョブすべてsuccess。
+
 ## P08 CJRカセットLOAD/MLOAD/SAVE/MSAVE受入（2026-09-22 / macOS）
 
 OS非依存の固定容量`CassetteDeck`をMN1271のREMOTE、register 7読出し、register 0D
