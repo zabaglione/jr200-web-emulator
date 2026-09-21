@@ -2,7 +2,7 @@
 
 計画IDはP00〜P13。登録済みGitHub Issue番号は #1〜#14。対応表は ISSUE_INDEX.md を参照する。
 
-| 順序 | 作業 | 依存 | 現時点 |
+| 順序 | 作業 | 依存 | 初期実装時点の記録 |
 |---|---|---|---|
 | P00 | [出典固定・取込済コードのライセンス監査](issues/P00.md) | なし | 取込済CJR部分をローカル確認済み。上流全ファイルの網羅監査ではない。 |
 | P01 | [C++20共通コア・native/WASMビルド基盤](issues/P01.md) | P00 | nativeとClang WASMをローカル検証。Emscriptenとremote CIは未実行。 |
@@ -19,9 +19,11 @@
 | P12 | [実機とのWAV往復受入試験](issues/P12.md) | P11 | 未実施。JR-200実機と録再生環境の利用可能性は未確認。 |
 | P13 | [配布監査・再現可能ビルド・初版受入](issues/P13.md) | P12 | 未着手。初版の一般公開はこのIssueにも含めない。 |
 
+最新の検証結果は [STATUS.md](STATUS.md) を正とする。初期commitのGitHub Actionsは4ジョブ成功しており、上表のremote CI未実行という履歴とは区別する。
+
 ## 実行上の注意
 
-P00→P01→P02の順にローカルの初期実装を進めた。P01はnative/直接WASM基盤とEmscripten/CI設定の作成までを対象とし、正式Emscripten実行確認はP06、remote CIの最終受入はP13へ明示的に分離した。これはEmscriptenまたはGitHub CIを実行済みと扱うものではない。
+P00→P01→P02の順にローカルの初期実装を進めた。P01はnative/直接WASM基盤とEmscripten/CI設定の作成までを対象とし、正式Emscripten実行確認はP06、remote CIの最終受入はP13へ明示的に分離した。設定ファイルを置くこと自体は実行成功を意味しない。現在の実行証拠はSTATUS.mdを参照する。
 
 次の依存工程はP03の独立対照試験である。P00〜P02もGitHub Issueが実際に作成された後、ローカル証拠をレビューしてからcloseする。スクリプトによる自動closeはしない。実機試験に進めない場合も、未検証を隠して依存工程を完了扱いにしない。
 

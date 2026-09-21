@@ -1,33 +1,42 @@
 # 実装・検証状況
 基準日: 2026-09-21 / 初期パッケージ0.0.1
 
-## リポジトリ初期設定
+## リポジトリ初期設定：完了
 
 対象: `zabaglione/jr200-web-emulator`（private）、既定ブランチ `main`。
-利用者が作成した空リポジトリに、ソース・開発文書・ライセンス・CI設定を登録する。P00〜P13は実際のIssue #1〜#14として登録済み。対応と依存関係は [ISSUE_INDEX.md](ISSUE_INDEX.md) を参照する。
+初期ソース・開発文書・ライセンス・CI設定の57ファイルをcommit `072e977343c8aa7655367f926bc29b2b220e93e1` に登録した。Git tree `854042e76159dd80bebd9210387d567e2e1a37c8` が、ローカルで独立計算した全ファイルのtreeと一致した。
 
-CI設定とCI成功は別である。remote実行結果は [Actions](https://github.com/zabaglione/jr200-web-emulator/actions) で確認する。初期設定時のローカル再試験では `make test` (3/3)、`make sanitize` (3/3)、`make wasm-smoke` (WASM+JSラッパー) が成功した。旧bootstrapスクリプトによる新規作成は実行していない。
+P00〜P13は実際のIssue #1〜#14として登録済み。対応と依存関係は [ISSUE_INDEX.md](ISSUE_INDEX.md)。受入レビュー前のため自動closeしていない。旧bootstrapによる新規作成は不要である。
 
-GitHubの可視性・アクセス権・branch protection・課金設定の変更は行わない。Pagesや外部サイトへのデプロイは含まない。全Issueは受入レビューが終わるまでopenを維持する。
+## GitHub Actions：初回4ジョブ成功
 
-## ローカルで実装した範囲
+対象commit: `072e977343c8aa7655367f926bc29b2b220e93e1`
+実行: [source-and-codec / run 35616519996](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35616519996)
+トリガー: mainへのpush。GitHubから取得したstatusはcompleted、conclusionはsuccess。
 
-P00: 基準commit、CJR由来、FINDライセンス原文を固定。元licenseのGit blob SHA一致をチェック。CPU等の未取込部分を監査完了と表示しない。
+| ジョブ | 実行内容 | 結果 |
+|---|---|---|
+| native (ubuntu-latest) | make test | success |
+| native (macos-latest) | make test | success |
+| sanitized | make sanitize | success |
+| wasm-codec | make wasm-smoke | success |
 
-P01: C++20共通ライブラリ、容量付きC ABI、ネイティブ/Clang直接WASM、CMake/Make、sanitizer、CI設定。正式なEmscripten実行ゲートはP06。remote CIの受入はP13。
+ローカルでもmake testとmake sanitize各3/3、WASMとJSラッパー、make checkが成功。FINDライセンスの原文blob一致、配布表記、ソース限定inventoryも検査した。初期のローカル試験詳細は [TEST_RESULTS.md](TEST_RESULTS.md)。古い計画表のremote CI未実行という記述は、この実測結果で更新する。
 
-P02: CJRヘッダー/データ/フッター/チェックサム検査、元バイト保持コピー、BIN包装、CLI、WASMのローカル検査画面。標準形式の合成goldenと境界・破損入力を検査する。BASICソースのトークナイズ機能ではない。
+## 実装済みの範囲
 
-実行したテストと結果は[TEST_RESULTS.md](TEST_RESULTS.md)に記録する。Issueの受入レビューや独立対照の代わりにはしない。
+P00: 上流commit・CJR由来・FINDライセンス原文を固定。未取込のCPU等の監査は未完了。
+P01: C++20共通ライブラリ、容量付きC ABI、native/Clang直接WASM、CMake/Make、sanitizer、CI。
+P02: CJR構造/チェックサム検査、元バイト保持、BIN包装、CLI、WASM検査画面と合成テスト。
 
 ## 未実装・未検証
 
-P03のWindows基準実装との独立比較は未実施。P04以降のCPU・MN1271/MN1544/CRTC、BASIC起動、デバッガ、カセット統合、音声、CJR↔WAV、実機往復は未実装/未実施。
+P03の独立したWindows基準実装とのCJR比較は未実施。CPU・周辺回路、BASIC起動、デバッガ、通常カセット経路、音声、CJR↔WAV、実機往復は未実装/未実施。現在のWebページはCJR検査ツールであり、JR-200エミュレータ本体ではない。
 
-ROMとメーカー由来フォントは未提供・未同梱。実機所有と録再生環境も未確認。いまのWebページはCJR検査ツールであり、JR-200をエミュレートしていない。
+Emscripten用設定はあるが正式ビルドは未実行。Clang直接WASMの成功とは区別する。ブラウザ画面の操作試験は環境制限で未完了。macOSのnative CI成功をSafari等のブラウザ試験成功には読み替えない。メーカーROM/フォント・商用ソフト・録音は未同梱。
 
-Emscripten用の設定はあるが、この環境にはemcc/emcmakeがないため実行していない。Clang直接WASMの成功をEmscripten成功に読み替えない。macOS/Windows/Safari/Firefoxでの実行は今回未確認。ChromiumのHTTPページ操作試験も環境のアクセス制限で開始できず、Web画面は動作確認未完了である。
+## 次の作業
 
-## 次に進む条件
+#1〜#3の受入条件と既存証拠をレビューし、その後 #4 (P03) の独立対照試験へ進む。自己往復の一致だけで既存互換や実機互換を宣言しない。
 
-リポジトリは作成済みのため旧bootstrapの再実行は不要。P00〜P02の証拠をレビュー後、P03の既存Windows実装による対照fixture・期待結果を用意する。その合格を経てCPU移植へ進む。自己往復一致だけでCJR既存互換や実機互換を宣言しない。
+privateは維持。Pages/外部公開デプロイ、アクセス権・branch protection・課金設定の変更は行っていない。
