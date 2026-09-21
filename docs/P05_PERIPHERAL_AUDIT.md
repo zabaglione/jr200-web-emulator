@@ -34,6 +34,9 @@
   Direct2D描画は、明示的な320×224 ARGB framebuffer生成へ置換した。
 - 通常read/writeだけを上限256件のI/O traceへ記録する。`peek_byte`はregister、
   IRQ、activity、trace、cycleのいずれも変更しない。
+- `-nostdlib`のClang直接WASM smokeだけは、compilerがzero初期化を
+  `memset`等へlowerした場合に備え、`freestanding_memory.cpp`の最小実装を明示する。
+  Emscripten/nativeのコアへはこのshimをlinkしない。
 
 ## アドレス範囲
 

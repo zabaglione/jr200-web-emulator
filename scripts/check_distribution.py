@@ -36,6 +36,7 @@ if manifest.exists():
               'tests/cpu_wasm_smoke.mjs','LICENSES/MAME_BSD-3-Clause.txt',
               'include/jr200/peripherals.hpp','include/jr200/system.hpp',
               'src/core/peripherals.cpp','src/core/system.cpp','src/wasm/system_api.cpp',
+              'src/wasm/freestanding_memory.cpp',
               'tests/test_system.cpp','tests/system_wasm_smoke.mjs',
               'tests/emscripten_smoke.mjs','docs/P05_PERIPHERAL_AUDIT.md'}
     assert required.issubset(files),'CPU source or license missing from source inventory'

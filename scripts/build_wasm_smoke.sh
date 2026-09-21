@@ -29,6 +29,7 @@ for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
   "$ROOT/src/core/m6800.cpp" "$ROOT/src/core/peripherals.cpp" \
   "$ROOT/src/core/system.cpp" "$ROOT/src/wasm/api.cpp" \
   "$ROOT/src/wasm/cpu_api.cpp" "$ROOT/src/wasm/system_api.cpp" \
+  "$ROOT/src/wasm/freestanding_memory.cpp" \
   -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=4194304 \
   -Wl,--max-memory=16777216 "${args[@]}" -o "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 python3 "$ROOT/scripts/stage_web.py" --backend clang

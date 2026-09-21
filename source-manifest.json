@@ -60,6 +60,7 @@
     "src/tape/cjr.cpp",
     "src/wasm/api.cpp",
     "src/wasm/cpu_api.cpp",
+    "src/wasm/freestanding_memory.cpp",
     "src/wasm/system_api.cpp",
     "tests/browser_smoke.py",
     "tests/cpu_wasm_smoke.mjs",
