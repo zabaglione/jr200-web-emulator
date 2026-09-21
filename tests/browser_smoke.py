@@ -58,7 +58,7 @@ def main() -> None:
                 summary=json.loads(page.locator('#result').inner_text())
                 assert summary['payloadBytes']==1 and summary['firstAddress']==0x7000
                 assert summary['hardwareVerified'] is False and summary['nameAscii']=='X'
-                for name in ['LICENSE.txt','LICENSES/VJR200.txt','THIRD_PARTY_NOTICES.md']:
+                for name in ['LICENSE.txt','LICENSES/VJR200.txt','LICENSES/MAME_BSD-3-Clause.txt','THIRD_PARTY_NOTICES.md']:
                     result=page.request.get(base+'/'+name)
                     assert result.ok and len(result.body())>100, name
                 page.locator('#bin').set_input_files({'name':'sample.bin','mimeType':'application/octet-stream','buffer':bytes([0xab])})

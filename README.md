@@ -1,14 +1,14 @@
 # JR-200 Web Emulator
 
-**状態: 開発計画とCJRコーデックの初期実装。JR-200エミュレータ本体はまだ動きません。**
+**状態: CJRコーデックとMC6800単体コアを実装。JR-200エミュレータ本体はまだ動きません。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 
 ## 今回入っているもの
 
-CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、C++を実行するWASM版検査ページ、合成テスト、14件のIssue本文、private GitHub作成スクリプトです。
+CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、C++を実行するWASM版検査ページ、OS非依存のMC6800単体コアと明示的メモリバス、native/WASM合成テスト、14件のIssue本文です。
 
-**入っていないもの:** CPU/周辺回路エミュレーション、BASIC起動、画面・音声、通常カセットLOAD/SAVE、WAVエンコーダ/デコーダ、ROM/メーカー由来フォント、実機互換の確認結果。
+**入っていないもの:** CPUとJR-200周辺回路の統合、BASIC起動、画面・音声、通常カセットLOAD/SAVE、WAVエンコーダ/デコーダ、ROM/メーカー由来フォント、実機互換の確認結果。
 
 リポジトリ: [zabaglione/jr200-web-emulator](https://github.com/zabaglione/jr200-web-emulator)（private）。開発順と実際のIssue番号は [Issue一覧](docs/ISSUE_INDEX.md) を参照してください。CIの結果は [Actions](https://github.com/zabaglione/jr200-web-emulator/actions) で確認できます。
 
@@ -39,7 +39,7 @@ CLIは `inspect` / `copy` / `extract` / `pack` を持ちます。引数は引数
 
 ## WASM版CJR検査ページ
 
-依存なしの初期コーデックはClangのWASMターゲットでも動作します。
+依存なしのCJRコーデックとMC6800単体コアはClangのWASMターゲットでも動作します。
 
 ```sh
 make wasm-smoke   # clang++、wasm-ld、Node.jsが必要
@@ -47,9 +47,9 @@ make serve
 # ブラウザで http://127.0.0.1:8000 を開く
 ```
 
-CJR検査とBIN→標準CJR包装の画面を用意しています。WASM本体とJSラッパーはNode.jsで検証しましたが、ブラウザ試験はこの環境のHTTPアクセス制限で未完了です。入力ファイルはブラウザ内部のみで処理し、サーバーにはアップロードしません。ローカルHTTPサーバーは静的ファイルの配信だけを行います。
+CJR検査とBIN→標準CJR包装の画面を用意しています。WASM本体とJSラッパーはNode.jsで検証し、ローカル配信ページの起動表示とライセンス導線をブラウザで確認しました。Playwright自動試験は現在のPython環境に依存がなく未実行です。入力ファイルはブラウザ内部のみで処理し、サーバーにはアップロードしません。ローカルHTTPサーバーは静的ファイルの配信だけを行います。
 
-正式なエミュレータ移植はEmscriptenを使う計画です。Emscripten用設定も同梱していますが、**今回このルートは未実行**です。
+正式なエミュレータ移植用のEmscripten設定を同梱し、Emscripten 6.0.9でCJR/CPUを含むmoduleの生成とNode.js起動を確認しています。
 
 ```sh
 # emsdk を導入・有効化済みの環境で
@@ -76,12 +76,12 @@ make wasm-smoke
 make serve
 ```
 
-認証は通常のGitHub認証を使用し、トークンをソースやチャットへ記載しないでください。`AGENTS.md`、[現状](docs/STATUS.md)、[Issue一覧](docs/ISSUE_INDEX.md) の順に確認します。P00〜P02の初期実装を受入レビューし、P03の独立対照試験から後続開発へ進みます。計画IDと実Issue番号は別です。
+認証は通常のGitHub認証を使用し、トークンをソースやチャットへ記載しないでください。`AGENTS.md`、[現状](docs/STATUS.md)、[Issue一覧](docs/ISSUE_INDEX.md) の順に確認します。完了済みIssueと次の作業はSTATUS.mdを正とします。計画IDと実Issue番号は別です。
 
 ソースを追加・削除した後は `python3 scripts/update_manifest.py` と `make check` を実行し、`source-manifest.json` を確認してください。ROMや録音のある作業ディレクトリで `git add .` を実行しないでください。初期CIはnative Linux/macOS、sanitizer、Clang WASMを対象にします。Pages公開やROMを含むartifact uploadはありません。
 
 ## ライセンス
 
-本プロジェクトの新規部分は[BSD-3-Clause](LICENSE)。FINDのCJR処理に基づく部分では著作権と[上流ライセンス全文](LICENSES/VJR200.txt)を保持します。[第三者表記](THIRD_PARTY_NOTICES.md)と[取込台帳](docs/UPSTREAM.md)も参照してください。
+本プロジェクトの新規部分は[BSD-3-Clause](LICENSE)。FINDのCJR処理に基づく部分では著作権と[上流ライセンス全文](LICENSES/VJR200.txt)を、MAME由来のMC6800部分ではファイル内表示と[BSD-3-Clause全文](LICENSES/MAME_BSD-3-Clause.txt)を保持します。[第三者表記](THIRD_PARTY_NOTICES.md)と[取込台帳](docs/UPSTREAM.md)も参照してください。
 
 VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。元エミュレータのライセンスはROM、メーカー由来フォント、市販ソフトの再配布許可ではありません。privateであっても無条件に同梱しません。

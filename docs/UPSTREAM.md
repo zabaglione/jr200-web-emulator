@@ -1,5 +1,5 @@
 # Upstream / evidence register
-確認日: 2026-09-21。公開資料の観測と、本プロジェクトでの動作検証を区別する。
+確認日: 2026-09-22。公開資料の観測と、本プロジェクトでの動作検証を区別する。
 
 | ID | 一次情報 | 確認した事項 |
 |---|---|---|
@@ -13,6 +13,8 @@
 | S8 | https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html | C/C++とJSの接続方法、C ABIとメモリアクセス |
 | S9 | https://cli.github.com/manual/gh_repo_create | private repoを作成するCLIの仕様 |
 | S10 | https://github.com/actions/checkout/releases/tag/v7.0.1 | CIのcheckoutを固定。commit 3d3c42e5aac5ba805825da76410c181273ba90b1 |
+| S11 | https://github.com/mamedev/mame/blob/9940645188b6749e170b62c0ea86af0f440148da/src/devices/cpu/m6800/m6800.cpp | MC6800ファイルのBSD-3-Clause/Aaron Giles表示と割込cycle |
+| S12 | https://github.com/mamedev/mame/blob/9940645188b6749e170b62c0ea86af0f440148da/docs/legal/BSD-3-Clause | MAMEのBSD-3-Clause全文。blob `cc9ab753198e41128dc651e0adb4f5e8c1be932a` |
 
 ## 上流固定情報
 - repo: `https://github.com/find-jr200/VJR200forWindows.git`
@@ -21,17 +23,21 @@
 - license blob: `8cad34867bad988f97fc237a9259e338f0bedf99`
 - CjrFormat.cpp blob: `f6d0ca7512b9d831cb7d20f7313130a8b76f43f4`
 - m6800.cpp blob: `797a05ff6e54834ab0fe93020ff3eaff47399a85`
+- m6800.h blob: `5483a691f2654e9b80d3352ec3b2ce470b5a7237`
+- 6800ops.hxx blob: `f22d6510f1d83a60f8837cff2088f48aa7670928`
+- 6800tbl.hxx blob: `2f2f0df8a3890187c10125d26b5e2a90bbe4b9af`
 
 ## 移植境界の観測
 `JRSystem.h`はAddress、Crtc、Mn1271、Mn1544、m6800、FDD、プリンタを集約している。`Mn1271.h`はDirectSound/OpenSL ESとcerealに依存する。`Address.cpp`の読み出しにはグローバルなデバッガやDRAM wait制御が混在する。したがって`stdafx.h`の置換だけで移植したとは扱わず、CPU/バスとホスト表示・入出力を分離する。
 
-対象ファイルの基準URLはS1と同じcommitを使う。
+対象ファイルの基準URLはS1と同じcommitを使う。CPU4ファイルの個別監査、
+MAME側の照合blob、取込/除外判断は [P04_CPU_AUDIT.md](P04_CPU_AUDIT.md) に記録した。
 
 ## ライセンス台帳
 | 対象 | 観測した表示/条件 | 初期成果物への取込 | 方針 |
 |---|---|---|---|
 | FIND / CJR | BSD-3-Clause表示、FIND著作権、S2の条件 | 形式処理を再構成して取込 | 著作権表示とLICENSES/VJR200.txt原文を保持 |
-| MAME由来CPU | m6800.cpp冒頭にBSD-3-Clause / Aaron Giles | 未取込 | CPU移植Issueで関連.h/.hxx/逆アセンブラも全件確認し各条件・クレジット保持 |
+| MAME由来CPU | CPU4ファイルを個別監査。BSD-3-Clause / Aaron Giles、6800opsはFIND改変あり | P04でMC6800命令/表を適応 | 各source表示、THIRD_PARTY_NOTICES、MAMEライセンス全文を保持。逆アセンブラ/M6801内蔵I/Oは未取込 |
 | X88000 | 公式ページに使用の記載 | 未取込 | 取り込む具体ファイルに対応づけてから監査 |
 | cereal | 公式ページでBSD三条項扱い。Mn1271.hにinclude | 未取込 | 初版は使用しない。必要になればversionとLICENSEを固定 |
 | TinyXML-2 | 公式ページでzlibライセンス | 未取込 | Windows設定XMLを移植せず初版から除外 |

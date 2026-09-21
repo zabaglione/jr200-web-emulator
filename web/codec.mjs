@@ -11,7 +11,9 @@ export async function loadCodec() {
     const response = await fetch('./jr200_codec.wasm');
     if (!response.ok) throw new Error(`WASM取得失敗: ${response.status}`);
     const {instance} = await WebAssembly.instantiate(await response.arrayBuffer(), {});
-    e = instance.exports; memory = () => new Uint8Array(e.memory.buffer);
+    e = instance.exports;
+    if (e.__wasm_call_ctors) e.__wasm_call_ctors();
+    memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
   const text = new TextDecoder();

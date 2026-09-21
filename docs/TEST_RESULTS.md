@@ -1,5 +1,25 @@
 # 初期実装の試験記録
 
+## P04 CPU単体受入（2026-09-22 / macOS）
+
+VJR-200の`m6800.h`、`m6800.cpp`、`6800ops.hxx`、`6800tbl.hxx`を個別に
+Git blobで固定し、現行MAMEのBSD-3-Clause表示・全文と割込cycleを照合した。
+監査対象、依存除外、blobは [P04_CPU_AUDIT.md](P04_CPU_AUDIT.md) に記録した。
+
+`make test`はCTest 5/5、`make sanitize`はASan/UBSan付きで5/5成功した。
+CPU native試験はALU/flag、branch、stack byte順、JSR/RTS、SWI/RTI、reset、
+IRQ、NMI、WAI、CLI遅延、access別wait、16 bit境界、全256 opcodeの有界進行を確認した。
+
+Emscripten同梱LLVMを指定した`make wasm-smoke`はCJR、CPU、JS wrapperの3試験に
+成功した。CPU試験はnativeと同じ10命令のopcode、全register、memory、base/wait/
+total cycle、WAIからのNMI復帰を固定値で照合した。Emscripten 6.0.9の正式buildも
+成功し、生成ES moduleをNode.jsで起動してCPU C ABI versionとreset vectorを確認した。
+
+`tests/browser_smoke.py`はPython環境にPlaywrightがなく実行できなかった。ローカル配信を
+Codex in-app browserで開き、WASM起動表示とMAMEライセンス導線を目視した。これらは
+CPU単体の移植証拠であり、JR-200 ROM/BASIC起動、周辺回路、実機タイミング、WAV互換の
+証拠ではない。
+
 ## P03独立対照（2026-09-22 / JR2Rescue 0.6.2）
 
 上流commit `8f14894706443288bb9838a28f4e828b7ee551b8`のJR2Rescue 0.6.2 Windows向けバイナリを、Ubuntu 24.04 arm64の隔離コンテナ上のMono 6.8.0.105で実行した。参照ZIPのSHA-256を固定し、自作の全ゼロBIN 1/255/256/257/512バイトと自作BASICメモリ像をGUIでCJR化した。標準MSAVEとBASICは本コーデック出力と全バイト一致した。

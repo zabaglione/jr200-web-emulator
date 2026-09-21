@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Adapted from MAME and VJR-200; see THIRD_PARTY_NOTICES.md.
+// copyright-holders:Aaron Giles
+const M6800::Op M6800::m6800_insn[0x100] = {
+	&M6800::illegal,&M6800::nop,    &M6800::illegal,&M6800::illegal,&M6800::illegal,&M6800::illegal,&M6800::tap,    &M6800::tpa,
+	&M6800::inx,    &M6800::dex,    &M6800::clv,    &M6800::sev,    &M6800::clc,    &M6800::sec,    &M6800::cli,    &M6800::sei,
+	&M6800::sba,    &M6800::cba,    &M6800::illegal,&M6800::illegal,&M6800::nba     ,&M6800::illegal,&M6800::tab,    &M6800::tba,
+	&M6800::daa,    &M6800::daa,    &M6800::aba,    &M6800::aba,    &M6800::illegal,&M6800::illegal,&M6800::illegal,&M6800::illegal,
+	&M6800::bra,    &M6800::brn,    &M6800::bhi,    &M6800::bls,    &M6800::bcc,    &M6800::bcs,    &M6800::bne,    &M6800::beq,
+	&M6800::bvc,    &M6800::bvs,    &M6800::bpl,    &M6800::bmi,    &M6800::bge,    &M6800::blt,    &M6800::bgt,    &M6800::ble,
+	&M6800::tsx,    &M6800::ins,    &M6800::pula,   &M6800::pulb,   &M6800::des,    &M6800::txs,    &M6800::psha,   &M6800::pshb,
+	&M6800::illegal,&M6800::rts,    &M6800::rti,    &M6800::rti,    &M6800::illegal,&M6800::illegal,&M6800::wai,    &M6800::swi,
+	&M6800::nega,   &M6800::illegal,&M6800::coma,   &M6800::coma,   &M6800::lsra,   &M6800::illegal,&M6800::rora,   &M6800::asra,
+	&M6800::asla,   &M6800::rola,   &M6800::deca,   &M6800::deca,   &M6800::inca,   &M6800::tsta,   &M6800::illegal,&M6800::clra,
+	&M6800::negb,   &M6800::illegal,&M6800::comb,   &M6800::comb,   &M6800::lsrb,   &M6800::illegal,&M6800::rorb,   &M6800::asrb,
+	&M6800::aslb,   &M6800::rolb,   &M6800::decb,   &M6800::decb,   &M6800::incb,   &M6800::tstb,   &M6800::illegal,&M6800::clrb,
+	&M6800::neg_ix, &M6800::neg_ix ,&M6800::com_ix, &M6800::com_ix, &M6800::lsr_ix, &M6800::lsr_ix, &M6800::ror_ix, &M6800::asr_ix,
+	&M6800::asl_ix, &M6800::rol_ix, &M6800::dec_ix, &M6800::dec_ix, &M6800::inc_ix, &M6800::tst_ix, &M6800::jmp_ix, &M6800::clr_ix,
+	&M6800::neg_ex, &M6800::neg_ex ,&M6800::com_ex, &M6800::com_ex, &M6800::lsr_ex, &M6800::lsr_ex, &M6800::ror_ex, &M6800::asr_ex,
+	&M6800::asl_ex, &M6800::rol_ex, &M6800::dec_ex, &M6800::dec_ex, &M6800::inc_ex, &M6800::tst_ex, &M6800::jmp_ex, &M6800::clr_ex,
+	&M6800::suba_im,&M6800::cmpa_im,&M6800::sbca_im,&M6800::sbca_im,&M6800::anda_im,&M6800::bita_im,&M6800::lda_im, &M6800::sta_im,
+	&M6800::eora_im,&M6800::adca_im,&M6800::ora_im, &M6800::adda_im,&M6800::cmpx_im,&M6800::bsr,    &M6800::lds_im, &M6800::sts_im,
+	&M6800::suba_di,&M6800::cmpa_di,&M6800::sbca_di,&M6800::sbca_di,&M6800::anda_di,&M6800::bita_di,&M6800::lda_di, &M6800::sta_di,
+	&M6800::eora_di,&M6800::adca_di,&M6800::ora_di, &M6800::adda_di,&M6800::cmpx_di,&M6800::illegal,&M6800::lds_di, &M6800::sts_di,
+	&M6800::suba_ix,&M6800::cmpa_ix,&M6800::sbca_ix,&M6800::sbca_ix,&M6800::anda_ix,&M6800::bita_ix,&M6800::lda_ix, &M6800::sta_ix,
+	&M6800::eora_ix,&M6800::adca_ix,&M6800::ora_ix, &M6800::adda_ix,&M6800::cmpx_ix,&M6800::jsr_ix, &M6800::lds_ix, &M6800::sts_ix,
+	&M6800::suba_ex,&M6800::cmpa_ex,&M6800::sbca_ex,&M6800::sbca_ex,&M6800::anda_ex,&M6800::bita_ex,&M6800::lda_ex, &M6800::sta_ex,
+	&M6800::eora_ex,&M6800::adca_ex,&M6800::ora_ex, &M6800::adda_ex,&M6800::cmpx_ex,&M6800::jsr_ex, &M6800::lds_ex, &M6800::sts_ex,
+	&M6800::subb_im,&M6800::cmpb_im,&M6800::sbcb_im,&M6800::sbcb_im,&M6800::andb_im,&M6800::bitb_im,&M6800::ldb_im, &M6800::stb_im,
+	&M6800::eorb_im,&M6800::adcb_im,&M6800::orb_im, &M6800::addb_im,&M6800::illegal,&M6800::illegal,&M6800::ldx_im, &M6800::stx_im,
+	&M6800::subb_di,&M6800::cmpb_di,&M6800::sbcb_di,&M6800::sbcb_di,&M6800::andb_di,&M6800::bitb_di,&M6800::ldb_di, &M6800::stb_di,
+	&M6800::eorb_di,&M6800::adcb_di,&M6800::orb_di, &M6800::addb_di,&M6800::illegal,&M6800::illegal,&M6800::ldx_di, &M6800::stx_di,
+	&M6800::subb_ix,&M6800::cmpb_ix,&M6800::sbcb_ix,&M6800::sbcb_ix,&M6800::andb_ix,&M6800::bitb_ix,&M6800::ldb_ix, &M6800::stb_ix,
+	&M6800::eorb_ix,&M6800::adcb_ix,&M6800::orb_ix, &M6800::addb_ix,&M6800::illegal,&M6800::jsr_ix ,&M6800::ldx_ix, &M6800::stx_ix,
+	&M6800::subb_ex,&M6800::cmpb_ex,&M6800::sbcb_ex,&M6800::sbcb_ex,&M6800::andb_ex,&M6800::bitb_ex,&M6800::ldb_ex, &M6800::stb_ex,
+	&M6800::eorb_ex,&M6800::adcb_ex,&M6800::orb_ex, &M6800::addb_ex,&M6800::illegal,&M6800::jsr_ex, &M6800::ldx_ex, &M6800::stx_ex
+};

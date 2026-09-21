@@ -2,7 +2,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'">
 <title>JR-200 Web — CJR検査ツール</title><link rel="stylesheet" href="style.css"></head>
 <body><main><header><p class="eyebrow">JR-200 WEB / DEVELOPMENT BUILD</p><h1>CJR検査ツール</h1><p class="lead">C++コアをWebAssemblyで実行。ファイルはこのブラウザ内で処理します。</p></header>
-<div class="notice"><strong>エミュレータ本体は未実装です。</strong> このビルドはCJR解析・BIN→CJR作成の初期検証用です。CPU・BASIC起動・画面・音声・WAV変換・実機互換は未検証です。</div>
+<div class="notice"><strong>エミュレータ本体は未実装です。</strong> MC6800単体コアはnative/WASM合成試験済みですが、この画面はCJR解析・BIN→CJR作成用です。ROM・周辺回路との接続、BASIC起動、画面・音声・WAV変換・実機互換は未検証です。</div>
 <p id="status" role="status">WASMを読み込んでいます…</p>
 <section><h2>01 / CJRを検査</h2><p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
 <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
@@ -15,5 +15,5 @@
 <label>ボーレート指定<select id="baud"><option value="0">2400（フラグ0）</option><option value="100">600（フラグ100）</option></select></label></div>
 <button id="create" disabled>検証してCJRを保存</button></form><p id="pack-status" role="status"></p></section>
 <footer><p>非公式の独立プロジェクトです。VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。</p>
-<a href="LICENSE.txt">本プロジェクトのライセンス</a> · <a href="LICENSES/VJR200.txt">FIND / VJR-200 ライセンス全文</a> · <a href="THIRD_PARTY_NOTICES.md">第三者表記</a></footer>
+<a href="LICENSE.txt">本プロジェクトのライセンス</a> · <a href="LICENSES/VJR200.txt">FIND / VJR-200 ライセンス全文</a> · <a href="LICENSES/MAME_BSD-3-Clause.txt">MAME MC6800 BSD-3-Clause全文</a> · <a href="THIRD_PARTY_NOTICES.md">第三者表記</a></footer>
 </main><script type="module" src="app.mjs"></script></body></html>
