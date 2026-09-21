@@ -17,8 +17,11 @@ html=(ROOT/'web/index.html').read_text()
 assert 'LICENSES/VJR200.txt' in html and 'LICENSES/MAME_BSD-3-Clause.txt' in html
 assert 'THIRD_PARTY_NOTICES.md' in html
 assert 'value="100">600（フラグ100）' in html
-for f in ['src/tape/cjr.cpp','include/jr200/cjr.hpp']:
+for f in ['src/tape/cjr.cpp','include/jr200/cjr.hpp',
+          'src/tape/cassette.cpp','include/jr200/cassette.hpp']:
     t=(ROOT/f).read_text();assert 'FIND' in t and 'SPDX-License-Identifier: BSD-3-Clause' in t
+    assert not any(token in t for token in ['stdafx.h','cereal::','TCHAR','DirectSound',
+                                            'Direct2D','windows.h','fopen(','ofstream'])
 for f in ['src/core/m6800.cpp','src/core/6800ops.hxx','src/core/6800tbl.hxx','include/jr200/m6800.hpp']:
     t=(ROOT/f).read_text();assert 'Aaron Giles' in t and 'SPDX-License-Identifier: BSD-3-Clause' in t
     assert not any(token in t for token in ['JRSystem','stdafx.h','cereal::','TCHAR','DirectSound','Direct2D'])
@@ -37,12 +40,13 @@ if manifest.exists():
               'tests/cpu_wasm_smoke.mjs','LICENSES/MAME_BSD-3-Clause.txt',
               'include/jr200/peripherals.hpp','include/jr200/system.hpp',
               'include/jr200/debugger.hpp','src/core/debugger.cpp',
+              'include/jr200/cassette.hpp','src/tape/cassette.cpp',
               'src/core/peripherals.cpp','src/core/system.cpp','src/wasm/system_api.cpp',
               'src/wasm/freestanding_memory.cpp',
-              'tests/test_system.cpp','tests/system_wasm_smoke.mjs',
+              'tests/test_system.cpp','tests/test_cassette.cpp','tests/system_wasm_smoke.mjs',
               'tests/emscripten_smoke.mjs','tests/webdriver_real_rom_smoke.py',
               'docs/P05_PERIPHERAL_AUDIT.md','docs/P06_BROWSER_ACCEPTANCE.md',
-              'docs/P07_DEBUGGER_ACCEPTANCE.md',
+              'docs/P07_DEBUGGER_ACCEPTANCE.md','docs/P08_CASSETTE_ACCEPTANCE.md',
               '.emscripten-version','scripts/check_emscripten_version.py'}
     assert required.issubset(files),'CPU source or license missing from source inventory'
     for f in files:

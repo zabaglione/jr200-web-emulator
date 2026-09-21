@@ -24,6 +24,19 @@ try {
   const external600 = codec.pack(Uint8Array.of(0x12,0x34),'SECOND',0x6000,false,100);
   assert.equal(codec.inspect(external600).baudFlag,100);
   assert.deepEqual(packed,preserved); // returned bytes must not alias wasm memory
+  const mounted=codec.machine.tape.mount(preserved);
+  assert.equal(mounted.state,1);
+  assert.equal(mounted.mode,1);
+  assert.equal(mounted.payloadBytes,1);
+  assert.equal(mounted.firstAddress,0x7000);
+  assert.ok(mounted.totalSamples>0);
+  assert.equal(codec.machine.tape.rewind().samplePosition,0);
+  assert.equal(codec.machine.tape.eject().state,0);
+  const special=Uint8Array.from(preserved);
+  special[22]=2;
+  special[32]=special.subarray(0,32).reduce((sum,value)=>(sum+value)&0xff,0);
+  assert.throws(()=>codec.machine.tape.mount(special),/BASIC.*machine-code/);
+  assert.equal(codec.machine.tape.armRecord().state,3);
   packed[40]^=1;
   assert.throws(()=>codec.inspect(packed),/checksum.*offset 40/);
   assert.throws(()=>codec.inspect(new Uint8Array(1024*1024+1)),/1 MiB/);
@@ -66,8 +79,9 @@ try {
   assert.equal(codec.machine.reset().pc,0xe000);
   assert.throws(()=>codec.machine.boot(rom.subarray(1),font),/16384/);
   codec.machine.clear();
+  assert.equal(codec.machine.tape.state().state,0);
   assert.throws(()=>codec.machine.run(1),/ROM/);
-  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, machine boot/run/reset, bounded debugger, framebuffer, input guards');
+  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, cassette transport, machine boot/run/reset, bounded debugger, framebuffer, input guards');
 } finally {
   globalThis.fetch=originalFetch;
 }

@@ -8,6 +8,7 @@ const FRAME_HEIGHT = 224;
 const DEBUG_STOP_NAMES = ['実行可能', 'breakpoint', 'read watchpoint', 'write watchpoint', 'step'];
 const DEBUG_EVENT_NAMES = ['RESET', 'instruction', 'IRQ', 'NMI', 'waiting'];
 const DEBUG_ACCESS_NAMES = ['opcode', 'operand', 'data', 'stack', 'vector'];
+const TAPE_STATE_NAMES = ['取出し済み', '停止', '再生中', '録音待機', '録音中', '録音完了', '終端', 'エラー'];
 const state = {
   romMode: 'combined',
   rom: null,
@@ -21,6 +22,7 @@ const state = {
   cycleBalance: 0,
   lastStatus: 0,
   activeKeys: new Map(),
+  tapeName: '',
 };
 
 let codec;
@@ -32,10 +34,11 @@ paintBlank();
 try {
   codec = await loadCodec();
   $('status').textContent = 'WASM起動済み / 処理はローカルのみ';
-  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets']) {
+  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record']) {
     $(id).disabled = false;
   }
   updateAssetStatus();
+  showTapeStatus();
 } catch (error) {
   $('status').textContent = `初期化エラー: ${error.message}`;
 }
@@ -78,6 +81,7 @@ function runFrame(timestamp) {
     paintMachine();
     if (timestamp - state.lastStatus >= 500) {
       showMachineStatus();
+      showTapeStatus();
       state.lastStatus = timestamp;
     }
   } else {
@@ -278,6 +282,32 @@ function showMachineStatus() {
   const debug = codec.machine.debugger.state();
   const mode = debug.stopReason !== 0 ? `デバッガ停止 (${DEBUG_STOP_NAMES[debug.stopReason]})` : state.paused ? '一時停止' : '実行中';
   $('machine-status').textContent = `${mode} / PC $${hex4(registers.pc)} / cycles ${machine.cycles} / font ${machine.fontInitialized ? '初期化済み' : '転送中'}`;
+}
+
+function showTapeStatus(message = '') {
+  if (!codec) return;
+  const tape = codec.machine.tape.state();
+  const lines = [`状態: ${TAPE_STATE_NAMES[tape.state] || `不明(${tape.state})`} / REMOTE ${tape.remote ? 'ON' : 'OFF'}`];
+  if (tape.mode === 1) {
+    const kind = tape.fileType === 0 ? 'BASIC' : 'マシン語';
+    const baud = tape.baudFlag === 0 ? '2400 baud' : '600 baud';
+    lines.push(`媒体: ${state.tapeName || 'CJR'} / ${kind} / ${baud} / payload ${tape.payloadBytes} bytes`);
+    lines.push(`信号位置: ${tape.samplePosition} / ${tape.totalSamples} samples`);
+  } else if (tape.mode === 2) {
+    lines.push(`波形記録: ${tape.captureBytes} bytes / CJR出力: ${tape.outputBytes} bytes`);
+    if (tape.outputBytes > 0) {
+      lines.push(`論理領域: $${hex4(tape.firstAddress)} → $${hex4(tape.footerAddress)} / payload ${tape.payloadBytes} bytes`);
+    }
+  } else {
+    lines.push('媒体: なし');
+  }
+  if (tape.error) lines.push(`エラー: ${tape.errorMessage} (code ${tape.error}, detail ${tape.errorDetail})`);
+  if (message) lines.push(message);
+  $('tape-status').textContent = lines.join('\n');
+  $('tape-eject').disabled = tape.state === 0;
+  $('tape-rewind').disabled = tape.mode !== 1;
+  $('tape-download').disabled = tape.state !== 5 || tape.outputBytes === 0;
+  $('tape-replay-output').disabled = tape.state !== 5 || tape.outputBytes === 0;
 }
 
 function setDebuggerEnabled(enabled) {
@@ -563,6 +593,71 @@ async function readLimited(file) {
   if (file.size > 1024 * 1024) throw new Error('上限は1 MiBです');
   return new Uint8Array(await file.arrayBuffer());
 }
+
+$('tape-mount').addEventListener('click', async () => {
+  try {
+    const file = $('tape-cjr').files[0];
+    const bytes = await readLimited(file);
+    codec.machine.tape.mount(bytes);
+    state.tapeName = file.name;
+    showTapeStatus('通常のカセット入力信号としてマウントしました。LOADまたはMLOADを実行してください。');
+  } catch (error) {
+    showTapeStatus(`マウントできません: ${error.message}`);
+  }
+});
+
+$('tape-eject').addEventListener('click', () => {
+  codec.machine.tape.eject();
+  state.tapeName = '';
+  showTapeStatus('CJRを取り出しました。');
+});
+
+$('tape-rewind').addEventListener('click', () => {
+  try {
+    codec.machine.tape.rewind();
+    showTapeStatus('CJRの信号位置を先頭へ戻しました。');
+  } catch (error) {
+    showTapeStatus(`巻戻しできません: ${error.message}`);
+  }
+});
+
+$('tape-record').addEventListener('click', () => {
+  try {
+    codec.machine.tape.armRecord();
+    state.tapeName = '';
+    showTapeStatus('録音待機中です。JR-200側でSAVEまたはMSAVEを実行してください。REMOTE OFF後にCJRを検証します。');
+  } catch (error) {
+    showTapeStatus(`録音待機にできません: ${error.message}`);
+  }
+});
+
+$('tape-download').addEventListener('click', () => {
+  try {
+    const output = codec.machine.tape.output();
+    if (output.length === 0) throw new Error('保存できる録音CJRがありません');
+    const url = URL.createObjectURL(new Blob([output], {type: 'application/octet-stream'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'jr200-save.cjr';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showTapeStatus(`${output.length}バイトの検証済みCJRを保存しました。`);
+  } catch (error) {
+    showTapeStatus(`録音CJRを保存できません: ${error.message}`);
+  }
+});
+
+$('tape-replay-output').addEventListener('click', () => {
+  try {
+    const output = codec.machine.tape.output();
+    if (output.length === 0) throw new Error('再生できる録音CJRがありません');
+    codec.machine.tape.mount(output);
+    state.tapeName = '録音結果';
+    showTapeStatus('直前の録音CJRを通常のカセット入力信号としてマウントしました。');
+  } catch (error) {
+    showTapeStatus(`録音CJRをマウントできません: ${error.message}`);
+  }
+});
 
 async function inspectFile() {
   try {

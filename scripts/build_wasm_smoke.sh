@@ -39,17 +39,22 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_system_trace_field jr200_system_render
          jr200_system_framebuffer_ptr jr200_system_pcm_pop
          jr200_system_pcm_sample jr200_system_cassette_pop
+         jr200_system_tape_input_ptr jr200_system_tape_capacity
+         jr200_system_tape_mount jr200_system_tape_eject
+         jr200_system_tape_rewind jr200_system_tape_arm_record
+         jr200_system_tape_output_ptr jr200_system_tape_output_size
+         jr200_system_tape_error_message jr200_system_tape_field
          __wasm_call_ctors)
 args=()
 for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
 "$CXX" --target=wasm32 -std=c++20 -O2 -ffreestanding -fno-exceptions -fno-rtti \
   -fno-builtin -nostdlib -I"$ROOT/include" "$ROOT/src/tape/cjr.cpp" \
   "$ROOT/src/core/m6800.cpp" "$ROOT/src/core/debugger.cpp" \
-  "$ROOT/src/core/peripherals.cpp" \
+  "$ROOT/src/core/peripherals.cpp" "$ROOT/src/tape/cassette.cpp" \
   "$ROOT/src/core/system.cpp" "$ROOT/src/wasm/api.cpp" \
   "$ROOT/src/wasm/cpu_api.cpp" "$ROOT/src/wasm/system_api.cpp" \
   "$ROOT/src/wasm/freestanding_memory.cpp" \
-  -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=4194304 \
+  -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=16777216 \
   -Wl,--max-memory=16777216 "${args[@]}" -o "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 python3 "$ROOT/scripts/stage_web.py" --backend clang
 node "$ROOT/tests/wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"

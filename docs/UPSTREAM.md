@@ -15,6 +15,7 @@
 | S10 | https://github.com/actions/checkout/releases/tag/v7.0.1 | CIのcheckoutを固定。commit 3d3c42e5aac5ba805825da76410c181273ba90b1 |
 | S11 | https://github.com/mamedev/mame/blob/9940645188b6749e170b62c0ea86af0f440148da/src/devices/cpu/m6800/m6800.cpp | MC6800ファイルのBSD-3-Clause/Aaron Giles表示と割込cycle |
 | S12 | https://github.com/mamedev/mame/blob/9940645188b6749e170b62c0ea86af0f440148da/docs/legal/BSD-3-Clause | MAMEのBSD-3-Clause全文。blob `cc9ab753198e41128dc651e0adb4f5e8c1be932a` |
+| S13 | https://github.com/find-jr200/VJR200forWindows/blob/dd748995bede57da5baebc1225c7a33433aa6934/VJR200/AnalyzeWave.cpp | SAVE/MSAVEのMN1271出力byteをLSB順の波形sampleへ展開し、600/2400 baudのhalf-spanからCJRへ戻す処理 |
 
 ## 上流固定情報
 - repo: `https://github.com/find-jr200/VJR200forWindows.git`
@@ -22,6 +23,10 @@
 - root tree: `66f4c9ddbc65e0556e33bb3d526a22faac1c0a0c`
 - license blob: `8cad34867bad988f97fc237a9259e338f0bedf99`
 - CjrFormat.cpp blob: `f6d0ca7512b9d831cb7d20f7313130a8b76f43f4`
+- CjrFormat.h blob: `b9c347881fba561f0783f3028f72359775f2d95b`
+- AnalyzeWave.cpp blob: `af37e398e6bfb53501ffa4fe6ac21b09e052777e`
+- AnalyzeWave.h blob: `1355b1d12e57ca6f1f21bae220bcff8007a285f4`
+- ITapeFormat.h blob: `d160c85372d6783ad4d040c0e2ceeabfefee31e0`
 - m6800.cpp blob: `797a05ff6e54834ab0fe93020ff3eaff47399a85`
 - m6800.h blob: `5483a691f2654e9b80d3352ec3b2ce470b5a7237`
 - 6800ops.hxx blob: `f22d6510f1d83a60f8837cff2088f48aa7670928`
@@ -44,6 +49,10 @@
 MAME側の照合blob、取込/除外判断は [P04_CPU_AUDIT.md](P04_CPU_AUDIT.md) に記録した。
 MN1271、MN1544、CRTC、Address、JRSystemの個別監査、OS依存機能の除外、
 register traceと近似範囲は [P05_PERIPHERAL_AUDIT.md](P05_PERIPHERAL_AUDIT.md) に記録した。
+P08では`CjrFormat`のleader/intermission、start/data/stop framing、280 CPU cycle/sampleと、
+`AnalyzeWave`のLSB順sample展開・half-span復号をOS非依存の固定容量transportへ再構成した。
+Windowsの保存先、ファイル命名、UI、直接memory loadは移植していない。詳細と通常
+LOAD/MLOAD/SAVE/MSAVEの実測は [P08_CASSETTE_ACCEPTANCE.md](P08_CASSETTE_ACCEPTANCE.md)。
 
 ## ライセンス台帳
 | 対象 | 観測した表示/条件 | 初期成果物への取込 | 方針 |

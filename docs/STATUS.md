@@ -33,15 +33,16 @@ P04: 2026-09-22受入完了。VJR-200/MAMEのMC6800ファイルを個別監査�
 P05: 2026-09-22受入完了。Address/MN1271/MN1544/CRTC/JRSystemを個別監査し、CPUとメモリmap、timer/IRQ、key handshake、CMT REMOTE、PCM queue、ARGB framebufferを明示cycle clockで接続した。native/直接WASM/正式Emscriptenの合成試験を確認した。
 P06: 2026-09-22受入完了。Emscripten 6.0.9を固定し、結合/分割ROMとフォントのローカル選択、入力検査、Canvas、キー押下/離上、NMI、ポーズ、リセット、フォーカス喪失停止、明示許可式IndexedDBを接続した。利用者提供の実機MSAVE録音をGit対象外でJR2Rescue 0.6.2により抽出し、Chrome 153、Firefox 156、Safari 26.6.2でJR BASIC 5.0のプロンプトと入力を確認した。詳細は [P06_BROWSER_ACCEPTANCE.md](P06_BROWSER_ACCEPTANCE.md)。
 P07: 2026-09-22受入完了。OS非依存コアとWeb UIへ、実行前breakpoint、1命令step、命令完了後read/write watchpoint、register表示、手動256 byte peekを接続した。break/watch各16件、命令256件、CPUアクセス512件の固定上限と破棄件数を持ち、履歴有効/無効で全メモリ・register・cycleが一致することをnative/WASMで確認した。実装commit `f85aa1d3db234db71baf91b59779ea84aafe01df` のActions run `35650269016`は4ジョブすべてsuccess。詳細は [P07_DEBUGGER_ACCEPTANCE.md](P07_DEBUGGER_ACCEPTANCE.md)。
+P08: 2026-09-22ローカル受入完了。OS非依存の固定容量カセットtransportをMN1271のREMOTE/read/writeへ接続し、標準BASIC/マシン語CJRのmount/eject/rewindとLOAD/MLOAD/SAVE/MSAVEを通常信号経路で確認した。正式Emscripten siteの実ROMでBASIC 2行と4 byteの自己往復、および実機MSAVE録音から独立ツールで復元した2048 byte font CJRの通常MLOADを確認した。WAV復元自体は本実装ではない。詳細は [P08_CASSETTE_ACCEPTANCE.md](P08_CASSETTE_ACCEPTANCE.md)。remote CIとIssue closeは実装commitのpush後に記録する。
 
 ## 未実装・未検証
 
-Web Audio出力、通常カセット経路、自前のCJR↔WAV、実機との生成WAV往復は未実装/未実施。P06の実ROM起動とP07のデバッガ観測は、実機register/timing、実音、通常LOAD/SAVE、生成WAVの実機互換を示さない。利用者提供録音の復元には独立参照ツールJR2Rescueを使用しており、本プロジェクト自身のWAVデコーダ試験ではない。ROM/フォント・商用ソフト・録音は未同梱である。
+Web Audio出力、自前のCJR↔WAV、実機との生成WAV往復は未実装/未実施。P08の通常CJR transportは、実機register/timing、実音、生成WAVの実機互換を示さない。利用者提供録音の復元には独立参照ツールJR2Rescueを使用しており、本プロジェクト自身のWAVデコーダ試験ではない。ROM/フォント・商用ソフト・録音は未同梱である。
 
 Emscripten 6.0.9による正式ビルド、生成モジュールのNode試験、合成ROMの直接WASM/JS試験、実ROMの三ブラウザ試験を2026-09-22にローカル実行した。ChromeとSafariはmacOSの実ブラウザ、Firefoxは読み取り専用検体mountを持つ隔離コンテナのWebDriverで確認した。
 
 ## 次の作業
 
-#1 (P00)〜#8 (P07) は受入完了。次に #9 (P08) のCJRカセットLOAD/MLOAD/SAVE/MSAVE統合へ進む。メモリ注入やデバッガ観測を通常カセット成功へ読み替えない。
+#1 (P00)〜#8 (P07) はremote受入完了。#9 (P08) はローカル受入完了で、実装commitのCI成功後にcloseする。次は #10 (P09) のWeb Audio出力・休止復帰である。通常CJR transportを実音出力やWAV互換へ読み替えない。
 
 privateは維持。Pages/外部公開デプロイ、アクセス権・branch protection・課金設定の変更は行っていない。

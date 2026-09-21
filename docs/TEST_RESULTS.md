@@ -1,5 +1,25 @@
 # 初期実装の試験記録
 
+## P08 CJRカセットLOAD/MLOAD/SAVE/MSAVE受入（2026-09-22 / macOS）
+
+OS非依存の固定容量`CassetteDeck`をMN1271のREMOTE、register 7読出し、register 0D
+書込みへ接続した。`make test`と`make sanitize`は各CTest 7/7、`make wasm-smoke`は
+CJR/CPU/system/JS wrapperの4試験、Emscripten 6.0.9の`make wasm`、`make check`も
+成功した。2400/600 baud、279/280 cycle境界、CJR全byte自己往復、footer直後の
+REMOTE OFF、容量超過、headerless・未知type・特殊形式拒否を確認した。
+
+正式Emscripten siteをGit対象外の実ROM/fontで起動し、通常`SAVE`→`LOAD`でBASIC
+2行と`RUN`結果`42`、通常`MSAVE`→`MLOAD`で`$7000`〜`$7003`の4 byte一致を確認した。
+利用者の物理JR-200によるMSAVE WAVからJR2Rescue 0.6.2で復元済みのfont CJRも
+通常`MLOAD`し、84784 sample後に変更した`$D008`〜`$D00E`が復元された。
+browser consoleのerror/warningは0件だった。Python Playwright moduleがないため
+`tests/browser_smoke.py`自身はimport時点で未実行である。
+
+これは標準CJR transportの受入である。WAV復元は独立参照ツールによるもので、
+自前WAV decoder、Web Audio、生成WAVの物理JR-200互換を示さない。ROM、font、WAV、
+CJR、BIN、画面capture、内容hashはGitへ追加していない。詳細は
+[P08_CASSETTE_ACCEPTANCE.md](P08_CASSETTE_ACCEPTANCE.md)。
+
 ## P07 デバッガ・追跡・メモリウォッチ受入（2026-09-22 / macOS・GitHub Actions）
 
 `make test`と`make sanitize`は各CTest 6/6、`make wasm-smoke`はCJR/CPU/system/

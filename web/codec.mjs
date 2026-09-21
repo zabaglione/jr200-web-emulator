@@ -16,15 +16,21 @@ export async function loadCodec() {
     memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
-  if (e.jr200_system_api_version() !== 3) throw new Error('システムABIのバージョンが一致しません');
+  if (e.jr200_system_api_version() !== 4) throw new Error('システムABIのバージョンが一致しません');
   const text = new TextDecoder();
+  const readCString = start => {
+    const heap = memory();
+    let end = start;
+    while (end < heap.length && end - start < 512 && heap[end]) ++end;
+    return text.decode(heap.subarray(start, end));
+  };
   const checked = code => {
     if (code) {
-      const heap = memory(), start = e.jr200_error_message();
-      let end = start;
-      while (end < heap.length && end - start < 512 && heap[end]) ++end;
-      throw new Error(`${text.decode(heap.subarray(start,end))} (offset ${e.jr200_error_offset()})`);
+      throw new Error(`${readCString(e.jr200_error_message())} (offset ${e.jr200_error_offset()})`);
     }
+  };
+  const checkedTape = code => {
+    if (code) throw new Error(readCString(e.jr200_system_tape_error_message()));
   };
   let machineBooted = false;
   const checkedAddress = address => {
@@ -223,6 +229,53 @@ export async function loadCodec() {
           operation: field(7),
         };
       });
+    },
+  };
+  machine.tape = {
+    mount(bytes) {
+      if (!(bytes instanceof Uint8Array)) throw new Error('CJR入力はUint8Arrayで指定してください');
+      if (bytes.length === 0 || bytes.length > e.jr200_system_tape_capacity()) {
+        throw new Error('CJR入力は1バイト以上1 MiB以下で指定してください');
+      }
+      memory().set(bytes, e.jr200_system_tape_input_ptr());
+      checkedTape(e.jr200_system_tape_mount(bytes.length));
+      return this.state();
+    },
+    eject() {
+      e.jr200_system_tape_eject();
+      return this.state();
+    },
+    rewind() {
+      if (e.jr200_system_tape_rewind() !== 1) throw new Error('再生用CJRがマウントされていません');
+      return this.state();
+    },
+    armRecord() {
+      checkedTape(e.jr200_system_tape_arm_record());
+      return this.state();
+    },
+    output() {
+      const size = e.jr200_system_tape_output_size();
+      return memory().slice(e.jr200_system_tape_output_ptr(), e.jr200_system_tape_output_ptr() + size);
+    },
+    state() {
+      return {
+        state: e.jr200_system_tape_field(0),
+        mode: e.jr200_system_tape_field(1),
+        remote: e.jr200_system_tape_field(2) !== 0,
+        samplePosition: uint64(e.jr200_system_tape_field(3), e.jr200_system_tape_field(4)),
+        totalSamples: uint64(e.jr200_system_tape_field(5), e.jr200_system_tape_field(6)),
+        captureBytes: e.jr200_system_tape_field(7),
+        outputBytes: e.jr200_system_tape_field(8),
+        error: e.jr200_system_tape_field(9),
+        fileType: e.jr200_system_tape_field(10),
+        baudFlag: e.jr200_system_tape_field(11),
+        readStarted: e.jr200_system_tape_field(12) !== 0,
+        errorDetail: e.jr200_system_tape_field(13),
+        payloadBytes: e.jr200_system_tape_field(14),
+        firstAddress: e.jr200_system_tape_field(15),
+        footerAddress: e.jr200_system_tape_field(16),
+        errorMessage: readCString(e.jr200_system_tape_error_message()),
+      };
     },
   };
   return {

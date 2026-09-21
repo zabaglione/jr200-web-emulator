@@ -65,7 +65,7 @@
     <div class="screen-shell">
       <canvas id="screen" width="320" height="224" tabindex="0" aria-label="JR-200画面。起動後にクリックするとキーボード入力できます。"></canvas>
     </div>
-    <p class="hint">起動後、画面をクリックして入力します。フォーカスを失うとキーを解放して自動的に一時停止します。音声とカセットは後続Issueの対象です。</p>
+    <p class="hint">起動後、画面をクリックして入力します。フォーカスを失うとキーを解放して自動的に一時停止します。音声出力は後続Issueの対象です。</p>
   </section>
 
   <section aria-labelledby="debugger-heading">
@@ -123,8 +123,24 @@
     </div>
   </section>
 
+  <section aria-labelledby="tape-heading">
+    <h2 id="tape-heading">03 / カセット</h2>
+    <p>CJRをMN1271の通常信号経路で再生し、SAVE/MSAVEの出力波形をCJRへ復号します。メモリへの直接注入は行いません。</p>
+    <p class="hint">標準のBASIC（LOAD/SAVE）とマシン語（MLOAD/MSAVE）だけに対応します。PRINT#、INPUT#、ヘッダーなし、未知の種別、特殊・連結形式は黙って受け付けずエラーにします。</p>
+    <label class="file">再生するCJRファイル<input id="tape-cjr" type="file" accept=".cjr,application/octet-stream" disabled></label>
+    <div class="controls">
+      <button id="tape-mount" type="button" disabled>マウント</button>
+      <button id="tape-eject" type="button" disabled>取出し</button>
+      <button id="tape-rewind" type="button" disabled>巻戻し</button>
+      <button id="tape-record" type="button" disabled>新規録音を待機</button>
+      <button id="tape-download" type="button" disabled>録音CJRを保存</button>
+      <button id="tape-replay-output" type="button" disabled>録音CJRを再生へマウント</button>
+    </div>
+    <pre id="tape-status" aria-live="polite">WASMの準備を待っています。</pre>
+  </section>
+
   <section aria-labelledby="inspect-heading">
-    <h2 id="inspect-heading">03 / CJRを検査</h2>
+    <h2 id="inspect-heading">04 / CJRを検査</h2>
     <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
     <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
     <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
@@ -132,7 +148,7 @@
   </section>
 
   <section aria-labelledby="pack-heading">
-    <h2 id="pack-heading">04 / BINから標準CJRを作成</h2>
+    <h2 id="pack-heading">05 / BINから標準CJRを作成</h2>
     <p>既存バイナリを1つの連続領域として格納します。BASICのトークナイズは行いません。</p>
     <form id="pack">
       <label>BINファイル<input id="bin" type="file" required disabled></label>

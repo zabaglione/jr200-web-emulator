@@ -2,6 +2,7 @@
 // Copyright (c) 2026 jr200-web contributors
 #pragma once
 
+#include "jr200/cassette.hpp"
 #include "jr200/debugger.hpp"
 #include "jr200/m6800.hpp"
 #include "jr200/peripherals.hpp"
@@ -107,6 +108,8 @@ public:
     [[nodiscard]] const IoTraceBuffer& io_trace() const noexcept;
     [[nodiscard]] MachineDebugger& debugger() noexcept;
     [[nodiscard]] const MachineDebugger& debugger() const noexcept;
+    [[nodiscard]] CassetteDeck& cassette() noexcept;
+    [[nodiscard]] const CassetteDeck& cassette() const noexcept;
 
 private:
     MemoryConfig config_{};
@@ -117,6 +120,7 @@ private:
     PcmQueue pcm_{};
     IoTraceBuffer io_trace_{};
     MachineDebugger debugger_{};
+    CassetteDeck cassette_{};
     uint64_t cycle_count_{};
     bool cpu_access_active_{};
     M6800 cpu_;

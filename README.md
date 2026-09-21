@@ -1,14 +1,14 @@
 # JR-200 Web Emulator
 
-**状態: P07まで受入完了。ブラウザBASIC起動に加え、上限付きデバッガのbreakpoint、step、watchpoint、履歴、メモリpeekを確認済みです。**
+**状態: P08をローカル受入済み。ブラウザBASIC起動、上限付きデバッガに加え、通常カセット経路のLOAD/MLOAD/SAVE/MSAVEを確認済みです。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 
 ## 今回入っているもの
 
-CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、PCMキュー、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、キーボード入力、ポーズ/リセット、固定長デバッガ、native/WASM/ブラウザ試験、14件のIssue本文です。
+CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、PCMキュー、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、キーボード入力、ポーズ/リセット、固定長デバッガ、通常CJRカセットtransport、native/WASM/ブラウザ試験、14件のIssue本文です。
 
-**入っていないもの:** Web Audio接続、通常カセットLOAD/SAVE、WAVエンコーダ/デコーダ、ROM/メーカー由来フォント本体、実機互換の確認結果。ROM、フォント、録音は利用者のローカルファイルとしてのみ扱います。
+**入っていないもの:** Web Audio接続、WAVエンコーダ/デコーダ、生成WAVの実機互換結果、ROM/メーカー由来フォント本体。ROM、フォント、録音は利用者のローカルファイルとしてのみ扱います。
 
 リポジトリ: [zabaglione/jr200-web-emulator](https://github.com/zabaglione/jr200-web-emulator)（private）。開発順と実際のIssue番号は [Issue一覧](docs/ISSUE_INDEX.md) を参照してください。CIの結果は [Actions](https://github.com/zabaglione/jr200-web-emulator/actions) で確認できます。
 
@@ -47,9 +47,9 @@ make serve
 # ブラウザで http://127.0.0.1:8000 を開く
 ```
 
-結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査とBIN→標準CJR包装も同じ画面から利用できます。デバッガは実行/停止/step、16件ずつのbreakpoint/watchpoint、命令256件・CPUアクセス512件の履歴、手動256 byte peekを持ちます。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
+結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査とBIN→標準CJR包装も同じ画面から利用できます。デバッガは実行/停止/step、16件ずつのbreakpoint/watchpoint、命令256件・CPUアクセス512件の履歴、手動256 byte peekを持ちます。標準BASIC/マシン語CJRを通常のMN1271信号経路へmountし、LOAD/MLOAD/SAVE/MSAVEを実行できます。高速RAM注入、PRINT#、INPUT#、特殊・連結CJRは対象外です。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
 
-Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。ブラウザ起動の詳細は [P06受入記録](docs/P06_BROWSER_ACCEPTANCE.md)、デバッガの停止・観測境界は [P07受入記録](docs/P07_DEBUGGER_ACCEPTANCE.md) を参照してください。
+Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。ブラウザ起動の詳細は [P06受入記録](docs/P06_BROWSER_ACCEPTANCE.md)、デバッガの停止・観測境界は [P07受入記録](docs/P07_DEBUGGER_ACCEPTANCE.md)、通常CJR transportは [P08受入記録](docs/P08_CASSETTE_ACCEPTANCE.md) を参照してください。
 
 ```sh
 # emsdk を導入・有効化済みの環境で

@@ -11,7 +11,19 @@ jr200::PcmFrame last_pcm{};
 jr200::M6800Trace last_system_trace{};
 alignas(16) uint8_t rom_buffer[16384]{};
 alignas(16) uint8_t font_buffer[jr200::Mn1544::kFontSize]{};
+alignas(16) uint8_t tape_input_buffer[jr200::cjr::kMaxInput]{};
+alignas(16) uint8_t tape_capture_buffer[jr200::cjr::kMaxInput]{};
+alignas(16) uint8_t tape_output_buffer[jr200::cjr::kMaxInput]{};
 bool assets_loaded{};
+
+void configure_tape_storage()
+{
+    machine.cassette().configure_recording_storage(
+        tape_capture_buffer,
+        sizeof(tape_capture_buffer),
+        tape_output_buffer,
+        sizeof(tape_output_buffer));
+}
 
 bool reset_loaded_machine()
 {
@@ -36,13 +48,15 @@ extern "C" {
 
 uint32_t jr200_system_api_version()
 {
-    return 3U;
+    return 4U;
 }
 
 void jr200_system_clear()
 {
     machine.initialize_memory();
     machine.reset_peripherals();
+    machine.cassette().eject();
+    configure_tape_storage();
     machine.debugger().clear_all();
     last_pcm = {};
     last_system_trace = {};
@@ -52,6 +66,11 @@ void jr200_system_clear()
     }
     for (size_t i = 0U; i < sizeof(font_buffer); ++i) {
         font_buffer[i] = 0U;
+    }
+    for (size_t i = 0U; i < sizeof(tape_input_buffer); ++i) {
+        tape_input_buffer[i] = 0U;
+        tape_capture_buffer[i] = 0U;
+        tape_output_buffer[i] = 0U;
     }
 }
 
@@ -419,6 +438,89 @@ uint32_t jr200_system_cassette_pop()
     return machine.mn1271().take_cassette_output(value)
         ? static_cast<uint32_t>(value) | 0x100U
         : 0U;
+}
+
+uint8_t* jr200_system_tape_input_ptr()
+{
+    return tape_input_buffer;
+}
+
+uint32_t jr200_system_tape_capacity()
+{
+    return static_cast<uint32_t>(sizeof(tape_input_buffer));
+}
+
+uint32_t jr200_system_tape_mount(uint32_t size)
+{
+    configure_tape_storage();
+    const jr200::CassetteError result = machine.cassette().mount(
+        tape_input_buffer,
+        size);
+    if (result == jr200::CassetteError::None) {
+        machine.cassette().set_remote(machine.mn1271().cassette_remote());
+    }
+    return static_cast<uint32_t>(result);
+}
+
+void jr200_system_tape_eject()
+{
+    machine.cassette().eject();
+    configure_tape_storage();
+}
+
+uint32_t jr200_system_tape_rewind()
+{
+    return machine.cassette().rewind() ? 1U : 0U;
+}
+
+uint32_t jr200_system_tape_arm_record()
+{
+    configure_tape_storage();
+    const jr200::CassetteError result = machine.cassette().arm_record();
+    if (result == jr200::CassetteError::None) {
+        machine.cassette().set_remote(machine.mn1271().cassette_remote());
+    }
+    return static_cast<uint32_t>(result);
+}
+
+const uint8_t* jr200_system_tape_output_ptr()
+{
+    return tape_output_buffer;
+}
+
+uint32_t jr200_system_tape_output_size()
+{
+    return static_cast<uint32_t>(machine.cassette().output_size());
+}
+
+const char* jr200_system_tape_error_message()
+{
+    return jr200::cassette_error_message(machine.cassette().error());
+}
+
+uint32_t jr200_system_tape_field(uint32_t field)
+{
+    const jr200::CassetteDeck& tape = machine.cassette();
+    switch (field) {
+    case 0U: return static_cast<uint32_t>(tape.state());
+    case 1U: return static_cast<uint32_t>(tape.mode());
+    case 2U: return tape.remote() ? 1U : 0U;
+    case 3U: return static_cast<uint32_t>(tape.sample_position());
+    case 4U: return static_cast<uint32_t>(tape.sample_position() >> 32U);
+    case 5U: return static_cast<uint32_t>(tape.total_samples());
+    case 6U: return static_cast<uint32_t>(tape.total_samples() >> 32U);
+    case 7U: return static_cast<uint32_t>(tape.capture_size());
+    case 8U: return static_cast<uint32_t>(tape.output_size());
+    case 9U: return static_cast<uint32_t>(tape.error());
+    case 10U: return tape.summary().file_type;
+    case 11U: return tape.summary().baud_flag;
+    case 12U: return tape.read_started() ? 1U : 0U;
+    case 13U: return tape.error_detail();
+    case 14U: return tape.summary().payload_bytes;
+    case 15U: return tape.summary().first_address;
+    case 16U: return tape.summary().footer_address;
+    default: return 0U;
+    }
 }
 
 }  // extern "C"

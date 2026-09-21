@@ -1,16 +1,22 @@
 # Third-party notices
 
-The CJR codec in `include/jr200/cjr.hpp` and `src/tape/cjr.cpp` is derived from
-the published format-handling code in `find-jr200/VJR200forWindows`,
-commit `dd748995bede57da5baebc1225c7a33433aa6934`, `VJR200/CjrFormat.cpp`.
+The CJR codec and cassette signal path in `include/jr200/cjr.hpp`,
+`include/jr200/cassette.hpp`, `src/tape/cjr.cpp`, and
+`src/tape/cassette.cpp` are derived from the published format, waveform, and
+MN1271 integration code in `find-jr200/VJR200forWindows`, commit
+`dd748995bede57da5baebc1225c7a33433aa6934`: `VJR200/CjrFormat.cpp`,
+`VJR200/AnalyzeWave.cpp`, and the relevant `VJR200/Mn1271.cpp` behavior.
 
 Copyright (c) 2017,2020 FIND. The complete applicable terms are preserved in
 [LICENSES/VJR200.txt](LICENSES/VJR200.txt). The file is shipped with source and
 with the staged WASM site, and is linked from the website footer.
 
-The implementation was reorganized into an allocation-free, bounds-checked
-C++ codec. Windows UI, direct memory-loading shortcuts, cereal serialization,
-and waveform synthesis were not copied into this initial build.
+The implementation was reorganized into allocation-free, bounds-checked C++
+with caller-provided fixed storage. Windows file/UI code, direct memory-loading
+shortcuts, cereal serialization, and unbounded intermediate vectors were not
+ported. Standard BASIC and machine-code CJR use the normal emulated signal
+path; special PRINT#/INPUT#, headerless, unknown-type, and concatenated streams
+are rejected rather than represented as successful standard CJR operations.
 
 The MC6800 CPU core in `include/jr200/m6800.hpp` and `src/core/` is adapted
 from the BSD-3-Clause MAME MC6800 implementation by Aaron Giles and FIND's

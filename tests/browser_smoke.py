@@ -17,6 +17,9 @@ import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = bytes([2,42,0,26,255,255,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,255,255,255,255,255,255,255,255,149,2,42,1,1,112,0,171,73,2,42,255,255,112,1])
+SPECIAL = bytearray(GOLDEN)
+SPECIAL[22] = 2
+SPECIAL[32] = sum(SPECIAL[:32]) & 0xff
 ROM = bytearray(16384)
 ROM[0] = 1
 ROM[8192:8199] = bytes([0x86,0x2a,0xb7,0xc1,0x00,0x20,0xfe])
@@ -105,6 +108,23 @@ def main() -> None:
                 summary=json.loads(page.locator('#result').inner_text())
                 assert summary['payloadBytes']==1 and summary['firstAddress']==0x7000
                 assert summary['hardwareVerified'] is False and summary['nameAscii']=='X'
+                page.locator('#tape-cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
+                page.locator('#tape-mount').click()
+                expect(page.locator('#tape-status')).to_contain_text('状態: 停止')
+                expect(page.locator('#tape-status')).to_contain_text('payload 1 bytes')
+                expect(page.locator('#tape-status')).to_contain_text('通常のカセット入力信号')
+                page.locator('#tape-rewind').click()
+                expect(page.locator('#tape-status')).to_contain_text('信号位置を先頭')
+                page.locator('#tape-eject').click()
+                expect(page.locator('#tape-status')).to_contain_text('状態: 取出し済み')
+                page.locator('#tape-cjr').set_input_files({'name':'special.cjr','mimeType':'application/octet-stream','buffer':bytes(SPECIAL)})
+                page.locator('#tape-mount').click()
+                expect(page.locator('#tape-status')).to_contain_text('状態: エラー')
+                expect(page.locator('#tape-status')).to_contain_text('only standard BASIC and machine-code CJR')
+                page.locator('#tape-record').click()
+                expect(page.locator('#tape-status')).to_contain_text('状態: 録音待機')
+                expect(page.locator('#tape-status')).to_contain_text('SAVEまたはMSAVE')
+                page.locator('#tape-eject').click()
                 for name in ['LICENSE.txt','LICENSES/VJR200.txt','LICENSES/MAME_BSD-3-Clause.txt','THIRD_PARTY_NOTICES.md']:
                     result=page.request.get(base+'/'+name)
                     assert result.ok and len(result.body())>100, name
@@ -128,7 +148,7 @@ def main() -> None:
                 assert '40' in page.locator('#result').inner_text()
                 assert not errors, errors
                 assert not external, external
-                print('PASS Chromium: synthetic boot, breakpoint/resume/step/watch/peek, bounded trace UI, CJR tools, no external requests')
+                print('PASS Chromium: synthetic boot, cassette controls, breakpoint/resume/step/watch/peek, bounded trace UI, CJR tools, no external requests')
                 print('Browser:',browser.version)
             finally:
                 browser.close()

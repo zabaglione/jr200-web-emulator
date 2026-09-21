@@ -75,6 +75,7 @@ void JR200Machine::initialize_memory() noexcept
 void JR200Machine::reset_peripherals() noexcept
 {
     mn1271_.reset();
+    cassette_.reset_remote();
     mn1544_.reset();
     crtc_.reset();
     pcm_.clear();
@@ -172,6 +173,7 @@ void JR200Machine::advance_cycles(uint32_t cycles) noexcept
         return;
     }
     mn1271_.tick(cycles, pcm_);
+    cassette_.tick(cycles);
     crtc_.tick(cycles, memory_);
     mn1544_.tick(cycles, mn1271_);
     cycle_count_ += cycles;
@@ -355,6 +357,16 @@ const MachineDebugger& JR200Machine::debugger() const noexcept
     return debugger_;
 }
 
+CassetteDeck& JR200Machine::cassette() noexcept
+{
+    return cassette_;
+}
+
+const CassetteDeck& JR200Machine::cassette() const noexcept
+{
+    return cassette_;
+}
+
 bool JR200Machine::is_ram(uint16_t address) const noexcept
 {
     if (address < 0x8000U) {
@@ -384,6 +396,9 @@ uint8_t JR200Machine::read_mapped(uint16_t address) noexcept
     }
     if (address >= 0xc800U && address < 0xca00U) {
         const uint8_t reg = static_cast<uint8_t>((address - 0xc800U) & 0x1fU);
+        if (reg == 0x07U && cassette_.mode() == CassetteMode::Playback) {
+            mn1271_.set_cassette_input(cassette_.read_level());
+        }
         const uint8_t value = mn1271_.read(reg);
         trace_io(address, reg, value, IoDevice::Mn1271, IoOperation::Read);
         sync_irq();
@@ -410,6 +425,11 @@ void JR200Machine::write_mapped(uint16_t address, uint8_t value) noexcept
     if (address >= 0xc800U && address < 0xca00U) {
         const uint8_t reg = static_cast<uint8_t>((address - 0xc800U) & 0x1fU);
         mn1271_.write(reg, value);
+        if (reg == 0x07U) {
+            cassette_.set_remote(mn1271_.cassette_remote());
+        } else if (reg == 0x0dU) {
+            cassette_.write_signal_byte(value);
+        }
         if (reg == 0x03U) {
             mn1544_.on_control_write(value);
         }
