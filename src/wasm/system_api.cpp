@@ -14,6 +14,7 @@ alignas(16) uint8_t font_buffer[jr200::Mn1544::kFontSize]{};
 alignas(16) uint8_t tape_input_buffer[jr200::cjr::kMaxInput]{};
 alignas(16) uint8_t tape_capture_buffer[jr200::cjr::kMaxInput]{};
 alignas(16) uint8_t tape_output_buffer[jr200::cjr::kMaxInput]{};
+alignas(16) int16_t pcm_output_buffer[jr200::PcmQueue::kCapacity]{};
 bool assets_loaded{};
 
 void configure_tape_storage()
@@ -48,7 +49,7 @@ extern "C" {
 
 uint32_t jr200_system_api_version()
 {
-    return 4U;
+    return 5U;
 }
 
 void jr200_system_clear()
@@ -71,6 +72,9 @@ void jr200_system_clear()
         tape_input_buffer[i] = 0U;
         tape_capture_buffer[i] = 0U;
         tape_output_buffer[i] = 0U;
+    }
+    for (size_t i = 0U; i < jr200::PcmQueue::kCapacity; ++i) {
+        pcm_output_buffer[i] = 0;
     }
 }
 
@@ -430,6 +434,49 @@ uint32_t jr200_system_pcm_pop()
 int32_t jr200_system_pcm_sample(uint32_t channel)
 {
     return channel < 3U ? last_pcm.channel[channel] : 0;
+}
+
+uint32_t jr200_system_pcm_sample_rate()
+{
+    return jr200::kPcmSampleRate;
+}
+
+uint32_t jr200_system_pcm_capacity()
+{
+    return static_cast<uint32_t>(jr200::PcmQueue::kCapacity);
+}
+
+const int16_t* jr200_system_pcm_buffer_ptr()
+{
+    return pcm_output_buffer;
+}
+
+uint32_t jr200_system_pcm_drain(uint32_t maximum_frames)
+{
+    size_t limit = maximum_frames;
+    if (limit > jr200::PcmQueue::kCapacity) {
+        limit = jr200::PcmQueue::kCapacity;
+    }
+    size_t count = 0U;
+    jr200::PcmFrame frame{};
+    while (count < limit && machine.pcm().pop(frame)) {
+        pcm_output_buffer[count] = jr200::mix_pcm_mono(frame);
+        ++count;
+    }
+    return static_cast<uint32_t>(count);
+}
+
+uint32_t jr200_system_pcm_discard()
+{
+    return static_cast<uint32_t>(machine.pcm().discard_pending());
+}
+
+uint32_t jr200_system_pcm_dropped(uint32_t high)
+{
+    const uint64_t dropped = machine.pcm().dropped();
+    return high == 0U
+        ? static_cast<uint32_t>(dropped)
+        : static_cast<uint32_t>(dropped >> 32U);
 }
 
 uint32_t jr200_system_cassette_pop()

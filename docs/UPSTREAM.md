@@ -16,6 +16,7 @@
 | S11 | https://github.com/mamedev/mame/blob/9940645188b6749e170b62c0ea86af0f440148da/src/devices/cpu/m6800/m6800.cpp | MC6800ファイルのBSD-3-Clause/Aaron Giles表示と割込cycle |
 | S12 | https://github.com/mamedev/mame/blob/9940645188b6749e170b62c0ea86af0f440148da/docs/legal/BSD-3-Clause | MAMEのBSD-3-Clause全文。blob `cc9ab753198e41128dc651e0adb4f5e8c1be932a` |
 | S13 | https://github.com/find-jr200/VJR200forWindows/blob/dd748995bede57da5baebc1225c7a33433aa6934/VJR200/AnalyzeWave.cpp | SAVE/MSAVEのMN1271出力byteをLSB順の波形sampleへ展開し、600/2400 baudのhalf-spanからCJRへ戻す処理 |
+| S14 | https://webaudio.github.io/web-audio-api/ | Web Audio API 1.1のAudioContext、AudioBufferSourceNode、sample-rate変換、suspend/resume |
 
 ## 上流固定情報
 - repo: `https://github.com/find-jr200/VJR200forWindows.git`
@@ -53,6 +54,10 @@ P08では`CjrFormat`のleader/intermission、start/data/stop framing、280 CPU c
 `AnalyzeWave`のLSB順sample展開・half-span復号をOS非依存の固定容量transportへ再構成した。
 Windowsの保存先、ファイル命名、UI、直接memory loadは移植していない。詳細と通常
 LOAD/MLOAD/SAVE/MSAVEの実測は [P08_CASSETTE_ACCEPTANCE.md](P08_CASSETTE_ACCEPTANCE.md)。
+P09ではP05の固定PCM queueをWASMから一括drainし、利用者操作後だけWeb Audioへ接続した。
+44.1 kHz bufferとdevice contextのsample rate差、休止復帰の境界はS14を根拠とし、
+DirectSound、音声device API、wall clockはC++コアへ移植していない。詳細は
+[P09_AUDIO_ACCEPTANCE.md](P09_AUDIO_ACCEPTANCE.md)。
 
 ## ライセンス台帳
 | 対象 | 観測した表示/条件 | 初期成果物への取込 | 方針 |

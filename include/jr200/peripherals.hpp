@@ -21,6 +21,8 @@ struct PcmFrame {
     int16_t channel[3]{};
 };
 
+[[nodiscard]] int16_t mix_pcm_mono(const PcmFrame& frame) noexcept;
+
 class PcmQueue {
 public:
     static constexpr size_t kCapacity = 4096U;
@@ -28,6 +30,7 @@ public:
     void clear() noexcept;
     void push(const PcmFrame& frame) noexcept;
     [[nodiscard]] bool pop(PcmFrame& frame) noexcept;
+    [[nodiscard]] size_t discard_pending() noexcept;
     [[nodiscard]] size_t size() const noexcept;
     [[nodiscard]] uint64_t dropped() const noexcept;
 

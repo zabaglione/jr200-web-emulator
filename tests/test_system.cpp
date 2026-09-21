@@ -17,6 +17,7 @@ using jr200::M6800BusAccess;
 using jr200::M6800Event;
 using jr200::MemoryConfig;
 using jr200::PcmFrame;
+using jr200::PcmQueue;
 
 int failures = 0;
 
@@ -194,6 +195,18 @@ void test_keyboard_handshake()
 
 void test_cassette_audio_and_framebuffer()
 {
+    check(mix_pcm_mono(PcmFrame{{10000, -2000, 3000}}) == 11000,
+          "three PCM channels mix deterministically to mono");
+    check(mix_pcm_mono(PcmFrame{{30000, 30000, 30000}}) == 32767 &&
+              mix_pcm_mono(PcmFrame{{-30000, -30000, -30000}}) == -32768,
+          "PCM mono mix clips to signed 16-bit bounds");
+    PcmQueue discard_queue;
+    discard_queue.push(PcmFrame{{1, 2, 3}});
+    discard_queue.push(PcmFrame{{4, 5, 6}});
+    check(discard_queue.discard_pending() == 2U &&
+              discard_queue.size() == 0U && discard_queue.dropped() == 0U,
+          "host pause discards pending PCM without inventing overflow drops");
+
     JR200Machine machine;
     machine.write_byte(0xc806U, 0x40U);
     machine.write_byte(0xc807U, 0x40U);

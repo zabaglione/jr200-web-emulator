@@ -50,6 +50,11 @@ try {
   rom.set([0xe0,0x00],16382);
   assert.throws(()=>codec.machine.run(1),/ROM/);
   assert.equal(codec.machine.boot(rom,font).pc,0xe000);
+  assert.equal(codec.machine.audio.sampleRate,44100);
+  assert.equal(codec.machine.audio.capacity,4096);
+  assert.deepEqual(codec.machine.audio.state(),{available:0,capacity:4096,sampleRate:44100,dropped:0});
+  assert.deepEqual(codec.machine.audio.drain(0),new Int16Array());
+  assert.throws(()=>codec.machine.audio.drain(4097),/0〜4096/);
   assert.ok(codec.machine.run(200)>=200);
   assert.equal(codec.machine.peek(0xc100),0x2a);
   assert.deepEqual(Array.from(codec.machine.peekRange(0xc100,4)),[0x2a,0,0,0]);

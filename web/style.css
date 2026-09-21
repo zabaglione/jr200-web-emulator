@@ -34,6 +34,9 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .trace-grid pre{min-height:14rem;max-height:28rem}
 .inline-checks{display:flex;gap:18px;flex-wrap:wrap}
 .inline-checks label{margin:0}
+.audio-controls{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:14px;align-items:center}
+.audio-controls label{margin:0}
+.audio-controls output{font-family:ui-monospace,SFMono-Regular,monospace;color:var(--accent)}
 .memory-controls{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:12px;align-items:end}
 .memory-controls button{margin-bottom:12px}
 .debug-list{min-height:2rem;color:var(--muted);font-family:ui-monospace,SFMono-Regular,monospace;padding-left:1.4rem}
@@ -47,4 +50,4 @@ pre{white-space:pre-wrap;overflow:auto;background:#050a08;border-radius:7px;padd
 footer{margin-top:30px;color:var(--muted);font-size:.85rem}
 a{color:var(--accent)}
 [hidden]{display:none!important}
-@media(max-width:600px){main{width:min(100% - 20px,980px);padding-top:28px}section{padding:18px}.controls button{width:100%}.memory-controls{grid-template-columns:1fr}.memory-controls button{margin-bottom:0}}
+@media(max-width:600px){main{width:min(100% - 20px,980px);padding-top:28px}section{padding:18px}.controls button{width:100%}.memory-controls,.audio-controls{grid-template-columns:1fr}.memory-controls button{margin-bottom:0}}

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {loadCodec} from './codec.mjs';
+import {WebAudioOutput} from './audio.mjs';
 
 const $ = id => document.getElementById(id);
 const CPU_HZ = 1_339_285;
@@ -26,6 +27,7 @@ const state = {
 };
 
 let codec;
+let audioOutput;
 const canvas = $('screen');
 const context = canvas.getContext('2d', {alpha: false});
 const image = context.createImageData(FRAME_WIDTH, FRAME_HEIGHT);
@@ -33,11 +35,13 @@ paintBlank();
 
 try {
   codec = await loadCodec();
+  audioOutput = new WebAudioOutput(codec.machine.audio, {onChange: () => showAudioStatus()});
   $('status').textContent = 'WASM起動済み / 処理はローカルのみ';
-  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record']) {
+  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'audio-enable', 'audio-volume', 'audio-mute']) {
     $(id).disabled = false;
   }
   updateAssetStatus();
+  showAudioStatus();
   showTapeStatus();
 } catch (error) {
   $('status').textContent = `初期化エラー: ${error.message}`;
@@ -76,11 +80,14 @@ function runFrame(timestamp) {
       if (debug.stopReason !== 0) {
         state.cycleBalance = 0;
         setPaused(true, describeDebugStop(debug));
+      } else {
+        audioOutput?.pump();
       }
     }
     paintMachine();
     if (timestamp - state.lastStatus >= 500) {
       showMachineStatus();
+      showAudioStatus();
       showTapeStatus();
       state.lastStatus = timestamp;
     }
@@ -210,6 +217,7 @@ $('start').addEventListener('click', async () => {
     state.paused = false;
     state.cycleBalance = 0;
     state.lastFrame = 0;
+    resumeAudioForRun();
     $('pause').disabled = false;
     $('reset').disabled = false;
     setDebuggerEnabled(true);
@@ -244,9 +252,11 @@ $('reset').addEventListener('click', () => {
   try {
     releaseKeys();
     codec.machine.reset();
+    audioOutput?.flush();
     state.paused = false;
     state.cycleBalance = 0;
     state.lastFrame = 0;
+    resumeAudioForRun();
     $('pause').textContent = '一時停止';
     setNotice('running', 'ROMとフォントを保持してリセットしました。');
     paintMachine();
@@ -261,10 +271,25 @@ $('reset').addEventListener('click', () => {
 function setPaused(paused, reason) {
   state.paused = paused;
   state.lastFrame = 0;
+  if (paused) {
+    audioOutput?.suspend().catch(error => showAudioStatus(`音声停止エラー: ${error.message}`));
+  } else {
+    resumeAudioForRun();
+  }
   $('pause').textContent = paused ? '再開' : '一時停止';
   setNotice(paused ? 'paused' : 'running', reason);
   showMachineStatus();
   refreshDebugger();
+}
+
+function resumeAudioForRun() {
+  if (!audioOutput) return;
+  if (!audioOutput.state().enabled) {
+    codec.machine.audio.discard();
+    showAudioStatus();
+    return;
+  }
+  audioOutput.resume().catch(error => showAudioStatus(`音声再開エラー: ${error.message}`));
 }
 
 function setNotice(kind, text) {
@@ -283,6 +308,74 @@ function showMachineStatus() {
   const mode = debug.stopReason !== 0 ? `デバッガ停止 (${DEBUG_STOP_NAMES[debug.stopReason]})` : state.paused ? '一時停止' : '実行中';
   $('machine-status').textContent = `${mode} / PC $${hex4(registers.pc)} / cycles ${machine.cycles} / font ${machine.fontInitialized ? '初期化済み' : '転送中'}`;
 }
+
+function showAudioStatus(message = '') {
+  if (!audioOutput) {
+    $('audio-status').textContent = 'WASMの準備を待っています。';
+    return;
+  }
+  const audio = audioOutput.state();
+  const context = audio.contextState === 'not-created'
+    ? '未作成（自動再生なし）'
+    : audio.contextState;
+  const lines = [
+    `Web Audio: ${audio.enabled ? '有効' : '無効'} / context ${context}`,
+    `sample rate: core ${audio.coreSampleRate} Hz / output ${audio.deviceSampleRate || '未確定'} Hz`,
+    `PCM queue: ${audio.queueAvailable} / ${audio.queueCapacity} / core overflow ${audio.coreDropped}`,
+    `音量: ${Math.round(audio.volume * 100)}% / ミュート ${audio.muted ? 'ON' : 'OFF'}`,
+    `予約済み: ${audio.scheduledFrames} frames / 非0 ${audio.nonzeroFrames} / peak ${audio.peakSample}`,
+    `active ${audio.activeSources} / underrun ${audio.underruns} / 破棄 ${audio.discardedFrames}`,
+  ];
+  if (audio.lastError) lines.push(`エラー: ${audio.lastError}`);
+  if (message) lines.push(message);
+  lines.push('この出力はエミュレータ音声です。カセットWAV生成ではありません。');
+  $('audio-status').textContent = lines.join('\n');
+  $('audio-enable').disabled = !audio.supported ||
+    (audio.enabled && audio.contextState === 'running');
+  $('audio-enable').textContent = audio.enabled ? '音声を再開' : '音声を有効化';
+  $('audio-disable').disabled = !audio.enabled;
+  $('audio-volume').disabled = false;
+  $('audio-mute').disabled = false;
+  $('audio-volume-value').textContent = `${Math.round(audio.volume * 100)}%`;
+}
+
+$('audio-enable').addEventListener('click', async () => {
+  try {
+    await audioOutput.enable();
+    showAudioStatus('利用者操作で音声デバイスを有効化しました。');
+  } catch (error) {
+    showAudioStatus(`音声を有効化できません: ${error.message}`);
+  }
+});
+
+$('audio-disable').addEventListener('click', async () => {
+  try {
+    await audioOutput.disable();
+    showAudioStatus('予約済み音声とPCM queueを破棄して停止しました。');
+  } catch (error) {
+    showAudioStatus(`音声を停止できません: ${error.message}`);
+  }
+});
+
+$('audio-volume').addEventListener('input', event => {
+  try {
+    audioOutput.setVolume(Number(event.target.value) / 100);
+    showAudioStatus();
+  } catch (error) {
+    showAudioStatus(`音量を変更できません: ${error.message}`);
+  }
+});
+
+$('audio-mute').addEventListener('change', event => {
+  try {
+    audioOutput.setMuted(event.target.checked);
+    showAudioStatus(event.target.checked
+      ? 'ミュート時の予約済み音声とPCM queueを破棄しました。'
+      : 'ミュートを解除しました。');
+  } catch (error) {
+    showAudioStatus(`ミュートを変更できません: ${error.message}`);
+  }
+});
 
 function showTapeStatus(message = '') {
   if (!codec) return;

@@ -1,5 +1,22 @@
 # 初期実装の試験記録
 
+## P09 音声Web出力・休止復帰受入（2026-09-22 / macOS）
+
+P05のcycle駆動44.1 kHz・3 channel固定PCM queueを維持し、決定的mono mix、一括WASM
+drain、利用者操作式Web Audio、既定20%/上限50% gain、sample rate表示、underrun計数、
+mute、pause/resume/disable時のsource停止とqueue破棄を追加した。
+
+`make test`と`make sanitize`は各CTest 7/7、`make wasm-smoke`はCJR/CPU/system/
+JS wrapper/Web Audio schedulerの5試験、Emscripten 6.0.9の`make wasm`も成功した。
+fake 48 kHz contextで44.1 kHz buffer、sample正規化、underrun、pause/resume競合を確認した。
+
+正式Emscripten siteをGit対象外の実ROM/fontで起動し、明示操作前はAudioContext未作成、
+操作後はrunning、core/outputとも44100 Hzだった。JR BASIC `SOUND 440,50`後は非0 PCM
+45945 frame、peak 7000、core overflow/underrun 0。ミュート、一時停止、停止後はactive
+sourceとqueueが0で、console error/warningは0件だった。物理出力の音圧・可聴性・panは
+未計測であり、カセットWAV生成とは別である。詳細は
+[P09_AUDIO_ACCEPTANCE.md](P09_AUDIO_ACCEPTANCE.md)。
+
 ## P08 CJRカセットLOAD/MLOAD/SAVE/MSAVE受入（2026-09-22 / macOS）
 
 OS非依存の固定容量`CassetteDeck`をMN1271のREMOTE、register 7読出し、register 0D

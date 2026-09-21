@@ -24,6 +24,21 @@ constexpr uint32_t kColors[8]{
 
 }  // namespace
 
+int16_t mix_pcm_mono(const PcmFrame& frame) noexcept
+{
+    int32_t mixed = 0;
+    for (size_t channel = 0U; channel < 3U; ++channel) {
+        mixed += frame.channel[channel];
+    }
+    if (mixed > 32767) {
+        return 32767;
+    }
+    if (mixed < -32768) {
+        return -32768;
+    }
+    return static_cast<int16_t>(mixed);
+}
+
 void PcmQueue::clear() noexcept
 {
     head_ = 0U;
@@ -52,6 +67,14 @@ bool PcmQueue::pop(PcmFrame& frame) noexcept
     head_ = (head_ + 1U) % kCapacity;
     --size_;
     return true;
+}
+
+size_t PcmQueue::discard_pending() noexcept
+{
+    const size_t discarded = size_;
+    head_ = 0U;
+    size_ = 0U;
+    return discarded;
 }
 
 size_t PcmQueue::size() const noexcept

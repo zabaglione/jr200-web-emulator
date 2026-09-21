@@ -44,9 +44,11 @@ if manifest.exists():
               'src/core/peripherals.cpp','src/core/system.cpp','src/wasm/system_api.cpp',
               'src/wasm/freestanding_memory.cpp',
               'tests/test_system.cpp','tests/test_cassette.cpp','tests/system_wasm_smoke.mjs',
+              'tests/audio_output_smoke.mjs','web/audio.mjs',
               'tests/emscripten_smoke.mjs','tests/webdriver_real_rom_smoke.py',
               'docs/P05_PERIPHERAL_AUDIT.md','docs/P06_BROWSER_ACCEPTANCE.md',
               'docs/P07_DEBUGGER_ACCEPTANCE.md','docs/P08_CASSETTE_ACCEPTANCE.md',
+              'docs/P09_AUDIO_ACCEPTANCE.md',
               '.emscripten-version','scripts/check_emscripten_version.py'}
     assert required.issubset(files),'CPU source or license missing from source inventory'
     for f in files:

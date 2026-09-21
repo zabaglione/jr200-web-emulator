@@ -8,7 +8,7 @@ const module = await createJR200Codec();
 
 assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
-assert.equal(module._jr200_system_api_version(), 4);
+assert.equal(module._jr200_system_api_version(), 5);
 
 module._jr200_system_clear();
 assert.equal(module._jr200_system_rom_capacity(), 16384);

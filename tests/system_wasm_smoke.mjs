@@ -7,7 +7,7 @@ const { instance } = await WebAssembly.instantiate(bytes, {});
 const e = instance.exports;
 e.__wasm_call_ctors();
 
-assert.equal(e.jr200_system_api_version(), 4);
+assert.equal(e.jr200_system_api_version(), 5);
 e.jr200_system_clear();
 
 const golden = Uint8Array.from([2,42,0,26,255,255,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,255,255,255,255,255,255,255,255,149,2,42,1,1,112,0,171,73,2,42,255,255,112,1]);
@@ -133,9 +133,17 @@ e.jr200_system_write(0xc813, 0x80);
 e.jr200_system_write(0xc812, 0x06);
 e.jr200_system_tick(304);
 assert.equal(e.jr200_system_field(4), 10);
-assert.equal(e.jr200_system_pcm_pop(), 1);
-assert.equal(e.jr200_system_pcm_sample(0), 7000);
-assert.equal(e.jr200_system_pcm_sample(1), 0);
+assert.equal(e.jr200_system_pcm_sample_rate(), 44100);
+assert.equal(e.jr200_system_pcm_capacity(), 4096);
+assert.equal(e.jr200_system_pcm_drain(6), 6);
+assert.deepEqual(
+  Array.from(new Int16Array(e.memory.buffer, e.jr200_system_pcm_buffer_ptr(), 6)),
+  [7000,7000,7000,7000,7000,-7000]);
+assert.equal(e.jr200_system_field(4), 4);
+assert.equal(e.jr200_system_pcm_discard(), 4);
+assert.equal(e.jr200_system_field(4), 0);
+assert.equal(e.jr200_system_pcm_dropped(0), 0);
+assert.equal(e.jr200_system_pcm_dropped(1), 0);
 
 e.jr200_system_write(0xca7f, 2);
 e.jr200_system_poke(0xc100, 0);

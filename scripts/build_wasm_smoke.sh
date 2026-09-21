@@ -38,7 +38,10 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_system_set_cassette_input jr200_system_field
          jr200_system_trace_field jr200_system_render
          jr200_system_framebuffer_ptr jr200_system_pcm_pop
-         jr200_system_pcm_sample jr200_system_cassette_pop
+         jr200_system_pcm_sample jr200_system_pcm_sample_rate
+         jr200_system_pcm_capacity jr200_system_pcm_buffer_ptr
+         jr200_system_pcm_drain jr200_system_pcm_discard
+         jr200_system_pcm_dropped jr200_system_cassette_pop
          jr200_system_tape_input_ptr jr200_system_tape_capacity
          jr200_system_tape_mount jr200_system_tape_eject
          jr200_system_tape_rewind jr200_system_tape_arm_record
@@ -61,3 +64,4 @@ node "$ROOT/tests/wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/cpu_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/system_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/wrapper_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
+node "$ROOT/tests/audio_output_smoke.mjs"

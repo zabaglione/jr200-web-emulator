@@ -27,6 +27,7 @@
     "docs/P06_BROWSER_ACCEPTANCE.md",
     "docs/P07_DEBUGGER_ACCEPTANCE.md",
     "docs/P08_CASSETTE_ACCEPTANCE.md",
+    "docs/P09_AUDIO_ACCEPTANCE.md",
     "docs/SOW.md",
     "docs/STATUS.md",
     "docs/TEST_RESULTS.md",
@@ -71,6 +72,7 @@
     "src/wasm/cpu_api.cpp",
     "src/wasm/freestanding_memory.cpp",
     "src/wasm/system_api.cpp",
+    "tests/audio_output_smoke.mjs",
     "tests/browser_smoke.py",
     "tests/cpu_wasm_smoke.mjs",
     "tests/emscripten_smoke.mjs",
@@ -86,6 +88,7 @@
     "tests/wrapper_smoke.mjs",
     "tools/cjrtool.cpp",
     "web/app.mjs",
+    "web/audio.mjs",
     "web/codec.mjs",
     "web/index.html",
     "web/style.css"

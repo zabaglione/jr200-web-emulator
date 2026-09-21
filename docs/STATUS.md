@@ -34,15 +34,16 @@ P05: 2026-09-22受入完了。Address/MN1271/MN1544/CRTC/JRSystemを個別監査
 P06: 2026-09-22受入完了。Emscripten 6.0.9を固定し、結合/分割ROMとフォントのローカル選択、入力検査、Canvas、キー押下/離上、NMI、ポーズ、リセット、フォーカス喪失停止、明示許可式IndexedDBを接続した。利用者提供の実機MSAVE録音をGit対象外でJR2Rescue 0.6.2により抽出し、Chrome 153、Firefox 156、Safari 26.6.2でJR BASIC 5.0のプロンプトと入力を確認した。詳細は [P06_BROWSER_ACCEPTANCE.md](P06_BROWSER_ACCEPTANCE.md)。
 P07: 2026-09-22受入完了。OS非依存コアとWeb UIへ、実行前breakpoint、1命令step、命令完了後read/write watchpoint、register表示、手動256 byte peekを接続した。break/watch各16件、命令256件、CPUアクセス512件の固定上限と破棄件数を持ち、履歴有効/無効で全メモリ・register・cycleが一致することをnative/WASMで確認した。実装commit `f85aa1d3db234db71baf91b59779ea84aafe01df` のActions run `35650269016`は4ジョブすべてsuccess。詳細は [P07_DEBUGGER_ACCEPTANCE.md](P07_DEBUGGER_ACCEPTANCE.md)。
 P08: 2026-09-22受入完了。OS非依存の固定容量カセットtransportをMN1271のREMOTE/read/writeへ接続し、標準BASIC/マシン語CJRのmount/eject/rewindとLOAD/MLOAD/SAVE/MSAVEを通常信号経路で確認した。正式Emscripten siteの実ROMでBASIC 2行と4 byteの自己往復、および実機MSAVE録音から独立ツールで復元した2048 byte font CJRの通常MLOADを確認した。WAV復元自体は本実装ではない。実装commit `a0cc4c6a96b4c993d2d5bfc84f3280d75dd15426` のActions run `35657825103`は4ジョブすべてsuccess。詳細は [P08_CASSETTE_ACCEPTANCE.md](P08_CASSETTE_ACCEPTANCE.md)。
+P09: 2026-09-22ローカル受入完了。44.1 kHz固定PCM queueをWASMから一括drainし、利用者操作式Web Audio、既定20%/上限50%のgain、sample rate表示、underrun/overflow計数、mute、pause/resume/disable時のsource停止とqueue破棄を実装した。正式Emscripten siteの実ROMで`SOUND 440,50`から非0 PCM 45945 frame、peak 7000を観測し、overflow/underrun 0、停止後active/queue 0を確認した。物理出力の音圧・panは未計測。詳細は [P09_AUDIO_ACCEPTANCE.md](P09_AUDIO_ACCEPTANCE.md)。remote CIとIssue closeは実装commitのpush後に記録する。
 
 ## 未実装・未検証
 
-Web Audio出力、自前のCJR↔WAV、実機との生成WAV往復は未実装/未実施。P08の通常CJR transportは、実機register/timing、実音、生成WAVの実機互換を示さない。利用者提供録音の復元には独立参照ツールJR2Rescueを使用しており、本プロジェクト自身のWAVデコーダ試験ではない。ROM/フォント・商用ソフト・録音は未同梱である。
+自前のCJR↔WAV、実機との生成WAV往復は未実装/未実施。P09のWeb Audio接続は、物理出力の音圧・pan、実機register/timing、生成WAVの実機互換を示さない。利用者提供録音の復元には独立参照ツールJR2Rescueを使用しており、本プロジェクト自身のWAVデコーダ試験ではない。ROM/フォント・商用ソフト・録音は未同梱である。
 
 Emscripten 6.0.9による正式ビルド、生成モジュールのNode試験、合成ROMの直接WASM/JS試験、実ROMの三ブラウザ試験を2026-09-22にローカル実行した。ChromeとSafariはmacOSの実ブラウザ、Firefoxは読み取り専用検体mountを持つ隔離コンテナのWebDriverで確認した。
 
 ## 次の作業
 
-#1 (P00)〜#9 (P08) は受入完了。次は #10 (P09) のWeb Audio出力・休止復帰である。通常CJR transportを実音出力やWAV互換へ読み替えない。
+#1 (P00)〜#9 (P08) はremote受入完了。#10 (P09) はローカル受入完了で、実装commitのCI成功後にcloseする。次は #11 (P10) のCJR信号生成・WAVエンコードである。Web Audio出力をカセットWAV互換へ読み替えない。
 
 privateは維持。Pages/外部公開デプロイ、アクセス権・branch protection・課金設定の変更は行っていない。

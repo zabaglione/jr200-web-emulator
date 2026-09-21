@@ -65,11 +65,29 @@
     <div class="screen-shell">
       <canvas id="screen" width="320" height="224" tabindex="0" aria-label="JR-200画面。起動後にクリックするとキーボード入力できます。"></canvas>
     </div>
-    <p class="hint">起動後、画面をクリックして入力します。フォーカスを失うとキーを解放して自動的に一時停止します。音声出力は後続Issueの対象です。</p>
+    <p class="hint">起動後、画面をクリックして入力します。フォーカスを失うとキーを解放し、CPUと音声を自動的に一時停止します。</p>
+  </section>
+
+  <section aria-labelledby="audio-heading">
+    <h2 id="audio-heading">02 / 音声</h2>
+    <p>MN1271が生成した3チャンネル44.1 kHz PCMをモノラルへmixし、Web Audioへ出力します。ブラウザや端末の出力sample rateが異なる場合はWeb Audio側で変換されます。</p>
+    <p class="hint">ページ表示だけでは音声デバイスを開始しません。「音声を有効化」を押した後だけ、既定20%の音量で出力します。停止・ミュート・CPU一時停止・タブ非表示時は予約済み音声とPCM queueを破棄し、残音や巨大な追いつきを防ぎます。</p>
+    <div class="controls">
+      <button id="audio-enable" type="button" disabled>音声を有効化</button>
+      <button id="audio-disable" type="button" disabled>音声を停止</button>
+    </div>
+    <div class="audio-controls">
+      <label>音量（最大50%）
+        <input id="audio-volume" type="range" min="0" max="50" step="1" value="20" disabled>
+      </label>
+      <output id="audio-volume-value" for="audio-volume">20%</output>
+      <label class="check"><input id="audio-mute" type="checkbox" disabled> ミュート</label>
+    </div>
+    <pre id="audio-status" aria-live="polite">WASMの準備を待っています。</pre>
   </section>
 
   <section aria-labelledby="debugger-heading">
-    <h2 id="debugger-heading">02 / デバッガ</h2>
+    <h2 id="debugger-heading">03 / デバッガ</h2>
     <p>停止条件と上限付き履歴はWASMメモリ内だけに保持します。メモリ表示は副作用のないpeekで最大256バイトを読み、ROM全体を自動表示・送信しません。</p>
 
     <div class="controls">
@@ -124,7 +142,7 @@
   </section>
 
   <section aria-labelledby="tape-heading">
-    <h2 id="tape-heading">03 / カセット</h2>
+    <h2 id="tape-heading">04 / カセット</h2>
     <p>CJRをMN1271の通常信号経路で再生し、SAVE/MSAVEの出力波形をCJRへ復号します。メモリへの直接注入は行いません。</p>
     <p class="hint">標準のBASIC（LOAD/SAVE）とマシン語（MLOAD/MSAVE）だけに対応します。PRINT#、INPUT#、ヘッダーなし、未知の種別、特殊・連結形式は黙って受け付けずエラーにします。</p>
     <label class="file">再生するCJRファイル<input id="tape-cjr" type="file" accept=".cjr,application/octet-stream" disabled></label>
@@ -140,7 +158,7 @@
   </section>
 
   <section aria-labelledby="inspect-heading">
-    <h2 id="inspect-heading">04 / CJRを検査</h2>
+    <h2 id="inspect-heading">05 / CJRを検査</h2>
     <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
     <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
     <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
@@ -148,7 +166,7 @@
   </section>
 
   <section aria-labelledby="pack-heading">
-    <h2 id="pack-heading">05 / BINから標準CJRを作成</h2>
+    <h2 id="pack-heading">06 / BINから標準CJRを作成</h2>
     <p>既存バイナリを1つの連続領域として格納します。BASICのトークナイズは行いません。</p>
     <form id="pack">
       <label>BINファイル<input id="bin" type="file" required disabled></label>

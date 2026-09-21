@@ -16,7 +16,7 @@ export async function loadCodec() {
     memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
-  if (e.jr200_system_api_version() !== 4) throw new Error('システムABIのバージョンが一致しません');
+  if (e.jr200_system_api_version() !== 5) throw new Error('システムABIのバージョンが一致しません');
   const text = new TextDecoder();
   const readCString = start => {
     const heap = memory();
@@ -114,6 +114,32 @@ export async function loadCodec() {
         cycles: e.jr200_system_field(2),
         fontInitialized: e.jr200_system_field(5) !== 0,
         frameGeneration: e.jr200_system_field(7),
+      };
+    },
+  };
+  machine.audio = {
+    sampleRate: e.jr200_system_pcm_sample_rate(),
+    capacity: e.jr200_system_pcm_capacity(),
+    drain(maximumFrames = e.jr200_system_pcm_capacity()) {
+      if (!Number.isInteger(maximumFrames) || maximumFrames < 0 ||
+          maximumFrames > e.jr200_system_pcm_capacity()) {
+        throw new Error(`PCM取得件数は0〜${e.jr200_system_pcm_capacity()}で指定してください`);
+      }
+      const count = e.jr200_system_pcm_drain(maximumFrames);
+      return Int16Array.from(new Int16Array(
+        memory().buffer,
+        e.jr200_system_pcm_buffer_ptr(),
+        count));
+    },
+    discard() {
+      return e.jr200_system_pcm_discard();
+    },
+    state() {
+      return {
+        available: e.jr200_system_field(4),
+        capacity: e.jr200_system_pcm_capacity(),
+        sampleRate: e.jr200_system_pcm_sample_rate(),
+        dropped: uint64(e.jr200_system_pcm_dropped(0), e.jr200_system_pcm_dropped(1)),
       };
     },
   };

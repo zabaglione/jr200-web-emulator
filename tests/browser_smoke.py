@@ -22,7 +22,12 @@ SPECIAL[22] = 2
 SPECIAL[32] = sum(SPECIAL[:32]) & 0xff
 ROM = bytearray(16384)
 ROM[0] = 1
-ROM[8192:8199] = bytes([0x86,0x2a,0xb7,0xc1,0x00,0x20,0xfe])
+ROM[8192:8209] = bytes([
+    0x86,0x2a,0xb7,0xc1,0x00,
+    0x86,0x80,0xb7,0xc8,0x13,
+    0x86,0x06,0xb7,0xc8,0x12,
+    0x20,0xfe,
+])
 ROM[16382:16384] = bytes([0xe0,0x00])
 FONT = bytes(index & 0xff for index in range(2048))
 
@@ -51,6 +56,30 @@ def main() -> None:
             browser = playwright.chromium.launch(**opts)
             try:
                 page = browser.new_page(viewport={'width':1180,'height':1100}, accept_downloads=True)
+                page.add_init_script("""
+                    globalThis.__audioContexts = [];
+                    class FakeGain {
+                      constructor(){ this.gain={value:1,setValueAtTime:value=>{this.gain.value=value;}}; }
+                      connect(){}
+                    }
+                    class FakeSource {
+                      constructor(context){ this.context=context; this.onended=null; }
+                      connect(){}
+                      disconnect(){}
+                      start(time){ this.startTime=time; this.context.sources.push(this); }
+                      stop(){ this.onended?.(); }
+                    }
+                    class FakeAudioContext {
+                      constructor(){ this.state='suspended'; this.sampleRate=48000; this.currentTime=1; this.destination={}; this.sources=[]; this.listeners=[]; globalThis.__audioContexts.push(this); }
+                      createGain(){ this.gain=new FakeGain(); return this.gain; }
+                      createBuffer(_channels,length,sampleRate){ const data=new Float32Array(length); return {length,sampleRate,getChannelData:()=>data}; }
+                      createBufferSource(){ return new FakeSource(this); }
+                      addEventListener(name,listener){ if(name==='statechange') this.listeners.push(listener); }
+                      async resume(){ this.state='running'; this.listeners.forEach(listener=>listener()); }
+                      async suspend(){ this.state='suspended'; this.listeners.forEach(listener=>listener()); }
+                    }
+                    globalThis.AudioContext = FakeAudioContext;
+                """)
                 page.on('pageerror', lambda error: errors.append(str(error)))
                 def guard(route):
                     url=route.request.url
@@ -64,28 +93,47 @@ def main() -> None:
                 expect(page.locator('#status')).to_contain_text('WASM起動済み')
                 expect(page.locator('#emulator-notice')).to_contain_text('未起動')
                 expect(page.locator('#machine-status')).to_contain_text('CPUは実行していません')
+                expect(page.locator('#audio-status')).to_contain_text('自動再生なし')
+                assert page.evaluate('globalThis.__audioContexts.length') == 0
                 page.locator('#rom-combined').set_input_files({'name':'synthetic.rom','mimeType':'application/octet-stream','buffer':bytes(ROM)})
                 page.locator('#font').set_input_files({'name':'synthetic-font.bin','mimeType':'application/octet-stream','buffer':FONT})
                 expect(page.locator('#start')).to_be_enabled()
                 page.locator('#start').click()
                 expect(page.locator('#emulator-notice')).to_contain_text('CPUを起動')
                 expect(page.locator('#machine-status')).to_contain_text('実行中')
+                page.locator('#audio-enable').click()
+                expect(page.locator('#audio-status')).to_contain_text('context running')
+                expect(page.locator('#audio-status')).to_contain_text('core 44100 Hz / output 48000 Hz')
+                expect(page.locator('#audio-status')).to_contain_text('予約済み:')
+                page.wait_for_timeout(80)
+                assert page.evaluate('globalThis.__audioContexts[0].sources.length') > 0
+                page.locator('#audio-mute').check()
+                expect(page.locator('#audio-status')).to_contain_text('ミュート ON')
+                assert page.evaluate('globalThis.__audioContexts[0].gain.gain.value') == 0
+                page.locator('#audio-mute').uncheck()
+                page.evaluate("window.dispatchEvent(new Event('blur'))")
+                expect(page.locator('#machine-status')).to_contain_text('一時停止')
+                expect(page.locator('#audio-status')).to_contain_text('context suspended')
+                page.locator('#pause').click()
+                expect(page.locator('#machine-status')).to_contain_text('実行中')
+                expect(page.locator('#audio-status')).to_contain_text('context running')
                 page.locator('#pause').click()
                 expect(page.locator('#machine-status')).to_contain_text('一時停止')
+                expect(page.locator('#audio-status')).to_contain_text('context suspended')
 
                 page.locator('#debug-history-enabled').check()
-                page.locator('#debug-breakpoint-address').fill('E005')
+                page.locator('#debug-breakpoint-address').fill('E00F')
                 page.locator('#debug-add-breakpoint').click()
-                expect(page.locator('#debug-breakpoints')).to_contain_text('$E005')
+                expect(page.locator('#debug-breakpoints')).to_contain_text('$E00F')
                 page.locator('#reset').click()
                 expect(page.locator('#machine-status')).to_contain_text('breakpoint')
-                expect(page.locator('#debug-registers')).to_contain_text('PC $E005')
+                expect(page.locator('#debug-registers')).to_contain_text('PC $E00F')
                 page.locator('#debug-memory-address').fill('C100')
                 page.locator('#debug-memory-read').click()
                 expect(page.locator('#debug-memory')).to_contain_text('C100: 2A')
                 page.locator('#debug-step').click()
                 expect(page.locator('#machine-status')).to_contain_text('step')
-                expect(page.locator('#debug-registers')).to_contain_text('PC $E005')
+                expect(page.locator('#debug-registers')).to_contain_text('PC $E00F')
                 page.locator('#debug-run').click()
                 expect(page.locator('#machine-status')).to_contain_text('breakpoint')
 
@@ -103,6 +151,9 @@ def main() -> None:
                 page.locator('#debug-clear-watchpoints').click()
                 page.locator('#reset').click()
                 expect(page.locator('#machine-status')).to_contain_text('実行中')
+                page.locator('#audio-disable').click()
+                expect(page.locator('#audio-status')).to_contain_text('Web Audio: 無効')
+                expect(page.locator('#audio-status')).to_contain_text('context suspended')
                 page.locator('#cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 expect(page.locator('#result')).to_contain_text('payloadBytes')
                 summary=json.loads(page.locator('#result').inner_text())
@@ -148,7 +199,7 @@ def main() -> None:
                 assert '40' in page.locator('#result').inner_text()
                 assert not errors, errors
                 assert not external, external
-                print('PASS Chromium: synthetic boot, cassette controls, breakpoint/resume/step/watch/peek, bounded trace UI, CJR tools, no external requests')
+                print('PASS Chromium: explicit Web Audio, mute/pause/flush, synthetic boot, cassette controls, debugger, CJR tools, no external requests')
                 print('Browser:',browser.version)
             finally:
                 browser.close()
