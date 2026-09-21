@@ -244,6 +244,7 @@ OP_HANDLER( brn )
 {
 	uint8_t ignored;
 	IMMBYTE(ignored);
+	(void)ignored;
 }
 
 /* $22 BHI relative ----- */
