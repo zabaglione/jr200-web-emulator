@@ -53,6 +53,12 @@ struct MemoryConfig {
     bool ram_expansion_2{};
 };
 
+enum class GlyphBank : uint8_t {
+    FontAsset = 0U,
+    Standard = 1U,
+    UserDefined = 2U,
+};
+
 class JR200Machine final : public M6800Bus {
 public:
     explicit JR200Machine(MemoryConfig config = {}) noexcept;
@@ -83,6 +89,12 @@ public:
 
     [[nodiscard]] uint8_t read_byte(uint16_t address) noexcept;
     [[nodiscard]] uint8_t peek_byte(uint16_t address) const noexcept;
+    [[nodiscard]] bool glyph_ready(GlyphBank bank) const noexcept;
+    [[nodiscard]] uint8_t glyph_row(
+        GlyphBank bank,
+        uint8_t code,
+        uint8_t row) const noexcept;
+    [[nodiscard]] uint32_t glyph_generation(GlyphBank bank) const noexcept;
     void write_byte(uint16_t address, uint8_t value) noexcept;
     void poke(uint16_t address, uint8_t value) noexcept;
 
@@ -122,6 +134,8 @@ private:
     MachineDebugger debugger_{};
     CassetteDeck cassette_{};
     uint64_t cycle_count_{};
+    uint32_t standard_glyph_generation_{};
+    uint32_t user_glyph_generation_{};
     bool cpu_access_active_{};
     M6800 cpu_;
 
@@ -136,6 +150,7 @@ private:
         IoDevice device,
         IoOperation operation) noexcept;
     void sync_irq() noexcept;
+    void note_glyph_write(uint16_t address, uint8_t value) noexcept;
 };
 
 }  // namespace jr200

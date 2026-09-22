@@ -8,7 +8,7 @@ const module = await createJR200Codec();
 
 assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
-assert.equal(module._jr200_system_api_version(), 5);
+assert.equal(module._jr200_system_api_version(), 6);
 assert.equal(module._jr200_wav_api_version(), 1);
 assert.equal(module._jr200_wav_decode_api_version(), 1);
 
@@ -49,6 +49,12 @@ font.fill(0x5a);
 rom.set([0x86, 0x2a, 0xb7, 0xc1, 0x00, 0x20, 0xfe], 8192);
 rom.set([0xe0, 0x00], 16382);
 assert.equal(module._jr200_system_boot(rom.length, font.length), 1);
+assert.equal(module._jr200_system_glyph_ready(0), 1);
+assert.equal(module._jr200_system_glyph_row(0, 0x22, 7), 0x5a);
+const glyphGeneration = module._jr200_system_glyph_generation(1);
+module._jr200_system_poke(0xd117, 0x80);
+assert.equal(module._jr200_system_glyph_row(1, 0x22, 7), 0x80);
+assert.ok(module._jr200_system_glyph_generation(1) > glyphGeneration);
 assert.equal(module._jr200_system_cpu_register(0), 0xe000);
 assert.ok(module._jr200_system_run(200) >= 200);
 assert.equal(module._jr200_system_peek(0xc100), 0x2a);

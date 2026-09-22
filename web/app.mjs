@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {loadCodec} from './codec.mjs';
 import {WebAudioOutput} from './audio.mjs';
+import {
+  INPUT_MODES,
+  KEY_ROWS,
+  MODE_NAMES,
+  InputController,
+  displayCodeFor,
+  keyIdForKeyboardEvent,
+  resolveKey,
+} from './keyboard.mjs';
 
 const $ = id => document.getElementById(id);
 const CPU_HZ = 1_339_285;
@@ -22,7 +31,6 @@ const state = {
   lastFrame: 0,
   cycleBalance: 0,
   lastStatus: 0,
-  activeKeys: new Map(),
   tapeName: '',
   wavCjr: null,
   wavName: '',
@@ -32,13 +40,43 @@ const state = {
 
 let codec;
 let audioOutput;
+let inputController;
 const canvas = $('screen');
 const context = canvas.getContext('2d', {alpha: false});
 const image = context.createImageData(FRAME_WIDTH, FRAME_HEIGHT);
 paintBlank();
 
+const keyboardToggle = $('keyboard-toggle');
+const keyboardDeck = $('keyboard-deck');
+const virtualKeyboard = $('virtual-keyboard');
+const virtualKeys = new Map();
+const pointerSources = new Map();
+let virtualSourceSequence = 0;
+let glyphCacheToken = '';
+const glyphCache = new Map();
+buildVirtualKeyboard();
+keyboardToggle.addEventListener('click', () => {
+  const visible = keyboardDeck.hidden;
+  keyboardDeck.hidden = !visible;
+  document.body.dataset.keyboardVisible = String(visible);
+  keyboardToggle.setAttribute('aria-expanded', String(visible));
+  keyboardToggle.textContent = visible ? 'キーボードを隠す' : 'キーボードを表示';
+  if (!visible) releaseKeys();
+});
+document.body.dataset.keyboardVisible = 'true';
+
 try {
   codec = await loadCodec();
+  inputController = new InputController({
+    sendCode: (code, pressed) => codec.machine.setKey(code, pressed),
+    pulseNmi: () => codec.machine.pulseNmi(),
+    onChange: input => {
+      document.body.dataset.inputMode = input.mode;
+      keyboardDeck.dataset.mode = input.mode;
+      refreshVirtualKeyboard();
+    },
+  });
+  inputController.notify();
   audioOutput = new WebAudioOutput(codec.machine.audio, {onChange: () => showAudioStatus()});
   $('status').textContent = 'WASM起動済み / 処理はローカルのみ';
   for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'audio-enable', 'audio-volume', 'audio-mute', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel']) {
@@ -93,6 +131,7 @@ function runFrame(timestamp) {
       showMachineStatus();
       showAudioStatus();
       showTapeStatus();
+      refreshVirtualKeyboard();
       state.lastStatus = timestamp;
     }
   } else {
@@ -214,6 +253,7 @@ for (const input of document.querySelectorAll('input[name="rom-mode"]')) {
 
 $('start').addEventListener('click', async () => {
   try {
+    inputController.reset();
     const rom = selectedRom();
     const resetVector = validateCombinedRom(rom);
     codec.machine.boot(rom, state.font);
@@ -237,6 +277,7 @@ $('start').addEventListener('click', async () => {
     }
     paintMachine();
     showMachineStatus();
+    refreshVirtualKeyboard(true);
     refreshDebugger();
     canvas.focus();
   } catch (error) {
@@ -254,7 +295,7 @@ $('pause').addEventListener('click', () => {
 
 $('reset').addEventListener('click', () => {
   try {
-    releaseKeys();
+    inputController.reset();
     codec.machine.reset();
     audioOutput?.flush();
     state.paused = false;
@@ -265,6 +306,7 @@ $('reset').addEventListener('click', () => {
     setNotice('running', 'ROMとフォントを保持してリセットしました。');
     paintMachine();
     showMachineStatus();
+    refreshVirtualKeyboard(true);
     refreshDebugger();
     canvas.focus();
   } catch (error) {
@@ -283,6 +325,7 @@ function setPaused(paused, reason) {
   $('pause').textContent = paused ? '再開' : '一時停止';
   setNotice(paused ? 'paused' : 'running', reason);
   showMachineStatus();
+  refreshVirtualKeyboard();
   refreshDebugger();
 }
 
@@ -560,54 +603,199 @@ $('debug-memory-read').addEventListener('click', () => debugAction(() => {
   $('debug-memory').textContent = rows.join('\n');
 }));
 
-function keyCodeFor(event) {
-  const special = {
-    Enter: 0x0d,
-    Backspace: 0x08,
-    Delete: 0x7f,
-    ArrowUp: 0x1e,
-    ArrowDown: 0x1f,
-    ArrowLeft: 0x1d,
-    ArrowRight: 0x1c,
-    Insert: 0x13,
-  };
-  if (event.key === 'Home') return event.shiftKey ? 0x0c : 0x0b;
-  if (Object.hasOwn(special, event.key)) return special[event.key];
-  if (event.key.length === 1) {
-    const code = event.key.charCodeAt(0);
-    return code >= 0x20 && code <= 0x7e ? code : null;
+function buildVirtualKeyboard() {
+  const fragment = document.createDocumentFragment();
+  for (const keys of KEY_ROWS) {
+    const row = document.createElement('div');
+    row.className = 'keyboard-row';
+    for (const key of keys) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `virtual-key key-${key.tone}`;
+      button.dataset.keyId = key.id;
+      button.style.setProperty('--key-width', String(key.width));
+      button.setAttribute('aria-label', key.name);
+      button.setAttribute('aria-pressed', 'false');
+      button.disabled = true;
+      if (key.text !== null) {
+        const label = document.createElement('span');
+        label.className = 'key-text';
+        label.textContent = key.text;
+        button.append(label);
+      } else {
+        const glyph = document.createElement('canvas');
+        glyph.className = 'key-glyph';
+        glyph.width = 8;
+        glyph.height = 8;
+        glyph.setAttribute('aria-hidden', 'true');
+        button.append(glyph);
+      }
+      const entries = virtualKeys.get(key.id) ?? [];
+      entries.push(button);
+      virtualKeys.set(key.id, entries);
+      button.addEventListener('pointerdown', event => {
+        if (button.disabled || event.button !== 0 ||
+            key.id === 'ModifierShift' || key.id === 'ModifierControl') return;
+        const source = `pointer:${event.pointerId}:${++virtualSourceSequence}`;
+        const resolved = inputController?.press(key.id, source, {minimumHold: true});
+        if (!resolved) return;
+        pointerSources.set(event.pointerId, source);
+        try { button.setPointerCapture(event.pointerId); } catch { /* capture is best effort */ }
+      });
+      for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+        button.addEventListener(type, event => releasePointer(event.pointerId));
+      }
+      button.addEventListener('click', event => {
+        if (button.disabled) return;
+        if (key.id === 'ModifierShift') {
+          inputController.toggleLatch('shift');
+          return;
+        }
+        if (key.id === 'ModifierControl') {
+          inputController.toggleLatch('ctrl');
+          return;
+        }
+        if (event.detail === 0) {
+          const source = `accessible:${++virtualSourceSequence}`;
+          if (inputController.press(key.id, source, {minimumHold: true})) {
+            inputController.release(source);
+          }
+        }
+      });
+      row.append(button);
+    }
+    fragment.append(row);
   }
-  return null;
+  virtualKeyboard.replaceChildren(fragment);
 }
 
-canvas.addEventListener('keydown', event => {
-  if (!state.booted || state.paused || event.isComposing) return;
-  if (event.metaKey || event.ctrlKey || event.altKey) return;
-  if (event.key === 'Escape') {
-    if (!event.repeat) codec.machine.pulseNmi();
-    event.preventDefault();
-    return;
+function releasePointer(pointerId) {
+  const source = pointerSources.get(pointerId);
+  if (!source) return;
+  pointerSources.delete(pointerId);
+  inputController?.release(source);
+}
+
+function keyboardGlyphState() {
+  if (!codec) return {bank: null, ready: false, generation: 0, standardReady: false};
+  const standard = codec.machine.glyph(0, 'standard');
+  if (standard.ready) {
+    return {bank: 'standard', ready: true, generation: standard.generation, standardReady: true};
   }
-  const code = keyCodeFor(event);
-  if (code === null) return;
-  event.preventDefault();
-  if (state.activeKeys.has(event.code)) return;
-  state.activeKeys.set(event.code, code);
-  codec.machine.setKey(code, true);
+  const font = codec.machine.glyph(0, 'font');
+  return {bank: font.ready ? 'font' : null, ready: font.ready, generation: font.generation, standardReady: false};
+}
+
+function isKeyboardReady() {
+  return Boolean(codec && state.booted && !state.paused && codec.machine.glyph(0, 'standard').ready);
+}
+
+function refreshVirtualKeyboard(force = false) {
+  const input = inputController?.snapshot() ?? {
+    mode: INPUT_MODES.ANK,
+    shift: false,
+    ctrl: false,
+    latchedShift: false,
+    latchedCtrl: false,
+    pressedKeyIds: new Set(),
+  };
+  const glyphState = keyboardGlyphState();
+  const interactive = glyphState.standardReady && state.booted && !state.paused;
+  const modifiers = [
+    input.latchedShift ? 'SHIFT保持' : '',
+    input.latchedCtrl ? 'CTRL保持' : '',
+  ].filter(Boolean);
+  $('input-mode-status').textContent = `入力モード: ${MODE_NAMES[input.mode]}${modifiers.length ? ` / ${modifiers.join(' / ')}` : ''}`;
+  $('glyph-status').textContent = !glyphState.ready
+    ? 'FONT未読込 / キー操作不可'
+    : glyphState.standardReady
+      ? `標準文字RAM / generation ${glyphState.generation}${state.paused ? ' / 一時停止中' : ''}`
+      : `FONT読込済み / 文字RAM転送待ち（字形プレビュー、キー操作不可）`;
+  virtualKeyboard.setAttribute('aria-disabled', String(!interactive));
+
+  const token = `${glyphState.bank}:${glyphState.generation}:${input.mode}:${input.shift}:${input.ctrl}`;
+  const redraw = force || token !== glyphCacheToken;
+  if (redraw) {
+    glyphCacheToken = token;
+    glyphCache.clear();
+  }
+  for (const [keyId, buttons] of virtualKeys) {
+    const resolved = resolveKey(keyId, input);
+    const code = displayCodeFor(keyId, input);
+    const pressed = input.pressedKeyIds.has(keyId);
+    const isMode = (keyId === 'ModeAnk' && input.mode === INPUT_MODES.ANK) ||
+      (keyId === 'ModeKana' && input.mode === INPUT_MODES.KANA) ||
+      (keyId === 'ModeGraph' && input.mode === INPUT_MODES.GRAPH);
+    const isModifier = keyId === 'ModifierShift' || keyId === 'ModifierControl';
+    const modifierActive = keyId === 'ModifierShift' ? input.shift :
+      keyId === 'ModifierControl' ? input.ctrl : false;
+    const latched = keyId === 'ModifierShift' ? input.latchedShift :
+      keyId === 'ModifierControl' ? input.latchedCtrl : false;
+    for (const button of buttons) {
+      const available = Boolean(resolved) && (button.querySelector('.key-glyph') ? code !== null : true);
+      button.disabled = !interactive || !available;
+      button.classList.toggle('is-pressed', pressed || modifierActive);
+      button.classList.toggle('is-latched', latched || isMode);
+      button.setAttribute('aria-pressed', String(isModifier ? modifierActive : isMode || pressed));
+      button.dataset.pressed = String(pressed || modifierActive);
+      if (code === null) delete button.dataset.code;
+      else button.dataset.code = code.toString(16).toUpperCase().padStart(2, '0');
+      const canvas = button.querySelector('.key-glyph');
+      if (canvas && redraw) {
+        if (code === null || !glyphState.ready) {
+          drawGlyph(canvas, null);
+        } else {
+          let rows = glyphCache.get(code);
+          if (!rows) {
+            rows = codec.machine.glyph(code, glyphState.bank).rows;
+            glyphCache.set(code, rows);
+          }
+          drawGlyph(canvas, rows);
+        }
+      }
+    }
+  }
+  virtualKeyboard.dataset.glyphCacheSize = String(glyphCache.size);
+  virtualKeyboard.dataset.glyphCacheToken = token;
+}
+
+function drawGlyph(canvas, rows) {
+  const glyphContext = canvas.getContext('2d', {alpha: true});
+  glyphContext.clearRect(0, 0, 8, 8);
+  if (!rows) return;
+  glyphContext.fillStyle = '#ffffff';
+  for (let row = 0; row < 8; ++row) {
+    for (let column = 0; column < 8; ++column) {
+      if ((rows[row] & (0x80 >> column)) !== 0) glyphContext.fillRect(column, row, 1, 1);
+    }
+  }
+}
+
+document.addEventListener('keydown', event => {
+  if (!isKeyboardReady() || event.isComposing) return;
+  const virtualKey = event.target.closest?.('.virtual-key');
+  if (event.target !== canvas && !virtualKey) return;
+  if (virtualKey && (event.code === 'Enter' || event.code === 'Space')) return;
+  const keyId = keyIdForKeyboardEvent(event);
+  if (!keyId || event.metaKey || event.altKey) return;
+  if (event.ctrlKey && keyId !== 'ModifierControl') return;
+  const minimumHold = keyId !== 'ModifierShift' && keyId !== 'ModifierControl';
+  const resolved = inputController.press(
+    keyId,
+    `keyboard:${event.code}`,
+    {minimumHold},
+  );
+  if (!resolved) return;
+  if (resolved.kind !== 'modifier') event.preventDefault();
 });
 
 window.addEventListener('keyup', event => {
-  const code = state.activeKeys.get(event.code);
-  if (code === undefined || !codec) return;
-  codec.machine.setKey(code, false);
-  state.activeKeys.delete(event.code);
+  inputController?.release(`keyboard:${event.code}`, {immediate: true});
 });
 
 function releaseKeys() {
-  if (codec) {
-    for (const code of state.activeKeys.values()) codec.machine.setKey(code, false);
-  }
-  state.activeKeys.clear();
+  inputController?.releaseAll();
+  pointerSources.clear();
 }
 
 window.addEventListener('blur', () => {

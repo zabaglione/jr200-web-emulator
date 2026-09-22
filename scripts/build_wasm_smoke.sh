@@ -33,7 +33,9 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_system_debug_resume jr200_system_debug_step
          jr200_system_debug_field jr200_system_debug_instruction_field
          jr200_system_debug_access_field
-         jr200_system_read jr200_system_peek jr200_system_write
+         jr200_system_read jr200_system_peek
+         jr200_system_glyph_ready jr200_system_glyph_row
+         jr200_system_glyph_generation jr200_system_write
          jr200_system_poke jr200_system_tick jr200_system_set_key
          jr200_system_set_cassette_input jr200_system_field
          jr200_system_trace_field jr200_system_render
@@ -78,5 +80,6 @@ node "$ROOT/tests/cpu_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/system_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/wrapper_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/audio_output_smoke.mjs"
+node "$ROOT/tests/keyboard_smoke.mjs"
 node "$ROOT/tests/wav_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/wav_decode_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"

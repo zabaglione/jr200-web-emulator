@@ -8,207 +8,187 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <header>
-    <p class="eyebrow">JR-200 WEB / DEVELOPMENT BUILD</p>
-    <h1>JR-200 Web Emulator</h1>
+<div class="app-shell">
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">JR-200 WEB / DEVELOPMENT BUILD</p>
+      <h1>JR-200 Web Emulator</h1>
+    </div>
     <p class="lead">利用者が選んだROMとフォントだけを、このブラウザ内で実行します。</p>
   </header>
 
-  <div id="emulator-notice" class="notice" data-state="waiting">
-    <strong>未起動です。</strong> ROMとフォントは同梱していません。正しいローカルファイルを選択してください。
+  <div class="status-strip">
+    <div id="emulator-notice" class="notice" data-state="waiting">
+      <strong>未起動です。</strong> ROMとフォントは同梱していません。正しいローカルファイルを選択してください。
+    </div>
+    <p id="status" role="status">WASMを読み込んでいます…</p>
   </div>
-  <p id="status" role="status">WASMを読み込んでいます…</p>
 
-  <section aria-labelledby="emulator-heading">
-    <h2 id="emulator-heading">01 / JR-200を起動</h2>
-    <p>ファイルは外部送信しません。通常はページを閉じると失われ、明示的に許可した場合だけIndexedDBへ保存します。</p>
-
-    <fieldset class="rom-choice">
-      <legend>ROM形式</legend>
-      <label class="check"><input type="radio" name="rom-mode" value="combined" checked> 結合ROM（16384バイト、ROM1→ROM2）</label>
-      <label class="check"><input type="radio" name="rom-mode" value="split"> ROM1 / ROM2を別々に選択</label>
-    </fieldset>
-
-    <div id="combined-fields">
-      <label class="file">結合ROM
-        <input id="rom-combined" type="file" accept=".rom,.bin,application/octet-stream" disabled>
-      </label>
-    </div>
-    <div id="split-fields" class="file-grid" hidden>
-      <label class="file">ROM1（$A000、8192バイト）
-        <input id="rom1" type="file" accept=".rom,.bin,application/octet-stream" disabled>
-      </label>
-      <label class="file">ROM2（$E000、8192バイト）
-        <input id="rom2" type="file" accept=".rom,.bin,application/octet-stream" disabled>
-      </label>
-    </div>
-    <label class="file">フォント（2048バイト）
-      <input id="font" type="file" accept=".rom,.bin,application/octet-stream" disabled>
-    </label>
-
-    <ul id="asset-status" class="asset-status" aria-live="polite">
-      <li>ROM: 未選択</li>
-      <li>フォント: 未選択</li>
-    </ul>
-
-    <label class="check permission"><input id="remember-assets" type="checkbox"> このブラウザにROMとフォントを保存することを許可</label>
-    <div class="controls">
-      <button id="start" type="button" disabled>起動</button>
-      <button id="pause" type="button" disabled>一時停止</button>
-      <button id="reset" type="button" disabled>リセット</button>
-      <button id="restore-assets" type="button" disabled>保存済みファイルを復元</button>
-      <button id="forget-assets" type="button" disabled>保存済みファイルを削除</button>
-    </div>
-    <p id="machine-status" role="status">ROM未提供のためCPUは実行していません。</p>
-
-    <div class="screen-shell">
-      <canvas id="screen" width="320" height="224" tabindex="0" aria-label="JR-200画面。起動後にクリックするとキーボード入力できます。"></canvas>
-    </div>
-    <p class="hint">起動後、画面をクリックして入力します。フォーカスを失うとキーを解放し、CPUと音声を自動的に一時停止します。</p>
-  </section>
-
-  <section aria-labelledby="audio-heading">
-    <h2 id="audio-heading">02 / 音声</h2>
-    <p>MN1271が生成した3チャンネル44.1 kHz PCMをモノラルへmixし、Web Audioへ出力します。ブラウザや端末の出力sample rateが異なる場合はWeb Audio側で変換されます。</p>
-    <p class="hint">ページ表示だけでは音声デバイスを開始しません。「音声を有効化」を押した後だけ、既定20%の音量で出力します。停止・ミュート・CPU一時停止・タブ非表示時は予約済み音声とPCM queueを破棄し、残音や巨大な追いつきを防ぎます。</p>
-    <div class="controls">
-      <button id="audio-enable" type="button" disabled>音声を有効化</button>
-      <button id="audio-disable" type="button" disabled>音声を停止</button>
-    </div>
-    <div class="audio-controls">
-      <label>音量（最大50%）
-        <input id="audio-volume" type="range" min="0" max="50" step="1" value="20" disabled>
-      </label>
-      <output id="audio-volume-value" for="audio-volume">20%</output>
-      <label class="check"><input id="audio-mute" type="checkbox" disabled> ミュート</label>
-    </div>
-    <pre id="audio-status" aria-live="polite">WASMの準備を待っています。</pre>
-  </section>
-
-  <section aria-labelledby="debugger-heading">
-    <h2 id="debugger-heading">03 / デバッガ</h2>
-    <p>停止条件と上限付き履歴はWASMメモリ内だけに保持します。メモリ表示は副作用のないpeekで最大256バイトを読み、ROM全体を自動表示・送信しません。</p>
-
-    <div class="controls">
-      <button id="debug-run" class="debug-control" type="button" disabled>実行 / 再開</button>
-      <button id="debug-pause" class="debug-control" type="button" disabled>一時停止</button>
-      <button id="debug-step" class="debug-control" type="button" disabled>1命令step</button>
-      <button id="debug-refresh" class="debug-control" type="button" disabled>表示更新</button>
-    </div>
-    <label class="check permission"><input id="debug-history-enabled" class="debug-control" type="checkbox" disabled> 命令履歴とCPUメモリアクセス履歴を記録</label>
-    <pre id="debug-registers" aria-live="polite">ROM起動後にレジスタを表示します。</pre>
-
-    <div class="debug-grid">
-      <div>
-        <h3>ブレークポイント</h3>
-        <label>命令アドレス（16進）<input id="debug-breakpoint-address" class="debug-control" value="E000" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
-        <div class="controls compact">
-          <button id="debug-add-breakpoint" class="debug-control" type="button" disabled>追加</button>
-          <button id="debug-clear-breakpoints" class="debug-control" type="button" disabled>全解除</button>
+  <main class="workspace">
+    <section class="machine-stage" aria-labelledby="emulator-heading">
+      <div class="stage-heading">
+        <div>
+          <p class="section-number">01 / MACHINE</p>
+          <h2 id="emulator-heading">JR-200を操作</h2>
         </div>
-        <ul id="debug-breakpoints" class="debug-list"><li>未設定</li></ul>
-      </div>
-      <div>
-        <h3>watchpoint</h3>
-        <label>メモリアドレス（16進）<input id="debug-watch-address" class="debug-control" value="C80D" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
-        <div class="inline-checks">
-          <label class="check"><input id="debug-watch-read" class="debug-control" type="checkbox" checked disabled> 読出し</label>
-          <label class="check"><input id="debug-watch-write" class="debug-control" type="checkbox" checked disabled> 書込み</label>
+        <div class="controls primary-controls" aria-label="主要操作">
+          <button id="start" type="button" disabled>起動</button>
+          <button id="pause" type="button" disabled>一時停止</button>
+          <button id="reset" type="button" disabled>リセット</button>
+          <button id="audio-enable" type="button" disabled>音声ON</button>
+          <button id="keyboard-toggle" type="button" aria-controls="keyboard-deck" aria-expanded="true">キーボードを隠す</button>
         </div>
-        <div class="controls compact">
-          <button id="debug-add-watchpoint" class="debug-control" type="button" disabled>追加 / 更新</button>
-          <button id="debug-clear-watchpoints" class="debug-control" type="button" disabled>全解除</button>
+      </div>
+      <p id="machine-status" role="status">ROM未提供のためCPUは実行していません。</p>
+
+      <div class="display-area">
+        <div class="screen-shell">
+          <canvas id="screen" width="320" height="224" tabindex="0" aria-label="JR-200画面。起動後にクリックするとキーボード入力できます。"></canvas>
         </div>
-        <ul id="debug-watchpoints" class="debug-list"><li>未設定</li></ul>
       </div>
-    </div>
 
-    <h3>メモリpeek</h3>
-    <div class="memory-controls">
-      <label>開始アドレス（16進）<input id="debug-memory-address" class="debug-control" value="0000" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
-      <button id="debug-memory-read" class="debug-control" type="button" disabled>最大256バイト表示</button>
-    </div>
-    <pre id="debug-memory">手動で表示してください。peekはI/O読出し副作用を起こしません。</pre>
-
-    <div class="controls compact">
-      <button id="debug-clear-history" class="debug-control" type="button" disabled>履歴を消去</button>
-    </div>
-    <p id="debug-history-status" class="hint">命令履歴 0 / 256、CPUアクセス履歴 0 / 512。</p>
-    <div class="debug-grid trace-grid">
-      <div><h3>直近の命令</h3><pre id="debug-instructions">履歴記録は無効です。</pre></div>
-      <div><h3>直近のCPUアクセス</h3><pre id="debug-accesses">履歴記録は無効です。</pre></div>
-    </div>
-  </section>
-
-  <section aria-labelledby="tape-heading">
-    <h2 id="tape-heading">04 / カセット</h2>
-    <p>CJRをMN1271の通常信号経路で再生し、SAVE/MSAVEの出力波形をCJRへ復号します。メモリへの直接注入は行いません。</p>
-    <p class="hint">標準のBASIC（LOAD/SAVE）とマシン語（MLOAD/MSAVE）だけに対応します。PRINT#、INPUT#、ヘッダーなし、未知の種別、特殊・連結形式は黙って受け付けずエラーにします。</p>
-    <label class="file">再生するCJRファイル<input id="tape-cjr" type="file" accept=".cjr,application/octet-stream" disabled></label>
-    <div class="controls">
-      <button id="tape-mount" type="button" disabled>マウント</button>
-      <button id="tape-eject" type="button" disabled>取出し</button>
-      <button id="tape-rewind" type="button" disabled>巻戻し</button>
-      <button id="tape-record" type="button" disabled>新規録音を待機</button>
-      <button id="tape-download" type="button" disabled>録音CJRを保存</button>
-      <button id="tape-replay-output" type="button" disabled>録音CJRを再生へマウント</button>
-    </div>
-    <pre id="tape-status" aria-live="polite">WASMの準備を待っています。</pre>
-  </section>
-
-  <section aria-labelledby="inspect-heading">
-    <h2 id="inspect-heading">05 / CJRを検査</h2>
-    <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。検証済みの標準CJRはカセットWAVへ変換できます。</p>
-    <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
-    <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
-    <pre id="result" aria-live="polite">ファイルを選択してください。</pre>
-    <h3>WAVからCJRを復元</h3>
-    <p class="hint">元WAVは変更しません。RIFF、PCM、信号timing、block、checksumを検査し、完全に検証できたCJRだけを保存できます。復元候補は診断表示のみで、ダウンロードできません。ブラウザ入力上限は8 MiBです。</p>
-    <div class="fields">
-      <label>録音WAV<input id="wav-decode-input" type="file" accept=".wav,audio/wav" disabled></label>
-      <label>解析channel<select id="wav-decode-channel" disabled><option value="auto">auto（RMSが大きいchannel）</option><option value="left">left / mono</option><option value="right">right</option></select></label>
-    </div>
-    <div class="controls">
-      <button id="wav-decode-run" type="button" disabled>WAVを解析</button>
-      <button id="wav-decode-save" type="button" disabled>検証済みCJRを保存</button>
-    </div>
-    <pre id="wav-decode-status" aria-live="polite">WAVファイルを選択してください。</pre>
-    <h3>CJRからWAVを作成</h3>
-    <p class="hint">12-bit frame、固定600 baud header、leader/ブロック間隔を保ち、データ部を600または2400 baudで出力します。音量は50%、自動再生はしません。</p>
-    <div class="fields">
-      <label>sample rate<select id="wav-rate" disabled><option value="48000">48000 Hz</option><option value="44100">44100 Hz</option></select></label>
-      <label>データ速度<select id="wav-baud" disabled><option value="2400">2400 baud</option><option value="600">600 baud</option></select></label>
-    </div>
-    <button id="wav-create" type="button" disabled>検証済みCJRからWAVを保存</button>
-    <p id="wav-status" role="status">検証済みCJRを選択してください。生成WAVの実機互換はP12で確認します。</p>
-  </section>
-
-  <section aria-labelledby="pack-heading">
-    <h2 id="pack-heading">06 / BINから標準CJRを作成</h2>
-    <p>既存バイナリを1つの連続領域として格納します。BASICのトークナイズは行いません。</p>
-    <form id="pack">
-      <label>BINファイル<input id="bin" type="file" required disabled></label>
-      <div class="fields">
-        <label>JRファイル名（ASCII）<input id="name" value="TEST" maxlength="16" required></label>
-        <label>開始アドレス（16進）<input id="address" value="7000" pattern="[0-9a-fA-F]{1,4}" required></label>
-        <label>形式<select id="kind"><option value="1">マシン語 / MLOAD</option><option value="0">BASICバイト列 / LOAD（$0801）</option></select></label>
-        <label>ボーレート指定<select id="baud"><option value="0">2400（フラグ0）</option><option value="100">600（フラグ100）</option></select></label>
+      <div id="keyboard-deck" class="keyboard-deck" aria-label="仮想キーボード領域">
+        <div class="keyboard-statusbar">
+          <strong id="input-mode-status">入力モード: 英数</strong>
+          <span id="glyph-status" role="status">FONT未読込 / キー操作不可</span>
+        </div>
+        <div id="virtual-keyboard" class="virtual-keyboard" role="group" aria-label="JR-200仮想キーボード" aria-disabled="true"></div>
       </div>
-      <button id="create" disabled>検証してCJRを保存</button>
-    </form>
-    <p id="pack-status" role="status"></p>
-  </section>
+      <p class="hint stage-hint">起動後、画面をクリックして物理キーボードで入力できます。フォーカスを失うとキーを解放し、CPUと音声を一時停止します。</p>
+    </section>
+
+    <aside class="utility-rail" aria-label="補助操作パネル">
+      <details class="tool-panel" open>
+        <summary><span>02 / ROM・フォント</span><strong>起動データ</strong></summary>
+        <div class="tool-panel-body">
+          <p>ファイルは外部送信しません。明示的に許可した場合だけIndexedDBへ保存します。</p>
+          <fieldset class="rom-choice">
+            <legend>ROM形式</legend>
+            <label class="check"><input type="radio" name="rom-mode" value="combined" checked> 結合ROM（16384バイト、ROM1→ROM2）</label>
+            <label class="check"><input type="radio" name="rom-mode" value="split"> ROM1 / ROM2を別々に選択</label>
+          </fieldset>
+          <div id="combined-fields"><label class="file">結合ROM<input id="rom-combined" type="file" accept=".rom,.bin,application/octet-stream" disabled></label></div>
+          <div id="split-fields" class="file-grid" hidden>
+            <label class="file">ROM1（$A000、8192バイト）<input id="rom1" type="file" accept=".rom,.bin,application/octet-stream" disabled></label>
+            <label class="file">ROM2（$E000、8192バイト）<input id="rom2" type="file" accept=".rom,.bin,application/octet-stream" disabled></label>
+          </div>
+          <label class="file">フォント（2048バイト）<input id="font" type="file" accept=".rom,.bin,application/octet-stream" disabled></label>
+          <ul id="asset-status" class="asset-status" aria-live="polite"><li>ROM: 未選択</li><li>フォント: 未選択</li></ul>
+          <label class="check permission"><input id="remember-assets" type="checkbox"> このブラウザにROMとフォントを保存することを許可</label>
+          <div class="controls compact"><button id="restore-assets" type="button" disabled>保存済みファイルを復元</button><button id="forget-assets" type="button" disabled>保存済みファイルを削除</button></div>
+        </div>
+      </details>
+
+      <details class="tool-panel">
+        <summary><span>03 / AUDIO</span><strong id="audio-heading">音声</strong></summary>
+        <div class="tool-panel-body" aria-labelledby="audio-heading">
+          <p>MN1271の3チャンネル44.1 kHz PCMをモノラルへmixし、Web Audioへ出力します。</p>
+          <p class="hint">ページ表示だけでは音声デバイスを開始しません。音声ONの後だけ、既定20%で出力します。</p>
+          <div class="controls compact"><button id="audio-disable" type="button" disabled>音声を停止</button></div>
+          <div class="audio-controls">
+            <label>音量（最大50%）<input id="audio-volume" type="range" min="0" max="50" step="1" value="20" disabled></label>
+            <output id="audio-volume-value" for="audio-volume">20%</output>
+            <label class="check"><input id="audio-mute" type="checkbox" disabled> ミュート</label>
+          </div>
+          <pre id="audio-status" aria-live="polite">WASMの準備を待っています。</pre>
+        </div>
+      </details>
+
+      <details class="tool-panel">
+        <summary><span>04 / CASSETTE</span><strong id="tape-heading">カセット</strong></summary>
+        <div class="tool-panel-body" aria-labelledby="tape-heading">
+          <p>CJRをMN1271の通常信号経路で再生し、SAVE/MSAVEの出力波形をCJRへ復号します。</p>
+          <p class="hint">標準のBASIC（LOAD/SAVE）とマシン語（MLOAD/MSAVE）だけに対応します。</p>
+          <label class="file">再生するCJRファイル<input id="tape-cjr" type="file" accept=".cjr,application/octet-stream" disabled></label>
+          <div class="controls compact">
+            <button id="tape-mount" type="button" disabled>マウント</button><button id="tape-eject" type="button" disabled>取出し</button><button id="tape-rewind" type="button" disabled>巻戻し</button>
+            <button id="tape-record" type="button" disabled>新規録音を待機</button><button id="tape-download" type="button" disabled>録音CJRを保存</button><button id="tape-replay-output" type="button" disabled>録音CJRを再生へマウント</button>
+          </div>
+          <pre id="tape-status" aria-live="polite">WASMの準備を待っています。</pre>
+        </div>
+      </details>
+
+      <details class="tool-panel">
+        <summary><span>05 / CJR・WAV</span><strong id="inspect-heading">検査と変換</strong></summary>
+        <div class="tool-panel-body" aria-labelledby="inspect-heading">
+          <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
+          <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
+          <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
+          <pre id="result" aria-live="polite">ファイルを選択してください。</pre>
+          <h3>WAVからCJRを復元</h3>
+          <p class="hint">完全に検証できたCJRだけを保存できます。ブラウザ入力上限は8 MiBです。</p>
+          <div class="fields">
+            <label>録音WAV<input id="wav-decode-input" type="file" accept=".wav,audio/wav" disabled></label>
+            <label>解析channel<select id="wav-decode-channel" disabled><option value="auto">auto（RMSが大きいchannel）</option><option value="left">left / mono</option><option value="right">right</option></select></label>
+          </div>
+          <div class="controls compact"><button id="wav-decode-run" type="button" disabled>WAVを解析</button><button id="wav-decode-save" type="button" disabled>検証済みCJRを保存</button></div>
+          <pre id="wav-decode-status" aria-live="polite">WAVファイルを選択してください。</pre>
+          <h3>CJRからWAVを作成</h3>
+          <div class="fields">
+            <label>sample rate<select id="wav-rate" disabled><option value="48000">48000 Hz</option><option value="44100">44100 Hz</option></select></label>
+            <label>データ速度<select id="wav-baud" disabled><option value="2400">2400 baud</option><option value="600">600 baud</option></select></label>
+          </div>
+          <button id="wav-create" type="button" disabled>検証済みCJRからWAVを保存</button>
+          <p id="wav-status" role="status">検証済みCJRを選択してください。生成WAVの実機互換はP12で確認します。</p>
+        </div>
+      </details>
+
+      <details class="tool-panel">
+        <summary><span>06 / BIN</span><strong id="pack-heading">標準CJRを作成</strong></summary>
+        <div class="tool-panel-body" aria-labelledby="pack-heading">
+          <p>既存バイナリを1つの連続領域として格納します。BASICのトークナイズは行いません。</p>
+          <form id="pack">
+            <label>BINファイル<input id="bin" type="file" required disabled></label>
+            <div class="fields">
+              <label>JRファイル名（ASCII）<input id="name" value="TEST" maxlength="16" required></label>
+              <label>開始アドレス（16進）<input id="address" value="7000" pattern="[0-9a-fA-F]{1,4}" required></label>
+              <label>形式<select id="kind"><option value="1">マシン語 / MLOAD</option><option value="0">BASICバイト列 / LOAD（$0801）</option></select></label>
+              <label>ボーレート指定<select id="baud"><option value="0">2400（フラグ0）</option><option value="100">600（フラグ100）</option></select></label>
+            </div>
+            <button id="create" disabled>検証してCJRを保存</button>
+          </form>
+          <p id="pack-status" role="status"></p>
+        </div>
+      </details>
+
+      <details class="tool-panel debugger-panel">
+        <summary><span>07 / DEBUG</span><strong id="debugger-heading">デバッガ</strong></summary>
+        <div class="tool-panel-body" aria-labelledby="debugger-heading">
+          <p>停止条件と上限付き履歴はWASMメモリ内だけに保持します。メモリ表示は副作用のないpeekで最大256バイトを読みます。</p>
+          <div class="controls compact"><button id="debug-run" class="debug-control" type="button" disabled>実行 / 再開</button><button id="debug-pause" class="debug-control" type="button" disabled>一時停止</button><button id="debug-step" class="debug-control" type="button" disabled>1命令step</button><button id="debug-refresh" class="debug-control" type="button" disabled>表示更新</button></div>
+          <label class="check permission"><input id="debug-history-enabled" class="debug-control" type="checkbox" disabled> 命令履歴とCPUメモリアクセス履歴を記録</label>
+          <pre id="debug-registers" aria-live="polite">ROM起動後にレジスタを表示します。</pre>
+          <div class="debug-grid">
+            <div>
+              <h3>ブレークポイント</h3>
+              <label>命令アドレス（16進）<input id="debug-breakpoint-address" class="debug-control" value="E000" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
+              <div class="controls compact"><button id="debug-add-breakpoint" class="debug-control" type="button" disabled>追加</button><button id="debug-clear-breakpoints" class="debug-control" type="button" disabled>全解除</button></div>
+              <ul id="debug-breakpoints" class="debug-list"><li>未設定</li></ul>
+            </div>
+            <div>
+              <h3>watchpoint</h3>
+              <label>メモリアドレス（16進）<input id="debug-watch-address" class="debug-control" value="C80D" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label>
+              <div class="inline-checks"><label class="check"><input id="debug-watch-read" class="debug-control" type="checkbox" checked disabled> 読出し</label><label class="check"><input id="debug-watch-write" class="debug-control" type="checkbox" checked disabled> 書込み</label></div>
+              <div class="controls compact"><button id="debug-add-watchpoint" class="debug-control" type="button" disabled>追加 / 更新</button><button id="debug-clear-watchpoints" class="debug-control" type="button" disabled>全解除</button></div>
+              <ul id="debug-watchpoints" class="debug-list"><li>未設定</li></ul>
+            </div>
+          </div>
+          <h3>メモリpeek</h3>
+          <div class="memory-controls"><label>開始アドレス（16進）<input id="debug-memory-address" class="debug-control" value="0000" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label><button id="debug-memory-read" class="debug-control" type="button" disabled>最大256バイト表示</button></div>
+          <pre id="debug-memory">手動で表示してください。peekはI/O読出し副作用を起こしません。</pre>
+          <div class="controls compact"><button id="debug-clear-history" class="debug-control" type="button" disabled>履歴を消去</button></div>
+          <p id="debug-history-status" class="hint">命令履歴 0 / 256、CPUアクセス履歴 0 / 512。</p>
+          <div class="debug-grid trace-grid"><div><h3>直近の命令</h3><pre id="debug-instructions">履歴記録は無効です。</pre></div><div><h3>直近のCPUアクセス</h3><pre id="debug-accesses">履歴記録は無効です。</pre></div></div>
+        </div>
+      </details>
+    </aside>
+  </main>
 
   <footer>
-    <p>非公式の独立プロジェクトです。VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。</p>
-    <a href="LICENSE.txt">本プロジェクトのライセンス</a> ·
-    <a href="LICENSES/VJR200.txt">FIND / VJR-200ライセンス全文</a> ·
-    <a href="LICENSES/MAME_BSD-3-Clause.txt">MAME MC6800 BSD-3-Clause全文</a> ·
-    <a href="THIRD_PARTY_NOTICES.md">第三者表記</a> ·
-    <a href="SBOM.spdx.json">SPDX SBOM</a>
+    <span>非公式の独立プロジェクトです。</span>
+    <a href="LICENSE.txt">ライセンス</a> · <a href="LICENSES/VJR200.txt">VJR-200</a> · <a href="LICENSES/MAME_BSD-3-Clause.txt">MAME MC6800</a> · <a href="THIRD_PARTY_NOTICES.md">第三者表記</a> · <a href="SBOM.spdx.json">SPDX SBOM</a>
   </footer>
-</main>
+</div>
 <script type="module" src="app.mjs"></script>
 </body>
 </html>

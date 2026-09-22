@@ -30,6 +30,10 @@ for f in ['src/core/m6800.cpp','src/core/6800ops.hxx','src/core/6800tbl.hxx','in
 for f in ['include/jr200/peripherals.hpp','src/core/peripherals.cpp','src/core/system.cpp']:
     t=(ROOT/f).read_text();assert 'FIND' in t and 'SPDX-License-Identifier: BSD-3-Clause' in t
     assert not any(token in t for token in ['stdafx.h','cereal::','TCHAR','DirectSound','Direct2D','MMSystem.h','windows.h'])
+keyboard=(ROOT/'web/keyboard.mjs').read_text()
+assert 'Copyright (c) 2017,2020 FIND' in keyboard
+assert 'SPDX-License-Identifier: BSD-3-Clause' in keyboard
+assert 'Mn1544.cpp' in keyboard
 for f in ['include/jr200/peripherals.hpp','include/jr200/system.hpp','src/core/peripherals.cpp','src/core/system.cpp']:
     t=(ROOT/f).read_text()
     assert not any(token in t for token in ['system_clock','steady_clock','high_resolution_clock','requestAnimationFrame'])
@@ -49,9 +53,11 @@ if manifest.exists():
               'tests/test_system.cpp','tests/test_cassette.cpp','tests/system_wasm_smoke.mjs',
               'tests/audio_output_smoke.mjs','web/audio.mjs',
               'tests/emscripten_smoke.mjs','tests/webdriver_real_rom_smoke.py',
+              'tests/keyboard_smoke.mjs','tests/ui_performance_probe.py',
+              'web/keyboard.mjs',
               'docs/P05_PERIPHERAL_AUDIT.md','docs/P06_BROWSER_ACCEPTANCE.md',
               'docs/P07_DEBUGGER_ACCEPTANCE.md','docs/P08_CASSETTE_ACCEPTANCE.md',
-              'docs/P09_AUDIO_ACCEPTANCE.md',
+              'docs/P09_AUDIO_ACCEPTANCE.md','docs/UI_ACCEPTANCE.md',
               '.emscripten-version','scripts/check_emscripten_version.py'}
     assert required.issubset(files),'CPU source or license missing from source inventory'
     for f in files:

@@ -4,6 +4,14 @@
 `zabaglione/jr200-web-emulator`、visibilityはprivateである。一般公開、GitHub Pages、
 GitHub Release、ROM/メーカー由来フォント/商用テープ/利用者録音の配布は対象外である。
 
+## UI follow-upとの関係
+
+本記録のfile数、site容量、commit、Actions runはprivate初版0.0.1受入時点の履歴である。
+後続のGitHub Issue #15〜#20は、初期plan IDを増やさず同じprivate配布境界へUI・入力・
+browser回帰を追加した。追加treeの受入は [UI_ACCEPTANCE.md](UI_ACCEPTANCE.md) と各Issueの
+closure証拠を正とする。UI follow-upもROM／font／録音を配布せず、Pagesやvisibilityを変更せず、
+P12（Issue #13）の物理WAV試験を完了扱いにしない。
+
 ## 受入境界の変更
 
 P12の物理JR-200 WAV往復試験は初版後へ延期した。P13はP11へ直接依存し、P00〜P11で

@@ -17,6 +17,10 @@
 | S12 | https://github.com/mamedev/mame/blob/9940645188b6749e170b62c0ea86af0f440148da/docs/legal/BSD-3-Clause | MAMEのBSD-3-Clause全文。blob `cc9ab753198e41128dc651e0adb4f5e8c1be932a` |
 | S13 | https://github.com/find-jr200/VJR200forWindows/blob/dd748995bede57da5baebc1225c7a33433aa6934/VJR200/AnalyzeWave.cpp | SAVE/MSAVEのMN1271出力byteをLSB順の波形sampleへ展開し、600/2400 baudのhalf-spanからCJRへ戻す処理 |
 | S14 | https://webaudio.github.io/web-audio-api/ | Web Audio API 1.1のAudioContext、AudioBufferSourceNode、sample-rate変換、suspend/resume |
+| S15 | https://find-jr200.github.io/vjr200_man.html | 日本語版の英数／GRAPH／カナ／BREAK割当、英語keyboard時の補助割当、ROMとfontの別設定 |
+| S16 | https://github.com/find-jr200/VJR200forWindows/blob/dd748995bede57da5baebc1225c7a33433aa6934/VJR200/Mn1544.cpp | 固定commitの日本向けkey変換、FONTから標準文字RAMへの転送、MN1544入力処理 |
+| S17 | https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html | 通常文字の最低contrast比4.5:1と、定義色から丸めず判定する基準 |
+| S18 | https://asamomiji.jp/antique/JR200/hardware.html | 日本向けJR-200の外装・key配色の観察資料。色値は写真からの解釈で、公称値とは扱わない |
 
 ## 上流固定情報
 - repo: `https://github.com/find-jr200/VJR200forWindows.git`
@@ -66,6 +70,11 @@ P11ではS13のtransition/half-span/frame復号をOS非依存のbounded decoder�
 Win32 UI、ファイル保存処理、無制限buffer、bit補正は移植していない。JR2Rescue生成WAVと
 利用者提供録音による照合、候補と検証済みCJRの境界、未対応PCM、完了したremote CIは
 [P11_WAV_DECODE_ACCEPTANCE.md](P11_WAV_DECODE_ACCEPTANCE.md)に記録した。
+UI Issue #15〜#20ではS15とS16を日本向けkey割当の根拠にし、`web/keyboard.mjs`へ
+表示・物理入力・仮想入力で共有する解決表を再構成した。FINDの表示とlicense全文を保持する。
+外装themeはS18の観察に基づく設計上の解釈であり、写真やlogoは配布しない。S17を通常文字の
+contrast検査に使った。実装、browser条件、実データとの境界は
+[UI_ACCEPTANCE.md](UI_ACCEPTANCE.md)に記録した。
 
 ## ライセンス台帳
 | 対象 | 観測した表示/条件 | 初期成果物への取込 | 方針 |

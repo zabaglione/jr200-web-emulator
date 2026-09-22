@@ -132,14 +132,19 @@ public:
     void tick(uint32_t cycles, Mn1271& io) noexcept;
 
     [[nodiscard]] bool initialized() const noexcept;
+    [[nodiscard]] bool font_loaded() const noexcept;
+    [[nodiscard]] uint8_t font_row(uint8_t code, uint8_t row) const noexcept;
+    [[nodiscard]] uint32_t font_generation() const noexcept;
     [[nodiscard]] uint16_t bootstrap_pointer() const noexcept;
     [[nodiscard]] uint8_t current_key() const noexcept;
 
 private:
     uint8_t font_[kFontSize + 1U]{};
+    uint32_t font_generation_{};
     uint8_t scan_[3]{};
     uint16_t pointer_{};
     bool initialized_{};
+    bool font_loaded_{};
     bool scanning_{};
     bool key_tested_{};
     uint8_t previous_key_test_{};

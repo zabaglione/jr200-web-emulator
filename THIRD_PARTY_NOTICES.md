@@ -38,6 +38,13 @@ The peripheral behavior in `include/jr200/peripherals.hpp`,
 `Crtc`, and `JRSystem` files at the pinned VJR-200 commit above. The complete
 applicable terms remain in [LICENSES/VJR200.txt](LICENSES/VJR200.txt).
 
+The Japanese JR-200 keyboard conversion tables in `web/keyboard.mjs` are
+adapted from FIND's `VJR200/Mn1544.cpp` at that same pinned commit. The source
+retains FIND's copyright notice and the BSD-3-Clause SPDX identifier. The Web
+UI obtains glyph rows at runtime from the user-provided font and emulated
+character RAM; it does not include manufacturer font bytes or extracted glyph
+images.
+
 The port removes DirectSound, Direct2D, Win32 input and file APIs, OpenSL ES,
 cereal, global host timing, printer, and FDD coupling. It exposes an explicit
 cycle clock, fixed PCM queue, ARGB framebuffer, translated key-state input,

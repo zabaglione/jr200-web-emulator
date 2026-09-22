@@ -70,6 +70,8 @@ void JR200Machine::initialize_memory() noexcept
     for (uint32_t i = 0xc401U; i < 0xc500U; i += 2U) {
         memory_[i] = 0xffU;
     }
+    ++standard_glyph_generation_;
+    ++user_glyph_generation_;
 }
 
 void JR200Machine::reset_peripherals() noexcept
@@ -239,6 +241,44 @@ uint8_t JR200Machine::peek_byte(uint16_t address) const noexcept
     return 0U;
 }
 
+bool JR200Machine::glyph_ready(GlyphBank bank) const noexcept
+{
+    switch (bank) {
+    case GlyphBank::FontAsset: return mn1544_.font_loaded();
+    case GlyphBank::Standard: return mn1544_.initialized();
+    case GlyphBank::UserDefined: return true;
+    }
+    return false;
+}
+
+uint8_t JR200Machine::glyph_row(
+    GlyphBank bank,
+    uint8_t code,
+    uint8_t row) const noexcept
+{
+    if (row >= 8U) {
+        return 0U;
+    }
+    if (bank == GlyphBank::FontAsset) {
+        return mn1544_.font_row(code, row);
+    }
+    if (bank != GlyphBank::Standard && bank != GlyphBank::UserDefined) {
+        return 0U;
+    }
+    const uint16_t base = bank == GlyphBank::Standard ? 0xd000U : 0xc000U;
+    return memory_[base + static_cast<uint16_t>(code) * 8U + row];
+}
+
+uint32_t JR200Machine::glyph_generation(GlyphBank bank) const noexcept
+{
+    switch (bank) {
+    case GlyphBank::FontAsset: return mn1544_.font_generation();
+    case GlyphBank::Standard: return standard_glyph_generation_;
+    case GlyphBank::UserDefined: return user_glyph_generation_;
+    }
+    return 0U;
+}
+
 void JR200Machine::write_byte(uint16_t address, uint8_t value) noexcept
 {
     write_mapped(address, value);
@@ -247,6 +287,7 @@ void JR200Machine::write_byte(uint16_t address, uint8_t value) noexcept
 
 void JR200Machine::poke(uint16_t address, uint8_t value) noexcept
 {
+    note_glyph_write(address, value);
     memory_[address] = value;
 }
 
@@ -416,6 +457,7 @@ uint8_t JR200Machine::read_mapped(uint16_t address) noexcept
 void JR200Machine::write_mapped(uint16_t address, uint8_t value) noexcept
 {
     if (is_ram(address)) {
+        note_glyph_write(address, value);
         memory_[address] = value;
         return;
     }
@@ -440,6 +482,18 @@ void JR200Machine::write_mapped(uint16_t address, uint8_t value) noexcept
         const uint16_t reg = static_cast<uint16_t>(address - 0xca00U);
         crtc_.write(reg, value);
         trace_io(address, reg, value, IoDevice::Crtc, IoOperation::Write);
+    }
+}
+
+void JR200Machine::note_glyph_write(uint16_t address, uint8_t value) noexcept
+{
+    if (memory_[address] == value) {
+        return;
+    }
+    if (address >= 0xd000U && address < 0xd800U) {
+        ++standard_glyph_generation_;
+    } else if (address >= 0xc000U && address < 0xc800U) {
+        ++user_glyph_generation_;
     }
 }
 

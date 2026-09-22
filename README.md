@@ -1,12 +1,12 @@
 # JR-200 Web Emulator
 
-**状態: P00〜P11とP13のprivate初版0.0.1受入は完了。P12の実機WAV往復は初版後の未検証項目です。**
+**状態: P00〜P11とP13のprivate初版0.0.1、およびUI follow-up Issue #15〜#20のローカル・三ブラウザ受入は完了。P12の実機WAV往復は初版後の未検証項目です。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 
 ## 今回入っているもの
 
-CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CJR↔RIFF PCM WAV、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、固定PCMキュー、利用者操作式Web Audio、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、キーボード入力、ポーズ/リセット、固定長デバッガ、通常CJRカセットtransport、native/WASM/ブラウザ試験、14件のIssue本文です。
+CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CJR↔RIFF PCM WAV、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、固定PCMキュー、利用者操作式Web Audio、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、英数／カナ／GRAPH対応のROM字形仮想キーボード、物理入力、ポーズ/リセット、固定長デバッガ、通常CJRカセットtransport、native/WASM/ブラウザ試験です。初期計画14件と、別系列のUI follow-up 6件をIssueで管理します。
 
 **入っていないもの:** Web Audioのpan、物理出力の音圧測定、生成WAVのJR-200実機互換結果、ROM/メーカー由来フォント本体。ROM、フォント、録音は利用者のローカルファイルとしてのみ扱います。
 
@@ -23,6 +23,7 @@ CJRの安全な検査、原バイト列を保持するコピー、連続領域�
 | [由来とライセンス](docs/UPSTREAM.md) | 固定commitと一次情報、第三者コード台帳 |
 | [CJR形式](docs/CJR_FORMAT.md) | 公開コードに基づく形式と制限 |
 | [実機試験計画](docs/HARDWARE_TEST_PLAN.md) | 初版後に行うWAV往復の独立した検証方法 |
+| [UI受入記録](docs/UI_ACCEPTANCE.md) | Full HD配置、実機配色、入力・字形API、三ブラウザ回帰の条件と境界 |
 | [GitHub作成手順](docs/GITHUB_SETUP.md) | private確認・Issue登録・安全なpush |
 
 ## ローカルのネイティブ版
@@ -47,9 +48,11 @@ make serve
 # ブラウザで http://127.0.0.1:8000 を開く
 ```
 
-結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査、BIN→標準CJR包装、検証済み標準CJR→WAV保存、録音WAV→検証済みCJR復元も同じ画面から利用できます。WAV復元候補は診断だけを表示し、block/checksumを含む全検証に成功した場合だけ保存できます。WAV出力は44.1/48 kHz、mono 16-bit、600/2400 baudで、自動再生せず、実機互換未検証を表示します。デバッガは実行/停止/step、16件ずつのbreakpoint/watchpoint、命令256件・CPUアクセス512件の履歴、手動256 byte peekを持ちます。標準BASIC/マシン語CJRを通常のMN1271信号経路へmountし、LOAD/MLOAD/SAVE/MSAVEを実行できます。音声は利用者が有効化するまで開始せず、既定20%/上限50%の音量、ミュート、sample rate/underrun表示、休止時のqueue破棄を持ちます。高速RAM注入、PRINT#、INPUT#、特殊・連結CJRは対象外です。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
+結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査、BIN→標準CJR包装、検証済み標準CJR→WAV保存、録音WAV→検証済みCJR復元も同じ画面から利用できます。通常画面は上部操作バー、整数倍Canvasと仮想キーボード、右側の開閉式補助パネルで構成します。仮想キーは英数／カナ／GRAPHとSHIFT／CTRLに追従し、読み込んだFONTから初期化された文字RAMの8×8字形を表示します。固定Unicode字形やメーカーfont画像は同梱しません。
 
-Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。ブラウザ起動の詳細は [P06受入記録](docs/P06_BROWSER_ACCEPTANCE.md)、デバッガの停止・観測境界は [P07受入記録](docs/P07_DEBUGGER_ACCEPTANCE.md)、通常CJR transportは [P08受入記録](docs/P08_CASSETTE_ACCEPTANCE.md)、Web Audioは [P09受入記録](docs/P09_AUDIO_ACCEPTANCE.md)、CJR→WAVと独立decodeは [P10受入記録](docs/P10_WAV_ACCEPTANCE.md)、WAV→CJRは [P11受入記録](docs/P11_WAV_DECODE_ACCEPTANCE.md) を参照してください。
+WAV復元候補は診断だけを表示し、block/checksumを含む全検証に成功した場合だけ保存できます。WAV出力は44.1/48 kHz、mono 16-bit、600/2400 baudで、自動再生せず、実機互換未検証を表示します。デバッガは実行/停止/step、16件ずつのbreakpoint/watchpoint、命令256件・CPUアクセス512件の履歴、手動256 byte peekを持ちます。標準BASIC/マシン語CJRを通常のMN1271信号経路へmountし、LOAD/MLOAD/SAVE/MSAVEを実行できます。音声は利用者が有効化するまで開始せず、既定20%/上限50%の音量、ミュート、sample rate/underrun表示、休止時のqueue破棄を持ちます。高速RAM注入、PRINT#、INPUT#、特殊・連結CJRは対象外です。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
+
+Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。ブラウザ起動の詳細は [P06受入記録](docs/P06_BROWSER_ACCEPTANCE.md)、デバッガの停止・観測境界は [P07受入記録](docs/P07_DEBUGGER_ACCEPTANCE.md)、通常CJR transportは [P08受入記録](docs/P08_CASSETTE_ACCEPTANCE.md)、Web Audioは [P09受入記録](docs/P09_AUDIO_ACCEPTANCE.md)、CJR→WAVと独立decodeは [P10受入記録](docs/P10_WAV_ACCEPTANCE.md)、WAV→CJRは [P11受入記録](docs/P11_WAV_DECODE_ACCEPTANCE.md)、Full HD UIと仮想キーボードは [UI受入記録](docs/UI_ACCEPTANCE.md) を参照してください。
 
 ```sh
 # emsdk を導入・有効化済みの環境で
@@ -65,6 +68,12 @@ CHROMIUM_EXECUTABLE=/path/to/chromium python3 tests/browser_smoke.py
 ```
 
 権利確認済みのROM/フォントを使う任意試験には `tests/webdriver_real_rom_smoke.py` を利用できます。引数のファイルパスはWebDriver側から見える読み取り専用パスを指定し、検体自体はGitへ追加しないでください。
+
+```sh
+python3 tests/webdriver_real_rom_smoke.py --browser firefox \
+  --webdriver http://127.0.0.1:4444 --url http://host/site/ \
+  --rom /read-only/combined.rom --font /read-only/font.bin
+```
 
 ## 開発の開始
 

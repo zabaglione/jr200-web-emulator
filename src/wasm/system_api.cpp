@@ -49,7 +49,7 @@ extern "C" {
 
 uint32_t jr200_system_api_version()
 {
-    return 5U;
+    return 6U;
 }
 
 void jr200_system_clear()
@@ -345,6 +345,37 @@ uint32_t jr200_system_peek(uint32_t address)
     return address <= 0xffffU
         ? machine.peek_byte(static_cast<uint16_t>(address))
         : 0U;
+}
+
+uint32_t jr200_system_glyph_ready(uint32_t bank)
+{
+    if (bank > static_cast<uint32_t>(jr200::GlyphBank::UserDefined)) {
+        return 0U;
+    }
+    return machine.glyph_ready(static_cast<jr200::GlyphBank>(bank)) ? 1U : 0U;
+}
+
+uint32_t jr200_system_glyph_row(
+    uint32_t bank,
+    uint32_t code,
+    uint32_t row)
+{
+    if (bank > static_cast<uint32_t>(jr200::GlyphBank::UserDefined) ||
+        code > 0xffU || row >= 8U) {
+        return 0U;
+    }
+    return machine.glyph_row(
+        static_cast<jr200::GlyphBank>(bank),
+        static_cast<uint8_t>(code),
+        static_cast<uint8_t>(row));
+}
+
+uint32_t jr200_system_glyph_generation(uint32_t bank)
+{
+    if (bank > static_cast<uint32_t>(jr200::GlyphBank::UserDefined)) {
+        return 0U;
+    }
+    return machine.glyph_generation(static_cast<jr200::GlyphBank>(bank));
 }
 
 void jr200_system_write(uint32_t address, uint32_t value)

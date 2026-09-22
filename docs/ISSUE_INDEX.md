@@ -25,3 +25,20 @@
 #1〜#12と#14は受入完了。#13の実機WAV往復は初版後の未検証Issueとしてopenで残す。
 独立toolによる生成WAVのdecode、自前WAV decoder、利用者提供録音のdecode、実機WAV
 往復の合格はそれぞれ別である。
+
+## UI follow-up GitHub Issues
+
+次の6件は初期manifestの計画IDではなく、private初版後に追加したGitHub Issueである。
+「P15〜P20」と読み替えず、実Issue番号#15〜#20として扱う。
+
+| Issue | 作業 | 依存 |
+|---|---|---|
+| [#15](https://github.com/zabaglione/jr200-web-emulator/issues/15) | UI-00: Full HD・実機配色・ROM連動仮想keyboardの親計画 | #16〜#20 |
+| [#16](https://github.com/zabaglione/jr200-web-emulator/issues/16) | UI-01: Full HD layoutと操作panel再編 | #15 |
+| [#17](https://github.com/zabaglione/jr200-web-emulator/issues/17) | UI-02: 日本向けJR-200を参照した配色とkey外観 | #15、#16 |
+| [#18](https://github.com/zabaglione/jr200-web-emulator/issues/18) | UI-03: 入力mode・key code解決とROM由来glyph API | #15 |
+| [#19](https://github.com/zabaglione/jr200-web-emulator/issues/19) | UI-04: ROM字形仮想keyboardと物理入力統合 | #16〜#18 |
+| [#20](https://github.com/zabaglione/jr200-web-emulator/issues/20) | UI-05: browser回帰と受入 | #16〜#19 |
+
+#16〜#19を個別受入し、統合回帰#20、親#15の順に完了する。P12（#13）の物理WAV往復は
+依存条件ではなく、openのまま分離する。実装と受入境界は [UI_ACCEPTANCE.md](UI_ACCEPTANCE.md)。

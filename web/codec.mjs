@@ -16,7 +16,7 @@ export async function loadCodec() {
     memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
-  if (e.jr200_system_api_version() !== 5) throw new Error('システムABIのバージョンが一致しません');
+  if (e.jr200_system_api_version() !== 6) throw new Error('システムABIのバージョンが一致しません');
   if (e.jr200_wav_api_version() !== 1) throw new Error('WAV ABIのバージョンが一致しません');
   if (e.jr200_wav_decode_api_version() !== 1) throw new Error('WAV解析ABIのバージョンが一致しません');
   const text = new TextDecoder();
@@ -47,6 +47,7 @@ export async function loadCodec() {
     return address;
   };
   const uint64 = (low, high) => low + high * 0x100000000;
+  const glyphBanks = Object.freeze({font: 0, standard: 1, user: 2});
   const signed32 = value => value > 0x7fffffff ? value - 0x100000000 : value;
   const checkedLimit = (limit, capacity) => {
     if (!Number.isInteger(limit) || limit < 0 || limit > capacity) {
@@ -110,6 +111,23 @@ export async function loadCodec() {
         throw new Error('メモリ表示はアドレス範囲内の1〜256バイトで指定してください');
       }
       return Uint8Array.from({length}, (_, offset) => e.jr200_system_peek(address + offset));
+    },
+    glyph(code, bank = 'standard') {
+      if (!Number.isInteger(code) || code < 0 || code > 255) {
+        throw new Error('字形コードが範囲外です');
+      }
+      if (!Object.hasOwn(glyphBanks, bank)) {
+        throw new Error('字形バンクはfont、standard、userのいずれかです');
+      }
+      const bankId = glyphBanks[bank];
+      return {
+        bank,
+        code,
+        ready: e.jr200_system_glyph_ready(bankId) !== 0,
+        generation: e.jr200_system_glyph_generation(bankId),
+        rows: Uint8Array.from({length: 8}, (_, row) =>
+          e.jr200_system_glyph_row(bankId, code, row)),
+      };
     },
     registers() {
       const names = ['pc', 'sp', 'x', 'a', 'b', 'cc', 'waiting'];

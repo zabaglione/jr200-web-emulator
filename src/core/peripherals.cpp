@@ -672,6 +672,7 @@ void Mn1544::reset() noexcept
     scan_[2] = 0xffU;
     pointer_ = 0U;
     initialized_ = false;
+    font_loaded_ = false;
     scanning_ = false;
     key_tested_ = false;
     previous_key_test_ = 0U;
@@ -694,6 +695,8 @@ bool Mn1544::load_font(const uint8_t* data, size_t size) noexcept
         font_[i] = data[i];
     }
     font_[kFontSize] = 0U;
+    font_loaded_ = true;
+    ++font_generation_;
     return true;
 }
 
@@ -794,6 +797,24 @@ void Mn1544::tick(uint32_t cycles, Mn1271& io) noexcept
 bool Mn1544::initialized() const noexcept
 {
     return initialized_;
+}
+
+bool Mn1544::font_loaded() const noexcept
+{
+    return font_loaded_;
+}
+
+uint8_t Mn1544::font_row(uint8_t code, uint8_t row) const noexcept
+{
+    if (!font_loaded_ || row >= 8U) {
+        return 0U;
+    }
+    return font_[static_cast<size_t>(code) * 8U + row];
+}
+
+uint32_t Mn1544::font_generation() const noexcept
+{
+    return font_generation_;
 }
 
 uint16_t Mn1544::bootstrap_pointer() const noexcept

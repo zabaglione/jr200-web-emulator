@@ -1,5 +1,27 @@
 # 初期実装の試験記録
 
+## UI follow-up #15〜#20受入（2026-09-22 / macOS・三ブラウザ）
+
+Full HD layout、シルバー／チャコール／青theme、英数／カナ／GRAPHの共有入力解決、
+FONT／標準文字RAM／user定義文字RAMの副作用なしglyph API、ROM字形仮想keyboardを実装した。
+合成試験は通常文字・記号・カナ・GRAPH、SHIFT／CTRL、cursor・編集・BREAK、JIS／US、
+複数入力元、短いtap、cancel／blur／reset、cache失効と機械状態不変を確認した。
+
+Playwright 1.63.0＋Google Chrome 153.0.8010.53で、1920×960、1920×1080、1536×768、
+1280×720のDPR 1と1920×1080のDPR 2を検査した。1920系は画面640×448、1536／1280系は
+320×224で、page縦横overflowなし、補助panel幅、最小key高44px、通常文字contrast 4.5:1以上を
+確認した。実Safari 26.6.2は100%と実125% zoom、Firefox 156.0はWebDriver inner 1918×968、
+DPR 1で確認した。権利確認済み実ROM／fontによるBASIC起動と実glyph照合は三browserで成功したが、
+検体、file名、hash、実データscreenshotはGitへ含めていない。
+
+Chrome 153の固定3秒scenarioでは、変更前`6fcc41300be7561c899fc6f8371277348a2c1ffa`が
+3,370,444 cycles、UI変更後候補が3,415,044 cyclesで、各Web Audio underrun 0、core overflow 0、
+外部request 0だった。約1.3%の差はbrowser／host上の相対測定で、実機性能を示さない。
+
+正式Emscripten 6.0.9、native、sanitizer、直接WASM、Chrome browser回帰のコマンドと、
+実データ／合成data／物理実機の証拠境界は [UI_ACCEPTANCE.md](UI_ACCEPTANCE.md) に集約した。
+remote ActionsとIssue closureの結果は、対象commit確定後にGitHub Issue #15〜#20へ記録する。
+
 ## P13 private初版候補のローカル監査（2026-09-22 / macOS）
 
 P12の物理JR-200往復を初版後へ延期し、P13をP11依存のprivate初版受入へ変更した。

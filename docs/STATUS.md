@@ -6,7 +6,7 @@
 対象: `zabaglione/jr200-web-emulator`（private）、既定ブランチ `main`。
 初期ソース・開発文書・ライセンス・CI設定の57ファイルをcommit `072e977343c8aa7655367f926bc29b2b220e93e1` に登録した。Git tree `854042e76159dd80bebd9210387d567e2e1a37c8` が、ローカルで独立計算した全ファイルのtreeと一致した。
 
-P00〜P13は実際のIssue #1〜#14として登録済み。対応と依存関係は [ISSUE_INDEX.md](ISSUE_INDEX.md)。受入レビュー前のため自動closeしていない。旧bootstrapによる新規作成は不要である。
+P00〜P13は実際のIssue #1〜#14として登録済み。UI follow-upは別系列のIssue #15〜#20であり、P15〜P20という初期計画IDではない。対応と依存関係は [ISSUE_INDEX.md](ISSUE_INDEX.md)。旧bootstrapによる新規作成は不要である。
 
 ## GitHub Actions：初回4ジョブ成功
 
@@ -45,6 +45,8 @@ P10: 2026-09-22受入完了。P08と共通の4800 Hz信号源から12-bit frame�
 P11: 2026-09-22受入完了。RIFF/PCM検査、DC/RMS/極性/channel/half-span/実測baud診断、frame/block/checksum/CJR検証、CLI/WASM/Webの候補隔離を実装した。JR2Rescue生成4 WAVと、Git対象外の利用者提供録音3本を独立復元済みCJRへ全バイト照合した。native/sanitizer各9/9、直接WASM 7系統、Emscripten 6.0.9、Chrome 153 browser smokeはローカル成功。実装commit `756d69c4363620bac19a9b936a757e92a47e5fa3`を含むheadのActions run `35672191674`は4ジョブすべてsuccess。詳細は [P11_WAV_DECODE_ACCEPTANCE.md](P11_WAV_DECODE_ACCEPTANCE.md)。
 P13: 2026-09-22受入完了。P12を初版後へ延期し、P00〜P11のprivate初版0.0.1を監査した。SPDX 2.3 SBOM、Git tracked 109ファイルと一致するsource allow-list、13ファイルのWeb配布境界、fresh cloneでnative/直接WASM/Emscripten 6.0.9再ビルドを確認した。実装head `dff63edd501b8f4598718283ec93fe4338c73c60`のActions run `35675108809`はUbuntu/macOS native、sanitizer、WASM、Playwright/Chromium browserの5ジョブすべてsuccess。repositoryはprivate、Pagesなし、artifact 0、releaseなしで、P12はopen・実機互換未検証のまま残す。詳細は [P13_RELEASE_ACCEPTANCE.md](P13_RELEASE_ACCEPTANCE.md)。
 
+UI follow-up #15〜#20: 2026-09-22受入。Full HD向けの操作バー・整数倍画面・仮想keyboard・右補助パネル、シルバー／チャコール／青のtheme、英数／カナ／GRAPHの共有key解決、FONT／文字RAMの副作用なしglyph API、物理・pointer入力元別の解除処理を実装した。合成ROM／fontで1920×960・1920×1080・1536×768・1280×720、DPR 1／2、入力・cache・既存機能を自動回帰した。権利確認済み実ROM／fontでChrome 153、Firefox 156、Safari 26.6.2を確認した。詳細は [UI_ACCEPTANCE.md](UI_ACCEPTANCE.md)。remote CIとIssue closureの証拠は各GitHub Issueに記録する。
+
 ## 未実装・未検証
 
 WAV→CJR decoderは実装・remote CIまで受入済みだが、実機との生成WAV往復は未実施である。
@@ -52,12 +54,12 @@ P09のWeb Audio接続、P10の独立tool decode、P11の利用者提供録音
 decodeは、物理出力の音圧・pan、実機register/timing、本実装生成WAVのJR-200実機互換を
 示さない。ROM/フォント・商用ソフト・録音は未同梱である。
 
-Emscripten 6.0.9による正式ビルド、生成モジュールのNode試験、合成ROMの直接WASM/JS試験、実ROMの三ブラウザ試験を2026-09-22にローカル実行した。ChromeとSafariはmacOSの実ブラウザ、Firefoxは読み取り専用検体mountを持つ隔離コンテナのWebDriverで確認した。
+Emscripten 6.0.9による正式ビルド、生成モジュールのNode試験、合成ROMの直接WASM/JS試験、実ROMの三ブラウザ試験を2026-09-22にローカル実行した。ChromeとSafariはmacOSの実ブラウザ、Firefoxは読み取り専用検体mountを持つ隔離コンテナのWebDriverで確認した。これは物理JR-200のkeyboard、video出力、WAV互換を示さない。
 
 ## 次の作業
 
-#1 (P00)〜#12 (P11) と#14 (P13) は受入完了。P12（#13）の実機WAV往復は初版後の
-未検証項目としてopenのまま残す。再開時はHARDWARE_TEST_PLAN.mdに従い、生成WAVの
-物理JR-200読込と独立2回録音を実測する。
+#1 (P00)〜#12 (P11)、#14 (P13)、UI follow-up #15〜#20は受入範囲を完了した。
+P12（#13）の実機WAV往復だけは初版後の未検証項目としてopenのまま残す。再開時は
+HARDWARE_TEST_PLAN.mdに従い、生成WAVの物理JR-200読込と独立2回録音を実測する。
 
 privateは維持。Pages/外部公開デプロイ、アクセス権・branch protectionは変更していない。

@@ -12,6 +12,7 @@ using jr200::IoDevice;
 using jr200::IoOperation;
 using jr200::DebugMemoryOperation;
 using jr200::DebugStopReason;
+using jr200::GlyphBank;
 using jr200::JR200Machine;
 using jr200::M6800BusAccess;
 using jr200::M6800Event;
@@ -191,6 +192,83 @@ void test_keyboard_handshake()
     clear_key_irq(machine);
     machine.set_key_state(0x41U, false);
     check(machine.mn1544().current_key() == 0U, "key release clears scan state");
+}
+
+void test_glyph_query_and_generation()
+{
+    JR200Machine machine;
+    std::array<uint8_t, jr200::Mn1544::kFontSize> font{};
+    for (size_t index = 0U; index < font.size(); ++index) {
+        font[index] = static_cast<uint8_t>(index & 0xffU);
+    }
+    check(machine.load_font(font.data(), font.size()),
+          "glyph query accepts a synthetic 2048-byte font");
+    check(machine.glyph_ready(GlyphBank::FontAsset) &&
+              !machine.glyph_ready(GlyphBank::Standard) &&
+              machine.glyph_ready(GlyphBank::UserDefined),
+          "glyph banks distinguish loaded font, bootstrap RAM and user RAM");
+    const uint64_t cycles = machine.cycle_count();
+    const auto registers = machine.cpu().registers();
+    const uint64_t cpu_cycles = machine.cpu().total_cycles();
+    const bool waiting = machine.cpu().waiting();
+    const size_t traces = machine.io_trace().size();
+    const uint64_t dropped_traces = machine.io_trace().dropped();
+    const bool irq = machine.mn1271().irq_asserted();
+    const uint8_t current_key = machine.mn1544().current_key();
+    std::array<uint8_t, 65536> memory_before{};
+    for (size_t index = 0U; index < memory_before.size(); ++index) {
+        memory_before[index] = machine.memory()[index];
+    }
+    const uint32_t font_generation =
+        machine.glyph_generation(GlyphBank::FontAsset);
+    check(machine.glyph_row(GlyphBank::FontAsset, 0x42U, 3U) == 0x13U &&
+              machine.glyph_row(GlyphBank::FontAsset, 0x42U, 8U) == 0U,
+          "font glyph query uses code times eight and bounded rows");
+    const auto registers_after = machine.cpu().registers();
+    bool memory_unchanged = true;
+    for (size_t index = 0U; index < memory_before.size(); ++index) {
+        if (memory_before[index] != machine.memory()[index]) {
+            memory_unchanged = false;
+            break;
+        }
+    }
+    check(memory_unchanged &&
+              registers_after.pc == registers.pc &&
+              registers_after.sp == registers.sp &&
+              registers_after.x == registers.x &&
+              registers_after.a == registers.a &&
+              registers_after.b == registers.b &&
+              registers_after.cc == registers.cc &&
+              machine.cpu().total_cycles() == cpu_cycles &&
+              machine.cpu().waiting() == waiting &&
+              machine.cycle_count() == cycles &&
+              machine.io_trace().size() == traces &&
+              machine.io_trace().dropped() == dropped_traces &&
+              machine.mn1271().irq_asserted() == irq &&
+              machine.mn1544().current_key() == current_key &&
+              machine.glyph_generation(GlyphBank::FontAsset) == font_generation,
+          "glyph query preserves memory, CPU, input, IRQ, cycles and trace state");
+
+    const uint16_t standard_address = 0xd000U + 0x42U * 8U + 3U;
+    const uint32_t standard_before =
+        machine.glyph_generation(GlyphBank::Standard);
+    machine.poke(standard_address, 0x81U);
+    check(machine.glyph_row(GlyphBank::Standard, 0x42U, 3U) == 0x81U &&
+              machine.glyph_generation(GlyphBank::Standard) > standard_before,
+          "standard character RAM query and generation follow writes");
+    const uint32_t standard_after =
+        machine.glyph_generation(GlyphBank::Standard);
+    machine.poke(standard_address, 0x81U);
+    check(machine.glyph_generation(GlyphBank::Standard) == standard_after,
+          "idempotent standard glyph writes do not invalidate the cache");
+
+    const uint16_t user_address = 0xc000U + 0x42U * 8U + 3U;
+    const uint32_t user_before =
+        machine.glyph_generation(GlyphBank::UserDefined);
+    machine.write_byte(user_address, 0x42U);
+    check(machine.glyph_row(GlyphBank::UserDefined, 0x42U, 3U) == 0x42U &&
+              machine.glyph_generation(GlyphBank::UserDefined) > user_before,
+          "user-defined character RAM has an independent generation");
 }
 
 void test_cassette_audio_and_framebuffer()
@@ -487,6 +565,7 @@ int main()
     test_memory_map_waits_and_trace();
     test_debug_peek_and_timer_irq();
     test_keyboard_handshake();
+    test_glyph_query_and_generation();
     test_cassette_audio_and_framebuffer();
     test_cpu_scheduler_boundary();
     test_debugger_stop_and_bounded_history();
@@ -495,6 +574,6 @@ int main()
         std::cerr << failures << " system test(s) failed\n";
         return 1;
     }
-    std::cout << "PASS system: map, peripherals, cycle clock, bounded debugger and side-effect-free peek\n";
+    std::cout << "PASS system: map, peripherals, glyph API, cycle clock, bounded debugger and side-effect-free peek\n";
     return 0;
 }

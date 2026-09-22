@@ -46,10 +46,21 @@ try {
   assert.throws(()=>codec.pack(Uint8Array.of(0),'X',0,false,NaN),/ボーレート/);
   const rom = new Uint8Array(16384);
   const font = new Uint8Array(2048);
+  for (let index = 0; index < font.length; ++index) font[index] = index & 0xff;
   rom.set([0x86,0x2a,0xb7,0xc1,0x00,0x20,0xfe],8192);
   rom.set([0xe0,0x00],16382);
   assert.throws(()=>codec.machine.run(1),/ROM/);
   assert.equal(codec.machine.boot(rom,font).pc,0xe000);
+  assert.deepEqual(codec.machine.glyph(0x42, 'font'), {
+    bank: 'font',
+    code: 0x42,
+    ready: true,
+    generation: codec.machine.glyph(0x42, 'font').generation,
+    rows: Uint8Array.from([0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17]),
+  });
+  assert.equal(codec.machine.glyph(0x42).ready, false);
+  assert.throws(()=>codec.machine.glyph(256),/範囲外/);
+  assert.throws(()=>codec.machine.glyph(0,'unknown'),/字形バンク/);
   assert.equal(codec.machine.audio.sampleRate,44100);
   assert.equal(codec.machine.audio.capacity,4096);
   assert.deepEqual(codec.machine.audio.state(),{available:0,capacity:4096,sampleRate:44100,dropped:0});
