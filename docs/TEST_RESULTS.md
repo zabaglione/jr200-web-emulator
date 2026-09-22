@@ -1,5 +1,20 @@
 # 初期実装の試験記録
 
+## P13 private初版候補のローカル監査（2026-09-22 / macOS）
+
+P12の物理JR-200往復を初版後へ延期し、P13をP11依存のprivate初版受入へ変更した。
+SPDX 2.3 SBOM、CI browser smoke、Git tracked sourceと完全一致するallow-list、staged siteの
+明示entry検査を追加した。P12はopenかつ未検証のまま残す。
+
+候補treeで`make check`、`make test`、`make sanitize`、`make wasm-smoke`、`make wasm`、
+Playwright 1.63.0＋Chrome 153.0.8010.53の`tests/browser_smoke.py`が成功した。nativeと
+sanitizerは各CTest 9/9、直接WASMは7系統、正式Emscripten 6.0.9 moduleのNode smokeも
+成功した。13ファイル・216 KiBのstaged siteにROM/tape/recording拡張子はなく、browser
+smokeの外部requestは0件だった。
+
+この時点ではfresh cloneとP13候補commitのGitHub Actionsは未実行であり、P13受入完了や
+実機互換を意味しない。詳細は [P13_RELEASE_ACCEPTANCE.md](P13_RELEASE_ACCEPTANCE.md)。
+
 ## P11 録音WAV解析・CJR復元受入（2026-09-22 / macOS・GitHub Actions）
 
 RIFF/PCM検査、DC/RMS/極性/channel/half-span/実測baud診断、frame/block/checksum/CJR検証、

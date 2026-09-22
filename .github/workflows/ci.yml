@@ -34,5 +34,18 @@ jobs:
           persist-credentials: false
       - run: sudo apt-get update && sudo apt-get install -y clang lld
       - run: make wasm-smoke
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y clang lld
+      - run: python3 -m venv build/browser-venv
+      - run: build/browser-venv/bin/python -m pip install --only-binary=:all: --requirement requirements-ci.txt
+      - run: build/browser-venv/bin/python -m playwright install --with-deps chromium
+      - run: make wasm-smoke
+      - run: build/browser-venv/bin/python tests/browser_smoke.py
 # No Pages/deploy job and no ROM-bearing artifact uploads.
-# Actual Emscripten execution is gated in P06; remote CI/browser evidence is gated in P13.
+# Actual Emscripten execution is gated in P06; CI browser smoke uses a synthetic ROM.

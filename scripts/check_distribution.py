@@ -3,6 +3,7 @@
 """A targeted source/notice guard, not a claim of a complete legal audit."""
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 raw=(ROOT/'LICENSES/VJR200.txt').read_bytes()
@@ -16,6 +17,7 @@ assert (ROOT/'.emscripten-version').read_text().strip()=='6.0.9'
 html=(ROOT/'web/index.html').read_text()
 assert 'LICENSES/VJR200.txt' in html and 'LICENSES/MAME_BSD-3-Clause.txt' in html
 assert 'THIRD_PARTY_NOTICES.md' in html
+assert 'SBOM.spdx.json' in html
 assert 'value="100">600（フラグ100）' in html
 for f in ['src/tape/cjr.cpp','include/jr200/cjr.hpp',
           'src/tape/cassette.cpp','include/jr200/cassette.hpp']:
@@ -35,6 +37,7 @@ manifest=ROOT/'source-manifest.json'
 if manifest.exists():
     forbidden={'.rom','.bin','.wav','.cjr','.jr2','.d88','.d20','.exe','.dll','.wasm'}
     files=json.loads(manifest.read_text())['files']
+    assert files == sorted(set(files)),'Source inventory must be sorted and unique'
     required={'include/jr200/m6800.hpp','src/core/m6800.cpp','src/core/6800ops.hxx',
               'src/core/6800tbl.hxx','src/wasm/cpu_api.cpp','tests/test_m6800.cpp',
               'tests/cpu_wasm_smoke.mjs','LICENSES/MAME_BSD-3-Clause.txt',
@@ -58,4 +61,21 @@ if manifest.exists():
         path=ROOT/p
         assert path.is_file() and not path.is_symlink(),f
         assert path.resolve().is_relative_to(ROOT.resolve()),f
-print('PASS distribution guard: exact FIND/MAME licenses, source notices, web links, source-only inventory')
+    if (ROOT/'.git').is_dir():
+        tracked=set(subprocess.check_output(
+            ['git','ls-files'],cwd=ROOT,text=True).splitlines())
+        assert set(files)==tracked,'Source inventory differs from Git tracked files'
+sbom=json.loads((ROOT/'SBOM.spdx.json').read_text())
+assert sbom['spdxVersion']=='SPDX-2.3'
+packages={package['name']:package for package in sbom['packages']}
+assert packages['jr200-web-emulator']['versionInfo']=='0.0.1'
+assert packages['playwright']['versionInfo']=='1.63.0'
+assert packages['playwright']['licenseDeclared']=='Apache-2.0'
+expected_ci={'playwright':'1.63.0','pyee':'13.0.1','greenlet':'3.5.6',
+             'typing-extensions':'4.16.0'}
+assert {name:packages[name]['versionInfo'] for name in expected_ci}==expected_ci
+requirements={line.split('==')[0]:line.split('==')[1]
+              for line in (ROOT/'requirements-ci.txt').read_text().splitlines()
+              if line and not line.startswith('#')}
+assert requirements==expected_ci
+print('PASS distribution guard: exact licenses, notices, SPDX SBOM, web links, tracked source-only inventory')

@@ -16,10 +16,12 @@
 | P09 | [#10](https://github.com/zabaglione/jr200-web-emulator/issues/10) | 音声のWeb出力・休止復帰 | #9 |
 | P10 | [#11](https://github.com/zabaglione/jr200-web-emulator/issues/11) | CJR信号生成・WAVエンコード | #10 |
 | P11 | [#12](https://github.com/zabaglione/jr200-web-emulator/issues/12) | 録音WAV解析・CJR復元 | #11 |
-| P12 | [#13](https://github.com/zabaglione/jr200-web-emulator/issues/13) | 実機とのWAV往復受入試験 | #12 |
-| P13 | [#14](https://github.com/zabaglione/jr200-web-emulator/issues/14) | 配布監査・再現可能ビルド・初版受入 | #13 |
+| P12 | [#13](https://github.com/zabaglione/jr200-web-emulator/issues/13) | 実機とのWAV往復受入試験（初版後へ延期） | #12 |
+| P13 | [#14](https://github.com/zabaglione/jr200-web-emulator/issues/14) | 配布監査・再現可能ビルド・初版受入 | #12 |
 
-順序: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12 → #13 → #14。
+順序: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12。
+#12以降は、初版後の実機試験#13と、private初版受入#14へ分岐する。
 
-#1〜#12は順に受入完了。次は#13の実機WAV往復受入試験である。独立toolによる生成WAVの
-decode、自前WAV decoder、利用者提供録音のdecode、実機WAV往復の合格はそれぞれ別である。
+#1〜#12は順に受入完了。#13の実機WAV往復は初版後へ延期し、#14を進める。独立toolによる
+生成WAVのdecode、自前WAV decoder、利用者提供録音のdecode、実機WAV往復の合格は
+それぞれ別である。

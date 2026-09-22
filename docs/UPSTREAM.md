@@ -64,7 +64,7 @@ P10ではS3の`BitGetterD`、`WaveGetter`、`GetLoadData`をP08の共通信号�
 比較値と未検証範囲は [P10_WAV_ACCEPTANCE.md](P10_WAV_ACCEPTANCE.md)。
 P11ではS13のtransition/half-span/frame復号をOS非依存のbounded decoderへ再構成した。
 Win32 UI、ファイル保存処理、無制限buffer、bit補正は移植していない。JR2Rescue生成WAVと
-利用者提供録音による照合、候補と検証済みCJRの境界、未対応PCM、未完了のremote CIは
+利用者提供録音による照合、候補と検証済みCJRの境界、未対応PCM、完了したremote CIは
 [P11_WAV_DECODE_ACCEPTANCE.md](P11_WAV_DECODE_ACCEPTANCE.md)に記録した。
 
 ## ライセンス台帳

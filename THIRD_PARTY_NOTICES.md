@@ -50,6 +50,11 @@ binary is included. Any later import requires an updated per-file license
 inventory and all relevant notices; FIND's license alone is not a substitute
 for those third-party notices.
 
+Playwright for Python 1.63.0 and its pinned Python dependency closure are
+CI-only test dependencies. They and the browser download are not copied into
+the staged Web distribution. Package versions, licenses, relationships, and
+pinned source references are recorded in [SBOM.spdx.json](SBOM.spdx.json).
+
 This independent derivative is not endorsed by the VJR-200 author,
 contributors, or the JR-200 manufacturer. Provenance attribution is not an
 endorsement claim.

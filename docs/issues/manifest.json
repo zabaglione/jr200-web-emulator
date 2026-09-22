@@ -118,9 +118,9 @@
     "id": "P13",
     "title": "[P13] 配布監査・再現可能ビルド・初版受入",
     "depends_on": [
-      "P12"
+      "P11"
     ],
     "file": "docs/issues/P13.md",
-    "status_at_creation": "未着手。初版の一般公開はこのIssueにも含めない。"
+    "status_at_creation": "P12の実機検証を初版後へ延期し、private初版の監査として実施。一般公開は含めない。"
   }
 ]

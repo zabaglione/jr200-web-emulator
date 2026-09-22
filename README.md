@@ -1,6 +1,6 @@
 # JR-200 Web Emulator
 
-**状態: P11まで受入完了。次はP12のJR-200実機とのWAV往復受入試験です。**
+**状態: P11まで受入完了。P12の実機WAV往復は初版後へ延期し、P13のprivate初版受入を進めています。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 
@@ -22,7 +22,7 @@ CJRの安全な検査、原バイト列を保持するコピー、連続領域�
 | [テスト記録](docs/TEST_RESULTS.md) | 実行環境・コマンド・実測結果 |
 | [由来とライセンス](docs/UPSTREAM.md) | 固定commitと一次情報、第三者コード台帳 |
 | [CJR形式](docs/CJR_FORMAT.md) | 公開コードに基づく形式と制限 |
-| [実機試験計画](docs/HARDWARE_TEST_PLAN.md) | WAV往復の独立した検証方法 |
+| [実機試験計画](docs/HARDWARE_TEST_PLAN.md) | 初版後に行うWAV往復の独立した検証方法 |
 | [GitHub作成手順](docs/GITHUB_SETUP.md) | private確認・Issue登録・安全なpush |
 
 ## ローカルのネイティブ版
@@ -80,10 +80,10 @@ make serve
 
 認証は通常のGitHub認証を使用し、トークンをソースやチャットへ記載しないでください。`AGENTS.md`、[現状](docs/STATUS.md)、[Issue一覧](docs/ISSUE_INDEX.md) の順に確認します。完了済みIssueと次の作業はSTATUS.mdを正とします。計画IDと実Issue番号は別です。
 
-ソースを追加・削除した後は `python3 scripts/update_manifest.py` と `make check` を実行し、`source-manifest.json` を確認してください。ROMや録音のある作業ディレクトリで `git add .` を実行しないでください。初期CIはnative Linux/macOS、sanitizer、Clang WASMを対象にします。Pages公開やROMを含むartifact uploadはありません。
+ソースを追加・削除した後は `python3 scripts/update_manifest.py` と `make check` を実行し、`source-manifest.json` を確認してください。ROMや録音のある作業ディレクトリで `git add .` を実行しないでください。CIはnative Linux/macOS、sanitizer、Clang WASM、合成ROMによるChromium browser smokeを対象にします。Pages公開やROMを含むartifact uploadはありません。
 
-## ライセンス
+## ライセンスとSBOM
 
-本プロジェクトの新規部分は[BSD-3-Clause](LICENSE)。FINDのCJR処理に基づく部分では著作権と[上流ライセンス全文](LICENSES/VJR200.txt)を、MAME由来のMC6800部分ではファイル内表示と[BSD-3-Clause全文](LICENSES/MAME_BSD-3-Clause.txt)を保持します。[第三者表記](THIRD_PARTY_NOTICES.md)と[取込台帳](docs/UPSTREAM.md)も参照してください。
+本プロジェクトの新規部分は[BSD-3-Clause](LICENSE)。FINDのCJR処理に基づく部分では著作権と[上流ライセンス全文](LICENSES/VJR200.txt)を、MAME由来のMC6800部分ではファイル内表示と[BSD-3-Clause全文](LICENSES/MAME_BSD-3-Clause.txt)を保持します。[第三者表記](THIRD_PARTY_NOTICES.md)、[取込台帳](docs/UPSTREAM.md)、[SPDX 2.3 SBOM](SBOM.spdx.json)も参照してください。
 
 VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。元エミュレータのライセンスはROM、メーカー由来フォント、市販ソフトの再配布許可ではありません。privateであっても無条件に同梱しません。

@@ -1,0 +1,150 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "jr200-web-emulator-0.0.1",
+  "documentNamespace": "https://github.com/zabaglione/jr200-web-emulator/sbom/0.0.1",
+  "creationInfo": {
+    "created": "2026-09-22T00:00:00Z",
+    "creators": [
+      "Tool: scripts/generate_sbom.py"
+    ]
+  },
+  "documentDescribes": [
+    "SPDXRef-Package-jr200-web-emulator"
+  ],
+  "packages": [
+    {
+      "name": "jr200-web-emulator",
+      "SPDXID": "SPDXRef-Package-jr200-web-emulator",
+      "versionInfo": "0.0.1",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "copyrightText": "Copyright (c) 2026 jr200-web contributors",
+      "homepage": "https://github.com/zabaglione/jr200-web-emulator",
+      "supplier": "Organization: jr200-web contributors"
+    },
+    {
+      "name": "VJR200forWindows-derived portions",
+      "SPDXID": "SPDXRef-Package-VJR200forWindows",
+      "versionInfo": "1.8.2 commit dd748995bede57da5baebc1225c7a33433aa6934",
+      "downloadLocation": "git+https://github.com/find-jr200/VJR200forWindows.git@dd748995bede57da5baebc1225c7a33433aa6934",
+      "filesAnalyzed": false,
+      "licenseConcluded": "LicenseRef-FIND-VJR200",
+      "licenseDeclared": "LicenseRef-FIND-VJR200",
+      "copyrightText": "Copyright (c) 2017,2020 FIND",
+      "supplier": "Person: FIND"
+    },
+    {
+      "name": "MAME MC6800-derived portions",
+      "SPDXID": "SPDXRef-Package-MAME-MC6800",
+      "versionInfo": "commit 9940645188b6749e170b62c0ea86af0f440148da",
+      "downloadLocation": "git+https://github.com/mamedev/mame.git@9940645188b6749e170b62c0ea86af0f440148da",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "copyrightText": "Copyright Aaron Giles and MAME contributors",
+      "supplier": "Organization: MAME"
+    },
+    {
+      "name": "playwright",
+      "SPDXID": "SPDXRef-Package-Playwright-Python",
+      "versionInfo": "1.63.0",
+      "downloadLocation": "https://pypi.org/project/playwright/1.63.0/",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "copyrightText": "Copyright (c) Microsoft Corporation",
+      "supplier": "Organization: Microsoft Corporation",
+      "primaryPackagePurpose": "TEST"
+    },
+    {
+      "name": "pyee",
+      "SPDXID": "SPDXRef-Package-Pyee",
+      "versionInfo": "13.0.1",
+      "downloadLocation": "https://pypi.org/project/pyee/13.0.1/",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "primaryPackagePurpose": "TEST"
+    },
+    {
+      "name": "greenlet",
+      "SPDXID": "SPDXRef-Package-Greenlet",
+      "versionInfo": "3.5.6",
+      "downloadLocation": "https://pypi.org/project/greenlet/3.5.6/",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND PSF-2.0",
+      "licenseDeclared": "MIT AND PSF-2.0",
+      "copyrightText": "NOASSERTION",
+      "primaryPackagePurpose": "TEST"
+    },
+    {
+      "name": "typing-extensions",
+      "SPDXID": "SPDXRef-Package-Typing-Extensions",
+      "versionInfo": "4.16.0",
+      "downloadLocation": "https://pypi.org/project/typing-extensions/4.16.0/",
+      "filesAnalyzed": false,
+      "licenseConcluded": "PSF-2.0",
+      "licenseDeclared": "PSF-2.0",
+      "copyrightText": "NOASSERTION",
+      "primaryPackagePurpose": "TEST"
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "VARIANT_OF",
+      "relatedSpdxElement": "SPDXRef-Package-VJR200forWindows",
+      "comment": "Only the audited portions listed in THIRD_PARTY_NOTICES.md are adapted."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-MAME-MC6800",
+      "comment": "Only the adapted MC6800 portions listed in THIRD_PARTY_NOTICES.md are included."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Playwright-Python",
+      "relationshipType": "TEST_DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-Package-jr200-web-emulator",
+      "comment": "CI-only browser test dependency; it is not shipped in the staged site."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Pyee",
+      "relationshipType": "DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-Package-Playwright-Python"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Greenlet",
+      "relationshipType": "DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-Package-Playwright-Python"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Typing-Extensions",
+      "relationshipType": "DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-Package-Pyee"
+    }
+  ],
+  "hasExtractedLicensingInfos": [
+    {
+      "licenseId": "LicenseRef-FIND-VJR200",
+      "name": "FIND VJR-200 license",
+      "extractedText": "Copyright (c) 2017,2020 FIND\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n* Redistributions of source code must retain the above copyright notice, \n  this list of conditions and the following disclaimer.\n* Redistributions in binary form must reproduce the above copyright notice, \n  this list of conditions and the following disclaimer in the documentation \n  and/or other materials provided with the distribution.\n* Neither the name of the VJR-200 or the names of its contributors \n  may be used to endorse or promote products derived from this software \n  without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\nANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\nWARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL FIND BE LIABLE FOR ANY\nDIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES\n(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\nLOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND\nON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\nSOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
+      "seeAlsos": [
+        "https://github.com/find-jr200/VJR200forWindows/blob/dd748995bede57da5baebc1225c7a33433aa6934/license_vjr200.txt"
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "annotationDate": "2026-09-22T00:00:00Z",
+      "annotationType": "OTHER",
+      "annotator": "Tool: scripts/generate_sbom.py",
+      "comment": "Package-level SBOM for source and staged Web distribution. Manufacturer ROM/font data, tapes, recordings, JR2Rescue, and build toolchains are not distributed components."
+    }
+  ]
+}

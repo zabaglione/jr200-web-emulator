@@ -1,4 +1,4 @@
-.PHONY: test sanitize wasm wasm-smoke serve check
+.PHONY: test sanitize wasm wasm-smoke serve sbom check
 # `make` remains the entry point; CMake builds the same native/WASM C++ core.
 test:
 	cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Debug
@@ -18,5 +18,8 @@ wasm-smoke:
 	bash scripts/build_wasm_smoke.sh
 serve:
 	python3 -m http.server --bind 127.0.0.1 --directory build/site 8000
+sbom:
+	python3 scripts/generate_sbom.py
 check:
+	python3 scripts/generate_sbom.py --check
 	python3 scripts/check_distribution.py
