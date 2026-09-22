@@ -38,6 +38,26 @@ def main() -> None:
             assert stream.getnframes() == 183520
             assert stream.readframes(1) == b"\x00\xc0"
         assert wav_48.stat().st_size == 367084
+        decoded = root / "decoded.cjr"
+        decoded_report = run(tool, "wav-decode", str(wav_48), str(decoded)).stdout
+        assert decoded.read_bytes() == encoded
+        assert "verified CJR 47 bytes" in decoded_report
+        assert "Raw WAV was not modified" in decoded_report
+
+        silent_wav = root / "silence.wav"
+        silent_bytes = bytearray(wav_48.read_bytes())
+        silent_bytes[44:] = bytes(len(silent_bytes) - 44)
+        silent_wav.write_bytes(silent_bytes)
+        rejected = root / "candidate.cjr"
+        failed = subprocess.run(
+            [tool, "wav-decode", str(silent_wav), str(rejected)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert failed.returncode != 0
+        assert "candidate 0 bytes was not written" in failed.stderr
+        assert not rejected.exists()
 
         wav_44 = root / "fast-44k.wav"
         run(tool, "wav", str(output), str(wav_44), "--rate", "44100", "--2400")
@@ -57,7 +77,7 @@ def main() -> None:
         assert "48000 Hz, mono 16-bit, 600 baud" in inherited
         with wave.open(str(wav_header_baud), "rb") as stream:
             assert stream.getnframes() == 193600
-    print("PASS cjrtool: CJR conventions and WAV mono16 44.1/48 kHz at 600/2400 baud")
+    print("PASS cjrtool: CJR conventions, WAV encode/decode, and unverified candidate suppression")
 
 
 if __name__ == "__main__":

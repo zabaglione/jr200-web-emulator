@@ -105,7 +105,10 @@ def main() -> None:
                 expect(page.locator('#audio-status')).to_contain_text('context running')
                 expect(page.locator('#audio-status')).to_contain_text('core 44100 Hz / output 48000 Hz')
                 expect(page.locator('#audio-status')).to_contain_text('予約済み:')
-                page.wait_for_timeout(80)
+                page.wait_for_function(
+                    'globalThis.__audioContexts[0]?.sources.length > 0',
+                    timeout=2000,
+                )
                 assert page.evaluate('globalThis.__audioContexts[0].sources.length') > 0
                 page.locator('#audio-mute').check()
                 expect(page.locator('#audio-status')).to_contain_text('ミュート ON')
@@ -176,6 +179,30 @@ def main() -> None:
                     assert int.from_bytes(wav_bytes[34:36],'little')==16
                 expect(page.locator('#wav-status')).to_contain_text('mono 16-bit / 2400 baud')
                 expect(page.locator('#wav-status')).to_contain_text('P12で未検証')
+                page.locator('#wav-decode-input').set_input_files({'name':'roundtrip.wav','mimeType':'audio/wav','buffer':wav_bytes})
+                expect(page.locator('#wav-decode-run')).to_be_enabled()
+                page.locator('#wav-decode-run').click()
+                expect(page.locator('#wav-decode-status')).to_contain_text('"verified": true')
+                decode_report=json.loads(page.locator('#wav-decode-status').inner_text())
+                assert decode_report['ok'] is True
+                assert decode_report['diagnostics']['candidateBytes']==len(GOLDEN)
+                assert decode_report['rawWavModified'] is False
+                assert decode_report['candidateDownloadEnabled'] is False
+                assert decode_report['hardwareProvenanceInferred'] is False
+                with page.expect_download() as decoded_event:
+                    page.locator('#wav-decode-save').click()
+                decoded_download=decoded_event.value
+                assert decoded_download.suggested_filename=='roundtrip.cjr'
+                with tempfile.TemporaryDirectory() as directory:
+                    decoded_output=Path(directory)/'decoded.cjr'
+                    decoded_download.save_as(decoded_output)
+                    assert decoded_output.read_bytes()==GOLDEN
+                silent_wav=bytearray(wav_bytes)
+                silent_wav[44:]=bytes(len(silent_wav)-44)
+                page.locator('#wav-decode-input').set_input_files({'name':'silence.wav','mimeType':'audio/wav','buffer':bytes(silent_wav)})
+                page.locator('#wav-decode-run').click()
+                expect(page.locator('#wav-decode-status')).to_contain_text('"errorCode": 17')
+                expect(page.locator('#wav-decode-save')).to_be_disabled()
                 page.locator('#tape-cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 page.locator('#tape-mount').click()
                 expect(page.locator('#tape-status')).to_contain_text('状態: 停止')
@@ -216,7 +243,7 @@ def main() -> None:
                 assert '40' in page.locator('#result').inner_text()
                 assert not errors, errors
                 assert not external, external
-                print('PASS Chromium: explicit Web Audio, mute/pause/flush, synthetic boot, cassette controls, debugger, CJR tools, no external requests')
+                print('PASS Chromium: explicit Web Audio, mute/pause/flush, synthetic boot, cassette controls, debugger, CJR/WAV tools, no external requests')
                 print('Browser:',browser.version)
             finally:
                 browser.close()

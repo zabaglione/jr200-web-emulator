@@ -10,6 +10,7 @@ assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
 assert.equal(module._jr200_system_api_version(), 5);
 assert.equal(module._jr200_wav_api_version(), 1);
+assert.equal(module._jr200_wav_decode_api_version(), 1);
 
 const golden = Uint8Array.from([2,42,0,26,255,255,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,255,255,255,255,255,255,255,255,149,2,42,1,1,112,0,171,73,2,42,255,255,112,1]);
 module.HEAPU8.set(golden, module._jr200_wav_input_ptr());
@@ -17,6 +18,26 @@ assert.equal(module._jr200_wav_begin(golden.length, 44100, 2400), 0);
 assert.equal(module._jr200_wav_field(5), 168609);
 assert.equal(new TextDecoder().decode(module.HEAPU8.subarray(
   module._jr200_wav_header_ptr(), module._jr200_wav_header_ptr() + 4)), 'RIFF');
+const wav = new Uint8Array(module._jr200_wav_field(9));
+wav.set(module.HEAPU8.subarray(
+  module._jr200_wav_header_ptr(), module._jr200_wav_header_ptr() + 44));
+let wavOffset = 44;
+while (module._jr200_wav_field(13) === 0) {
+  const count = module._jr200_wav_drain(module._jr200_wav_pcm_capacity());
+  assert.ok(count > 0);
+  const byteCount = count * 2;
+  wav.set(module.HEAPU8.subarray(
+    module._jr200_wav_pcm_ptr(), module._jr200_wav_pcm_ptr() + byteCount), wavOffset);
+  wavOffset += byteCount;
+}
+assert.equal(wavOffset, wav.length);
+module.HEAPU8.set(wav, module._jr200_wav_decode_input_ptr());
+assert.equal(module._jr200_wav_decode_run(wav.length, 0), 0);
+assert.equal(module._jr200_wav_decode_field(39), 1);
+assert.equal(module._jr200_wav_decode_output_size(), golden.length);
+assert.deepEqual(module.HEAPU8.slice(
+  module._jr200_wav_decode_output_ptr(),
+  module._jr200_wav_decode_output_ptr() + golden.length), golden);
 
 module._jr200_system_clear();
 assert.equal(module._jr200_system_rom_capacity(), 16384);

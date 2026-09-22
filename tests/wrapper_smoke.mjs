@@ -63,6 +63,23 @@ try {
   assert.equal(new TextDecoder().decode(rendered.bytes.subarray(0,4)),'RIFF');
   assert.equal(new DataView(rendered.bytes.buffer).getUint32(24,true),48000);
   assert.deepEqual(Array.from(rendered.bytes.subarray(44,48)),[0,192,0,192]);
+  const decoded = codec.wav.decode(rendered.bytes);
+  assert.equal(decoded.ok,true);
+  assert.equal(decoded.verified,true);
+  assert.deepEqual(decoded.cjr,preserved);
+  assert.equal(decoded.diagnostics.sampleRate,48000);
+  assert.equal(decoded.diagnostics.bitsPerSample,16);
+  assert.equal(decoded.diagnostics.selectedChannel,1);
+  assert.equal(decoded.diagnostics.blocks,3);
+  assert.equal(decoded.diagnostics.dataBaud,2400);
+  assert.equal(decoded.diagnostics.candidateBytes,preserved.length);
+  const silentWav=Uint8Array.from(rendered.bytes);
+  silentWav.fill(0,44);
+  const silentDecode=codec.wav.decode(silentWav);
+  assert.equal(silentDecode.ok,false);
+  assert.equal(silentDecode.verified,false);
+  assert.equal(silentDecode.errorCode,17);
+  assert.equal('cjr' in silentDecode,false);
   const inherited = codec.wav.encode(external600,{sampleRate:48000});
   assert.equal(inherited.baud,600);
   assert.throws(()=>codec.wav.encode(preserved,{sampleRate:32000,baud:2400}),/44100/);
@@ -98,7 +115,7 @@ try {
   codec.machine.clear();
   assert.equal(codec.machine.tape.state().state,0);
   assert.throws(()=>codec.machine.run(1),/ROM/);
-  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, cassette transport, machine boot/run/reset, bounded debugger, framebuffer, input guards');
+  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, WAV encode/decode, cassette transport, machine boot/run/reset, bounded debugger, framebuffer, input guards');
 } finally {
   globalThis.fetch=originalFetch;
 }

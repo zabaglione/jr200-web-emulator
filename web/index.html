@@ -163,6 +163,17 @@
     <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
     <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
     <pre id="result" aria-live="polite">ファイルを選択してください。</pre>
+    <h3>WAVからCJRを復元</h3>
+    <p class="hint">元WAVは変更しません。RIFF、PCM、信号timing、block、checksumを検査し、完全に検証できたCJRだけを保存できます。復元候補は診断表示のみで、ダウンロードできません。ブラウザ入力上限は8 MiBです。</p>
+    <div class="fields">
+      <label>録音WAV<input id="wav-decode-input" type="file" accept=".wav,audio/wav" disabled></label>
+      <label>解析channel<select id="wav-decode-channel" disabled><option value="auto">auto（RMSが大きいchannel）</option><option value="left">left / mono</option><option value="right">right</option></select></label>
+    </div>
+    <div class="controls">
+      <button id="wav-decode-run" type="button" disabled>WAVを解析</button>
+      <button id="wav-decode-save" type="button" disabled>検証済みCJRを保存</button>
+    </div>
+    <pre id="wav-decode-status" aria-live="polite">WAVファイルを選択してください。</pre>
     <h3>CJRからWAVを作成</h3>
     <p class="hint">12-bit frame、固定600 baud header、leader/ブロック間隔を保ち、データ部を600または2400 baudで出力します。音量は50%、自動再生はしません。</p>
     <div class="fields">

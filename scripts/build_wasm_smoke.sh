@@ -52,6 +52,12 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_wav_header_ptr jr200_wav_header_size
          jr200_wav_pcm_ptr jr200_wav_pcm_capacity jr200_wav_drain
          jr200_wav_field jr200_wav_error_offset jr200_wav_error_message
+         jr200_wav_decode_api_version jr200_wav_decode_input_ptr
+         jr200_wav_decode_input_capacity jr200_wav_decode_output_ptr
+         jr200_wav_decode_output_size jr200_wav_decode_run
+         jr200_wav_decode_field jr200_wav_decode_error_frame_low
+         jr200_wav_decode_error_frame_high jr200_wav_decode_error_offset
+         jr200_wav_decode_error_detail jr200_wav_decode_error_message
          __wasm_call_ctors)
 args=()
 for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
@@ -59,13 +65,13 @@ for symbol in "${exports[@]}"; do args+=("-Wl,--export=$symbol"); done
   -fno-builtin -nostdlib -I"$ROOT/include" "$ROOT/src/tape/cjr.cpp" \
   "$ROOT/src/core/m6800.cpp" "$ROOT/src/core/debugger.cpp" \
   "$ROOT/src/core/peripherals.cpp" "$ROOT/src/tape/cassette.cpp" \
-  "$ROOT/src/tape/wav.cpp" \
+  "$ROOT/src/tape/wav.cpp" "$ROOT/src/tape/wav_decode.cpp" \
   "$ROOT/src/core/system.cpp" "$ROOT/src/wasm/api.cpp" \
   "$ROOT/src/wasm/cpu_api.cpp" "$ROOT/src/wasm/system_api.cpp" \
-  "$ROOT/src/wasm/wav_api.cpp" \
+  "$ROOT/src/wasm/wav_api.cpp" "$ROOT/src/wasm/wav_decode_api.cpp" \
   "$ROOT/src/wasm/freestanding_memory.cpp" \
-  -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=16777216 \
-  -Wl,--max-memory=16777216 "${args[@]}" -o "$ROOT/build/wasm-smoke/jr200_codec.wasm"
+  -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=33554432 \
+  -Wl,--max-memory=33554432 "${args[@]}" -o "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 python3 "$ROOT/scripts/stage_web.py" --backend clang
 node "$ROOT/tests/wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/cpu_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
@@ -73,3 +79,4 @@ node "$ROOT/tests/system_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.was
 node "$ROOT/tests/wrapper_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/audio_output_smoke.mjs"
 node "$ROOT/tests/wav_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
+node "$ROOT/tests/wav_decode_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"

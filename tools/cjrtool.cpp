@@ -2,6 +2,7 @@
 // Copyright (c) 2026 jr200-web contributors
 #include "jr200/cjr.hpp"
 #include "jr200/wav.hpp"
+#include "jr200/wav_decode.hpp"
 #include <array>
 #include <filesystem>
 #include <fstream>
@@ -9,15 +10,16 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <vector>
 using namespace jr200::cjr;
 namespace {
-std::vector<uint8_t> read_file(const std::string& path) {
+std::vector<uint8_t> read_file(const std::string& path, size_t maximum) {
     std::ifstream stream(path, std::ios::binary | std::ios::ate);
     if (!stream) throw std::runtime_error("cannot open input: " + path);
     const auto size = stream.tellg();
-    if (size < 0 || static_cast<unsigned long long>(size) > kMaxInput)
-        throw std::runtime_error("input is unreadable or exceeds 1 MiB");
+    if (size < 0 || static_cast<unsigned long long>(size) > maximum)
+        throw std::runtime_error("input is unreadable or exceeds the command limit");
     std::vector<uint8_t> bytes(static_cast<size_t>(size));
     stream.seekg(0);
     if (!bytes.empty() && !stream.read(reinterpret_cast<char*>(bytes.data()), size))
@@ -72,11 +74,15 @@ int main(int argc, char** argv) {
                       << "  cjrtool copy in.cjr out.cjr [--allow-headerless]\n"
                       << "  cjrtool extract in.cjr out.bin [--allow-headerless]\n"
                       << "  cjrtool pack in.bin out.cjr NAME address_hex [--basic] [--600]\n"
-                      << "  cjrtool wav in.cjr out.wav [--rate 44100|48000] [--600|--2400]\n";
+                      << "  cjrtool wav in.cjr out.wav [--rate 44100|48000] [--600|--2400]\n"
+                      << "  cjrtool wav-decode in.wav out.cjr [--channel auto|left|right]\n";
             return 2;
         }
         const std::string command = argv[1];
-        auto input = read_file(argv[2]);
+        const size_t maximum = command == "wav-decode"
+            ? jr200::wav::kMaxDecodeInput
+            : kMaxInput;
+        auto input = read_file(argv[2], maximum);
         if (command == "pack") {
             if (argc < 6) throw std::runtime_error("pack requires input, output, name, address_hex");
             bool basic = false; uint8_t baud = kBaudFlag2400;
@@ -135,6 +141,57 @@ int main(int argc, char** argv) {
                       << info.pcm_samples << " samples, " << info.sample_rate
                       << " Hz, mono 16-bit, " << info.data_baud
                       << " baud. Hardware compatibility is not yet verified.\n";
+            return 0;
+        }
+        if (command == "wav-decode") {
+            if (argc < 4) throw std::runtime_error("wav-decode requires input and output paths");
+            jr200::wav::DecodeOptions options{};
+            for (int i = 4; i < argc; ++i) {
+                const std::string flag = argv[i];
+                if (flag != "--channel" || ++i >= argc)
+                    throw std::runtime_error("wav-decode accepts --channel auto|left|right");
+                const std::string value = argv[i];
+                if (value == "auto") options.channel = jr200::wav::DecodeChannel::Auto;
+                else if (value == "left") options.channel = jr200::wav::DecodeChannel::First;
+                else if (value == "right") options.channel = jr200::wav::DecodeChannel::Second;
+                else throw std::runtime_error("channel must be auto, left or right");
+            }
+            std::vector<uint8_t> output(kMaxInput);
+            size_t written = 0U;
+            jr200::wav::Decoder decoder;
+            const jr200::wav::DecodeResult result = decoder.decode(
+                view(input), {output.data(), output.size()}, written, options);
+            const jr200::wav::DecodeInfo& info = decoder.info();
+            if (!result) {
+                std::ostringstream message;
+                message << jr200::wav::decode_error_message(result.error)
+                        << " at frame " << result.frame;
+                if (info.sample_rate != 0U) {
+                    message << " (" << std::fixed << std::setprecision(6)
+                            << static_cast<double>(result.frame) / info.sample_rate
+                            << " s)";
+                }
+                message << "; candidate " << written
+                        << " bytes was not written as verified CJR";
+                throw std::runtime_error(message.str());
+            }
+            output.resize(written);
+            write_file(argv[3], output);
+            const double short_average = info.short_span_count == 0U
+                ? 0.0
+                : static_cast<double>(info.short_span_sum) / info.short_span_count;
+            const double long_average = info.long_span_count == 0U
+                ? 0.0
+                : static_cast<double>(info.long_span_sum) / info.long_span_count;
+            std::cout << "Wrote verified CJR " << written << " bytes; "
+                      << info.sample_rate << " Hz, " << info.channels << " channel(s), "
+                      << info.bits_per_sample << "-bit, selected channel "
+                      << (info.selected_channel + 1U) << ", data " << info.data_baud
+                      << " baud, DC " << info.dc_offset << ", RMS " << info.rms
+                      << ", half-spans " << std::fixed << std::setprecision(3)
+                      << short_average << "/" << long_average
+                      << " samples, phase merges " << info.phase_merges
+                      << ". Raw WAV was not modified. Hardware provenance is not inferred.\n";
             return 0;
         }
         if (command != "inspect" && command != "copy" && command != "extract")

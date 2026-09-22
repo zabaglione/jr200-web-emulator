@@ -26,6 +26,8 @@ const state = {
   tapeName: '',
   wavCjr: null,
   wavName: '',
+  decodedCjr: null,
+  decodedName: '',
 };
 
 let codec;
@@ -39,7 +41,7 @@ try {
   codec = await loadCodec();
   audioOutput = new WebAudioOutput(codec.machine.audio, {onChange: () => showAudioStatus()});
   $('status').textContent = 'WASM起動済み / 処理はローカルのみ';
-  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'audio-enable', 'audio-volume', 'audio-mute', 'wav-rate', 'wav-baud']) {
+  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'audio-enable', 'audio-volume', 'audio-mute', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel']) {
     $(id).disabled = false;
   }
   updateAssetStatus();
@@ -683,9 +685,11 @@ $('forget-assets').addEventListener('click', async () => {
   }
 });
 
-async function readLimited(file) {
+async function readLimited(file, maximumBytes = 1024 * 1024) {
   if (!file) throw new Error('ファイルを選択してください');
-  if (file.size > 1024 * 1024) throw new Error('上限は1 MiBです');
+  if (file.size > maximumBytes) {
+    throw new Error(`上限は${maximumBytes / (1024 * 1024)} MiBです`);
+  }
   return new Uint8Array(await file.arrayBuffer());
 }
 
@@ -751,6 +755,67 @@ $('tape-replay-output').addEventListener('click', () => {
     showTapeStatus('直前の録音CJRを通常のカセット入力信号としてマウントしました。');
   } catch (error) {
     showTapeStatus(`録音CJRをマウントできません: ${error.message}`);
+  }
+});
+
+function resetWavDecode(message = 'WAVファイルを選択してください。') {
+  state.decodedCjr = null;
+  state.decodedName = '';
+  $('wav-decode-save').disabled = true;
+  $('wav-decode-status').textContent = message;
+}
+
+$('wav-decode-input').addEventListener('change', () => {
+  const file = $('wav-decode-input').files[0];
+  $('wav-decode-run').disabled = !codec || !file;
+  resetWavDecode(file
+    ? '解析を実行してください。元WAVは変更しません。'
+    : 'WAVファイルを選択してください。');
+});
+
+$('wav-decode-channel').addEventListener('change', () => {
+  if ($('wav-decode-input').files.length) {
+    resetWavDecode('channelを変更しました。解析を再実行してください。');
+  }
+});
+
+$('wav-decode-run').addEventListener('click', async () => {
+  resetWavDecode('解析中です。');
+  try {
+    const file = $('wav-decode-input').files[0];
+    const bytes = await readLimited(file, 8 * 1024 * 1024);
+    const decoded = codec.wav.decode(bytes, {channel: $('wav-decode-channel').value});
+    const {cjr: _cjr, ...report} = decoded;
+    const result = {
+      ...report,
+      rawWavModified: false,
+      candidateDownloadEnabled: false,
+      hardwareProvenanceInferred: false,
+    };
+    if (decoded.ok) {
+      state.decodedCjr = decoded.cjr;
+      state.decodedName = file.name.replace(/\.[^.]*$/, '') + '.cjr';
+      $('wav-decode-save').disabled = false;
+    }
+    $('wav-decode-status').textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    resetWavDecode(`エラー: ${error.message}`);
+  }
+});
+
+$('wav-decode-save').addEventListener('click', () => {
+  try {
+    if (!state.decodedCjr) throw new Error('検証済みCJRがありません');
+    const url = URL.createObjectURL(new Blob(
+      [state.decodedCjr],
+      {type: 'application/octet-stream'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = state.decodedName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    $('wav-decode-status').textContent = `保存エラー: ${error.message}`;
   }
 });
 

@@ -18,6 +18,7 @@ export async function loadCodec() {
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
   if (e.jr200_system_api_version() !== 5) throw new Error('システムABIのバージョンが一致しません');
   if (e.jr200_wav_api_version() !== 1) throw new Error('WAV ABIのバージョンが一致しません');
+  if (e.jr200_wav_decode_api_version() !== 1) throw new Error('WAV解析ABIのバージョンが一致しません');
   const text = new TextDecoder();
   const readCString = start => {
     const heap = memory();
@@ -46,6 +47,7 @@ export async function loadCodec() {
     return address;
   };
   const uint64 = (low, high) => low + high * 0x100000000;
+  const signed32 = value => value > 0x7fffffff ? value - 0x100000000 : value;
   const checkedLimit = (limit, capacity) => {
     if (!Number.isInteger(limit) || limit < 0 || limit > capacity) {
       throw new Error(`取得件数は0〜${capacity}で指定してください`);
@@ -358,6 +360,78 @@ export async function loadCodec() {
         signalSamples,
         pcmSamples,
         durationSeconds: pcmSamples / sampleRate,
+      };
+    },
+    decode(bytes, {channel = 'auto'} = {}) {
+      if (!(bytes instanceof Uint8Array) || bytes.length === 0 ||
+          bytes.length > e.jr200_wav_decode_input_capacity()) {
+        throw new Error('WAV入力は1バイト以上8 MiB以下で指定してください');
+      }
+      const channels = {auto: 0, left: 1, right: 2};
+      if (!(channel in channels)) {
+        throw new Error('WAV channelはauto、left、rightのいずれかです');
+      }
+      memory().set(bytes, e.jr200_wav_decode_input_ptr());
+      const errorCode = e.jr200_wav_decode_run(bytes.length, channels[channel]);
+      const field = index => e.jr200_wav_decode_field(index);
+      const field64 = index => uint64(field(index), field(index + 1));
+      const sampleRate = field(0);
+      const totalFrames = field64(4);
+      const shortSpanCount = field(27);
+      const longSpanCount = field(28);
+      const diagnostics = {
+        sampleRate,
+        channels: field(1),
+        bitsPerSample: field(2),
+        selectedChannel: field(1) === 0 ? 0 : field(3) + 1,
+        totalFrames,
+        durationSeconds: sampleRate === 0 ? 0 : totalFrames / sampleRate,
+        dataBytes: field64(6),
+        channelDc: [signed32(field(8)), signed32(field(10))].slice(0, field(1)),
+        channelRms: [field(9), field(11)].slice(0, field(1)),
+        minimum: signed32(field(12)),
+        maximum: signed32(field(13)),
+        dcOffset: signed32(field(14)),
+        rms: field(15),
+        threshold: field(16),
+        transitions: field64(17),
+        invalidSpans: field64(19),
+        phaseMerges: field64(21),
+        shortHalfSpanSamples: shortSpanCount === 0 ? null : field64(23) / shortSpanCount,
+        longHalfSpanSamples: longSpanCount === 0 ? null : field64(25) / longSpanCount,
+        firstSignalFrame: field64(29),
+        firstBlockFrame: field64(31),
+        lastSignalFrame: field64(33),
+        blocks: field(35),
+        dataBaud: field(36),
+        candidateBytes: field(37),
+        firstSignalPolarity: field(38) === 0 ? 'negative' : 'positive',
+        verified: field(39) !== 0,
+      };
+      const errorFrame = uint64(
+        e.jr200_wav_decode_error_frame_low(),
+        e.jr200_wav_decode_error_frame_high());
+      const ok = errorCode === 0 && diagnostics.verified;
+      const result = {
+        ok,
+        verified: diagnostics.verified,
+        errorCode,
+        error: ok ? null : (errorCode === 0
+          ? 'decoder did not verify CJR'
+          : readCString(e.jr200_wav_decode_error_message())),
+        errorFrame,
+        errorTimeSeconds: sampleRate === 0 ? null : errorFrame / sampleRate,
+        cjrOffset: e.jr200_wav_decode_error_offset(),
+        detail: e.jr200_wav_decode_error_detail(),
+        diagnostics,
+      };
+      if (!ok) return result;
+      const size = e.jr200_wav_decode_output_size();
+      return {
+        ...result,
+        cjr: memory().slice(
+          e.jr200_wav_decode_output_ptr(),
+          e.jr200_wav_decode_output_ptr() + size),
       };
     },
   };
