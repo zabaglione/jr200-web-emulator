@@ -1,98 +1,201 @@
 # JR-200 Web Emulator
 
-**状態: P00〜P11とP13のprivate初版0.0.1、およびUI follow-up Issue #15〜#20のローカル・三ブラウザ受入は完了。P12の実機WAV往復は初版後の未検証項目です。**
+JR-200の日本向けモデルを、手元のROMとフォントを使ってブラウザ上で動かす非公式エミュレータです。画面表示、物理キーボードと画面上の仮想キーボード、音声、CJRカセットの読み書き、WAV変換を1つのローカルWeb画面から利用できます。
 
-VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
+選択したファイルは外部へ送信しません。ROM、メーカー由来フォント、ソフトウェア、録音データは、このリポジトリにもWeb配布物にも含まれていません。
 
-## 今回入っているもの
+> **現在の状態**
+>
+> - 非公開の開発版（バージョン0.0.1）です。公開サイトやインストーラーはなく、利用するにはローカルビルドが必要です。
+> - 権利確認済みの実ROM／フォントを使い、Chrome、Firefox、SafariでBASICの起動と入力を確認しています。
+> - CJRとWAVの変換機能は実装済みですが、このエミュレータで生成したWAVを物理JR-200で読み込む往復試験はまだ行っていません。実機互換を確認済みとは扱わないでください。
 
-CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CJR↔RIFF PCM WAV、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、固定PCMキュー、利用者操作式Web Audio、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、英数／カナ／GRAPH対応のROM字形仮想キーボード、物理入力、ポーズ/リセット、固定長デバッガ、通常CJRカセットtransport、native/WASM/ブラウザ試験です。初期計画14件と、別系列のUI follow-up 6件をIssueで管理します。
+## できること
 
-**入っていないもの:** Web Audioのpan、物理出力の音圧測定、生成WAVのJR-200実機互換結果、ROM/メーカー由来フォント本体。ROM、フォント、録音は利用者のローカルファイルとしてのみ扱います。
-
-リポジトリ: [zabaglione/jr200-web-emulator](https://github.com/zabaglione/jr200-web-emulator)（private）。開発順と実際のIssue番号は [Issue一覧](docs/ISSUE_INDEX.md) を参照してください。CIの結果は [Actions](https://github.com/zabaglione/jr200-web-emulator/actions) で確認できます。
-
-## まず読む文書
-
-| 文書 | 内容 |
+| 用途 | 内容 |
 |---|---|
-| [SOW](docs/SOW.md) | 目的・範囲・成果物・受入条件 |
-| [開発順序](docs/DEVELOPMENT_PLAN.md) | P00〜P13、依存関係、各Issue本文 |
-| [現状](docs/STATUS.md) | 実装済みと未検証の境界 |
-| [テスト記録](docs/TEST_RESULTS.md) | 実行環境・コマンド・実測結果 |
-| [由来とライセンス](docs/UPSTREAM.md) | 固定commitと一次情報、第三者コード台帳 |
-| [CJR形式](docs/CJR_FORMAT.md) | 公開コードに基づく形式と制限 |
-| [実機試験計画](docs/HARDWARE_TEST_PLAN.md) | 初版後に行うWAV往復の独立した検証方法 |
-| [UI受入記録](docs/UI_ACCEPTANCE.md) | Full HD配置、実機配色、入力・字形API、三ブラウザ回帰の条件と境界 |
-| [GitHub作成手順](docs/GITHUB_SETUP.md) | private確認・Issue登録・安全なpush |
+| JR-200を動かす | JR BASIC 5.0の起動、320×224画面、物理キーボード操作、ROMの字形を使う仮想キーボード |
+| 音を出す | ブラウザ操作後にWeb Audioを開始し、音量調整とミュートが可能 |
+| CJRを読み書きする | 標準BASIC形式CJRのLOAD/SAVE、標準マシン語形式CJRのMLOAD/MSAVE |
+| CJRとWAVを変換する | 検証済みのCJRからWAVを作成し、対応形式の録音WAVから検証済みのCJRを復元 |
+| BINをCJRにする | 連続した1領域のBINデータを標準CJRへ格納 |
+| 状態を調べる | レジスタ、メモリ、ブレークポイント、ウォッチポイント、固定長履歴を表示 |
 
-## ローカルのネイティブ版
+## 利用前の準備
 
-Python 3.10以降、CMake 3.20以降、C++20コンパイラ、makeが必要です。
+### JR-200を起動する場合
 
-```sh
-make test
-make sanitize    # clang++ と sanitizer が必要
-./build/native/cjrtool
+利用者自身が権利を確認した、次のファイルが必要です。
+
+| ファイル | サイズ | 条件 |
+|---|---:|---|
+| 結合ROM | 16,384バイト | ROM1（`$A000–$BFFF`）の後にROM2（`$E000–$FFFF`）を連結 |
+| ROM1 / ROM2 | 各8,192バイト | 結合ROMの代わりに2ファイルを個別選択可能 |
+| フォント | 2,048バイト | JR-200の文字フォント |
+
+#### 実機からROMとフォントを吸い出す
+
+実機から用意する場合は、移植元の[VJR-200公式ページ「準備編」](https://find-jr200.github.io/vjr200.html)を参照してください。自身が所有し、利用権を確認できる実機のデータだけを扱います。
+
+JR BASICで次の3本を個別に`MSAVE`し、それぞれのカセット出力を別のWAVファイルとして録音します。
+
+```text
+MSAVE "ROM1",$A000,$BFFF
+MSAVE "ROM2",$E000,$FFFF
+MSAVE "FONT",$D000,$D7FF
 ```
 
-CLIは `inspect` / `copy` / `extract` / `pack` / `wav` / `wav-decode` を持ちます。WAV出力は44.1/48 kHz、mono 16-bit、600/2400 baudで、無指定時はCJR header速度へ従います。WAV入力はinteger PCMのmono/stereo、8/16-bit、22.05/44.1/48 kHzに限定し、検証成功時だけCJRを書き出します。引数は引数なしのヘルプで確認できます。既存出力への上書きを拒否し、離れたアドレスのCJRを単純に連結してBINへ変換することも拒否します。
+録音後は[JR2Rescue](https://find-jr200.github.io/jr2rescue.html)で各WAVを読み込み、出力形式に`BIN`を選びます。`CJR`のままではROM／フォント入力として使えません。変換後にROM1とROM2が各8,192バイト、フォントが2,048バイトであることを確認してください。
 
-## WASM版Webエミュレータ
-
-依存なしのCJRコーデック、MC6800、周辺回路コアはClangのWASMターゲットでも動作します。
+このリポジトリの[コマンドラインツール](#コマンドラインツール)を使う場合は、WAVを検証済みCJRへ復元してから、生のBINデータを取り出します。
 
 ```sh
-make wasm-smoke   # clang++、wasm-ld、Node.jsが必要
-make serve
-# ブラウザで http://127.0.0.1:8000 を開く
+./build/native/cjrtool wav-decode input.wav output.cjr
+./build/native/cjrtool extract output.cjr output.bin
 ```
 
-結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査、BIN→標準CJR包装、検証済み標準CJR→WAV保存、録音WAV→検証済みCJR復元も同じ画面から利用できます。通常画面は上部操作バー、整数倍Canvasと仮想キーボード、右側の開閉式補助パネルで構成します。仮想キーは英数／カナ／GRAPHとSHIFT／CTRLに追従し、読み込んだFONTから初期化された文字RAMの8×8字形を表示します。固定Unicode字形やメーカーfont画像は同梱しません。
+ROM1とROM2はWeb画面で別々に選べます。1つの結合ROMにする場合は、必ずROM1→ROM2の順にバイナリ連結し、結果が16,384バイトであることを確認します。
 
-WAV復元候補は診断だけを表示し、block/checksumを含む全検証に成功した場合だけ保存できます。WAV出力は44.1/48 kHz、mono 16-bit、600/2400 baudで、自動再生せず、実機互換未検証を表示します。デバッガは実行/停止/step、16件ずつのbreakpoint/watchpoint、命令256件・CPUアクセス512件の履歴、手動256 byte peekを持ちます。標準BASIC/マシン語CJRを通常のMN1271信号経路へmountし、LOAD/MLOAD/SAVE/MSAVEを実行できます。音声は利用者が有効化するまで開始せず、既定20%/上限50%の音量、ミュート、sample rate/underrun表示、休止時のqueue破棄を持ちます。高速RAM注入、PRINT#、INPUT#、特殊・連結CJRは対象外です。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
+ROMとフォントは起動時にサイズ、内容、RESETベクタを検査します。ファイルの入手や再配布は、このプロジェクトの対象外です。
 
-Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。ブラウザ起動の詳細は [P06受入記録](docs/P06_BROWSER_ACCEPTANCE.md)、デバッガの停止・観測境界は [P07受入記録](docs/P07_DEBUGGER_ACCEPTANCE.md)、通常CJR transportは [P08受入記録](docs/P08_CASSETTE_ACCEPTANCE.md)、Web Audioは [P09受入記録](docs/P09_AUDIO_ACCEPTANCE.md)、CJR→WAVと独立decodeは [P10受入記録](docs/P10_WAV_ACCEPTANCE.md)、WAV→CJRは [P11受入記録](docs/P11_WAV_DECODE_ACCEPTANCE.md)、Full HD UIと仮想キーボードは [UI受入記録](docs/UI_ACCEPTANCE.md) を参照してください。
+ROMとフォントが必要なのはJR-200を起動する場合です。CJRの検査やCJR／WAV変換だけなら必要ありません。
 
-```sh
-# emsdk を導入・有効化済みの環境で
-make wasm
-make serve
-```
+### ローカルビルド
 
-任意のブラウザsmoke test:
+ローカルビルドには、次のツールが必要です。
 
-```sh
-# Playwrightを導入済み、使用するChromium実行ファイルを指定
-CHROMIUM_EXECUTABLE=/path/to/chromium python3 tests/browser_smoke.py
-```
+- Git
+- Python 3.10以降
+- CMake 3.20以降
+- make
+- Node.js
+- 有効化済みのEmscripten 6.0.9（`emcc`と`emcmake`）
 
-権利確認済みのROM/フォントを使う任意試験には `tests/webdriver_real_rom_smoke.py` を利用できます。引数のファイルパスはWebDriver側から見える読み取り専用パスを指定し、検体自体はGitへ追加しないでください。
+`make wasm`はEmscriptenのバージョンを検査し、6.0.9以外では停止します。
 
-```sh
-python3 tests/webdriver_real_rom_smoke.py --browser firefox \
-  --webdriver http://127.0.0.1:4444 --url http://host/site/ \
-  --rom /read-only/combined.rom --font /read-only/font.bin
-```
-
-## 開発の開始
-
-このリポジトリは初期設定済みです。旧パッケージの新規作成用 `bootstrap_github.py --execute` は実行しないでください。通常のcloneから開始します。
+## ブラウザで起動する
 
 ```sh
 git clone https://github.com/zabaglione/jr200-web-emulator.git
 cd jr200-web-emulator
-make test
-make wasm-smoke
+emcc --version
+make wasm
 make serve
 ```
 
-認証は通常のGitHub認証を使用し、トークンをソースやチャットへ記載しないでください。`AGENTS.md`、[現状](docs/STATUS.md)、[Issue一覧](docs/ISSUE_INDEX.md) の順に確認します。完了済みIssueと次の作業はSTATUS.mdを正とします。計画IDと実Issue番号は別です。
+ブラウザで [http://127.0.0.1:8000](http://127.0.0.1:8000) を開きます。`make serve`はビルドを行わないため、初回またはソース更新後は先に`make wasm`を実行してください。サーバーを止めるときは、実行中のターミナルで`Ctrl+C`を押します。
 
-ソースを追加・削除した後は `python3 scripts/update_manifest.py` と `make check` を実行し、`source-manifest.json` を確認してください。ROMや録音のある作業ディレクトリで `git add .` を実行しないでください。CIはnative Linux/macOS、sanitizer、Clang WASM、合成ROMによるChromium browser smokeを対象にします。Pages公開やROMを含むartifact uploadはありません。
+### JR-200を起動する
 
-## ライセンスとSBOM
+1. 画面右側の「ROM・フォント」を開き、結合ROM、またはROM1とROM2を選びます。
+2. 2,048バイトのフォントを選びます。
+3. ファイルの検査結果を確認し、上部の「起動」を押します。
+4. JR-200画面をクリックしてから、物理キーボードまたは画面上の仮想キーボードで操作します。
+5. 音が必要な場合だけ「音声ON」を押します。初期音量は20%、上限は50%です。
 
-本プロジェクトの新規部分は[BSD-3-Clause](LICENSE)。FINDのCJR処理に基づく部分では著作権と[上流ライセンス全文](LICENSES/VJR200.txt)を、MAME由来のMC6800部分ではファイル内表示と[BSD-3-Clause全文](LICENSES/MAME_BSD-3-Clause.txt)を保持します。[第三者表記](THIRD_PARTY_NOTICES.md)、[取込台帳](docs/UPSTREAM.md)、[SPDX 2.3 SBOM](SBOM.spdx.json)も参照してください。
+仮想キーボードは、読み込んだフォントと文字RAMの字形を表示します。英数、カナ、GRAPH、SHIFT、CTRLに対応しています。ブラウザがフォーカスを失うと、押下中のキーを解放し、CPUと音声を自動で一時停止します。
 
-VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。元エミュレータのライセンスはROM、メーカー由来フォント、市販ソフトの再配布許可ではありません。privateであっても無条件に同梱しません。
+## カセットとファイル変換
+
+### CJRをJR-200で読み込む
+
+1. 「カセット」で標準CJRを選び、「マウント」を押します。
+2. BASIC形式ならJR BASICで`LOAD`、マシン語形式なら`MLOAD`を実行します。
+3. 必要に応じて「巻戻し」または「取出し」を使います。
+
+### JR-200からCJRへ保存する
+
+1. 「新規録音を待機」を押します。
+2. JR BASICで`SAVE`または`MSAVE`を実行します。
+3. 録音の検証後、「録音CJRを保存」を押します。
+
+### CJRとWAVを相互変換する
+
+- **CJRからWAVへ:** 「CJR・WAV」でCJRを選び、検査に合格した後、サンプリングレートとデータ速度を選んで保存します。
+- **WAVからCJRへ:** 録音WAVを選んで「WAVを解析」を押します。ブロックとチェックサムを含む全検証に合格した場合だけ、CJRを保存できます。
+
+生成WAVは44.1 kHzまたは48 kHz、モノラル16-bit、600または2,400 baudです。WAV入力はリニアPCM（integer PCM）のモノラル／ステレオ、8/16-bit、22.05/44.1/48 kHzに対応します。ブラウザで読み込めるWAVは最大8 MiBです。圧縮WAV、float PCM、24/32-bit PCM、JR2、特殊ローダーには対応していません。
+
+「標準CJRを作成」は既存のBINデータを格納する機能であり、BASICのテキストをトークナイズする機能ではありません。
+
+## ファイルとプライバシー
+
+- ROM、フォント、CJR、WAVはブラウザ内で処理し、外部サービスへ送信しません。
+- ローカルサーバーは`127.0.0.1`にだけ接続し、`build/site`の静的ファイルを配信します。
+- 選択したROMとフォントは、通常はページを閉じると残りません。
+- 「このブラウザにROMとフォントを保存することを許可」を選んだ場合だけ、ブラウザのIndexedDBへ保存します。「保存済みファイルを削除」で消去できます。
+- ROMや録音をリポジトリ内に置く必要はありません。作業上必要な場合はGit対象外の`local-assets/`を使い、コミット対象へ追加しないでください。
+
+## 困ったとき
+
+| 症状 | 確認すること |
+|---|---|
+| ページを開いてもWASMが起動しない | `file://`で直接開かず、`make wasm`の後に`make serve`を実行したか確認 |
+| 「起動」が押せない | WASMの読込み完了、ROM形式、全ROM／フォントの選択状態を確認 |
+| ROMが拒否される | ファイルサイズ、ROM1→ROM2の順序、RESETベクタ、空データでないことを確認 |
+| 物理キーボードが反応しない | JR-200画面または仮想キーをクリックしてフォーカスを戻す |
+| 音が出ない | 起動後に利用者操作で「音声ON」を押し、ミュートと音量を確認 |
+| `make wasm`がバージョンエラーになる | Emscripten 6.0.9のSDK環境を有効化し、`emcc --version`を確認 |
+
+## 対応範囲と未検証事項
+
+標準のBASIC／マシン語CJR、通常のLOAD/MLOAD/SAVE/MSAVE、CJR検査、BIN包装、WAV生成・解析に対応しています。
+
+次の項目は未対応、または未検証です。
+
+- 生成WAVの物理JR-200でのLOAD/MLOADと、実機SAVE/MSAVEからの独立2回録音による往復確認
+- PRINT#、INPUT#、特殊・連結CJR、JR2
+- FDD、D20/D88、プリンタ、RS-232C
+- JR-200U／JR-300の完全互換
+- Web Audioのpanと、ブラウザから再生した物理音声出力の音圧測定
+- 一般公開サイト、クラウド同期
+
+実機WAV往復は[P12の試験計画](docs/HARDWARE_TEST_PLAN.md)に分離しており、合成データやエミュレータ内の自己往復を実機互換の証拠にはしていません。
+
+## 確認済みの環境
+
+2026年9月22日時点で、権利確認済みの実ROM／フォントによるJR BASIC 5.0の起動と入力を、Chrome 153、Firefox 156、Safari 26.6.2で確認しています。ChromeとSafariはmacOS、Firefoxは隔離コンテナ内のLinux版です。
+
+これは各ブラウザでの動作確認であり、物理JR-200の映像、キーマトリクス、カセットWAV互換を保証するものではありません。詳しい条件は[ブラウザ受入記録](docs/P06_BROWSER_ACCEPTANCE.md)と[UI受入記録](docs/UI_ACCEPTANCE.md)を参照してください。
+
+## コマンドラインツール
+
+Web画面を使わずに、CJRの検査、コピー、抽出、作成、WAV変換を行える`cjrtool`も利用できます。
+
+```sh
+cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native --parallel
+./build/native/cjrtool
+```
+
+引数なしでヘルプを表示します。WAV入力の上限は128 MiBです。既存出力は上書きせず、離れた複数アドレスを単純連結してBINへ変換する操作も拒否します。
+
+## 開発者向け
+
+```sh
+make test
+make sanitize
+make wasm-smoke
+make check
+```
+
+`make sanitize`にはClang、`make wasm-smoke`にはWASM対応Clang、`wasm-ld`、Node.jsが必要です。ブラウザ自動試験には[requirements-ci.txt](requirements-ci.txt)のPlaywright環境を使います。
+
+現状と検証結果は、次の文書を正とします。
+
+| 文書 | 内容 |
+|---|---|
+| [実装・検証状況](docs/STATUS.md) | 完了した機能と次の作業 |
+| [テスト記録](docs/TEST_RESULTS.md) | 実行環境、コマンド、観測結果 |
+| [CJR形式](docs/CJR_FORMAT.md) | 対応形式と制限 |
+| [Issue対応表](docs/ISSUE_INDEX.md) | 計画IDとGitHub Issue番号 |
+| [SOW](docs/SOW.md) | 目的、範囲、受入条件 |
+| [由来とライセンス](docs/UPSTREAM.md) | 固定した上流、根拠、第三者コード台帳 |
+
+ソースを追加・削除した場合は`python3 scripts/update_manifest.py`と`make check`を実行してください。ROM、フォント、録音、トークンがある作業ディレクトリで`git add .`を実行しないでください。Pages、公開デプロイ、ROMを含むartifact uploadは構成していません。
+
+## ライセンスと謝辞
+
+本プロジェクトで新しく作成した部分のライセンスは[BSD-3-Clause](LICENSE)です。VJR-200由来部分とMAME MC6800由来部分の著作権表示・ライセンスは、[第三者表記](THIRD_PARTY_NOTICES.md)、[VJR-200ライセンス](LICENSES/VJR200.txt)、[MAME BSD-3-Clause](LICENSES/MAME_BSD-3-Clause.txt)、[SPDX 2.3 SBOM](SBOM.spdx.json)に記録しています。
+
+本プロジェクトは非公式の独立プロジェクトであり、VJR-200作者・貢献者・メーカーによる公認や推薦を意味しません。元エミュレータのライセンスは、ROM、メーカー由来フォント、市販ソフトの再配布許可ではありません。
