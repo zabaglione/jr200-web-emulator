@@ -1,6 +1,6 @@
 # JR-200 Web Emulator
 
-**状態: P11まで受入完了。P12の実機WAV往復は初版後へ延期し、P13のprivate初版受入を進めています。**
+**状態: P00〜P11とP13のprivate初版0.0.1受入は完了。P12の実機WAV往復は初版後の未検証項目です。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 

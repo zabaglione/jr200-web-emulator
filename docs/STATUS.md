@@ -43,6 +43,7 @@ P08: 2026-09-22受入完了。OS非依存の固定容量カセットtransportを
 P09: 2026-09-22受入完了。44.1 kHz固定PCM queueをWASMから一括drainし、利用者操作式Web Audio、既定20%/上限50%のgain、sample rate表示、underrun/overflow計数、mute、pause/resume/disable時のsource停止とqueue破棄を実装した。正式Emscripten siteの実ROMで`SOUND 440,50`から非0 PCM 45945 frame、peak 7000を観測し、overflow/underrun 0、停止後active/queue 0を確認した。物理出力の音圧・panは未計測。実装commit `904781db9c1e2cfefed6237d3d088ee171c3fe33` のActions run `35661382620`は4ジョブすべてsuccess。詳細は [P09_AUDIO_ACCEPTANCE.md](P09_AUDIO_ACCEPTANCE.md)。
 P10: 2026-09-22受入完了。P08と共通の4800 Hz信号源から12-bit frame、固定600 baud header、CJR header追従または明示600/2400のdata、VJR-200由来leader/intervalをRIFF PCM mono16の44.1/48 kHzへ累積有理時刻で出力するCLI/WASM/Web機能を実装した。JR2Rescue 0.6.2との4波形比較でhalf-span/位相patternが一致し、独立decodeした4 CJRは各入力と全byte一致した。JR2Rescueの短いleader/interval差と実機未検証は残す。実装commit `b89a9d1717cd892ced06ea5ff8d2ffc2bfa00dfc` のActions run `35666390234`は4ジョブすべてsuccess。詳細は [P10_WAV_ACCEPTANCE.md](P10_WAV_ACCEPTANCE.md)。
 P11: 2026-09-22受入完了。RIFF/PCM検査、DC/RMS/極性/channel/half-span/実測baud診断、frame/block/checksum/CJR検証、CLI/WASM/Webの候補隔離を実装した。JR2Rescue生成4 WAVと、Git対象外の利用者提供録音3本を独立復元済みCJRへ全バイト照合した。native/sanitizer各9/9、直接WASM 7系統、Emscripten 6.0.9、Chrome 153 browser smokeはローカル成功。実装commit `756d69c4363620bac19a9b936a757e92a47e5fa3`を含むheadのActions run `35672191674`は4ジョブすべてsuccess。詳細は [P11_WAV_DECODE_ACCEPTANCE.md](P11_WAV_DECODE_ACCEPTANCE.md)。
+P13: 2026-09-22受入完了。P12を初版後へ延期し、P00〜P11のprivate初版0.0.1を監査した。SPDX 2.3 SBOM、Git tracked 109ファイルと一致するsource allow-list、13ファイルのWeb配布境界、fresh cloneでnative/直接WASM/Emscripten 6.0.9再ビルドを確認した。実装head `dff63edd501b8f4598718283ec93fe4338c73c60`のActions run `35675108809`はUbuntu/macOS native、sanitizer、WASM、Playwright/Chromium browserの5ジョブすべてsuccess。repositoryはprivate、Pagesなし、artifact 0、releaseなしで、P12はopen・実機互換未検証のまま残す。詳細は [P13_RELEASE_ACCEPTANCE.md](P13_RELEASE_ACCEPTANCE.md)。
 
 ## 未実装・未検証
 
@@ -55,8 +56,8 @@ Emscripten 6.0.9による正式ビルド、生成モジュールのNode試験、
 
 ## 次の作業
 
-#1 (P00)〜#12 (P11) は受入完了。P12（#13）の実機WAV往復は初版後へ延期し、
-現在はP13（#14）のprivate初版監査・再現可能ビルド・受入を進める。P13が完了しても
-P12はopenのまま残り、生成WAVの物理JR-200互換は未検証である。
+#1 (P00)〜#12 (P11) と#14 (P13) は受入完了。P12（#13）の実機WAV往復は初版後の
+未検証項目としてopenのまま残す。再開時はHARDWARE_TEST_PLAN.mdに従い、生成WAVの
+物理JR-200読込と独立2回録音を実測する。
 
 privateは維持。Pages/外部公開デプロイ、アクセス権・branch protectionは変更していない。

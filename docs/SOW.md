@@ -1,5 +1,5 @@
 # JR-200 Web Emulator — Statement of Work
-版: 0.3 / 更新日: 2026-09-22 / 状態: private初版受入中
+版: 0.3 / 更新日: 2026-09-22 / 状態: private初版0.0.1受入完了
 
 ## 1. 目的
 VJR200forWindowsを出発点に、JR-200日本向けモデルをブラウザで実行する独立した非公開プロジェクトを開発する。エミュレーションの実装主体はC++20とし、WebAssemblyにコンパイルしてJavaScriptの表示・入力・ファイル操作と接続する。CJRを互換ファイル形式として維持し、最終的にCJR→WAV→実機LOAD/MLOAD、および実機SAVE/MSAVE→WAV→CJRの両方向を検証する。

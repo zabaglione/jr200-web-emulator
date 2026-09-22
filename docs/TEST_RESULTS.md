@@ -12,8 +12,18 @@ sanitizerは各CTest 9/9、直接WASMは7系統、正式Emscripten 6.0.9 module�
 成功した。13ファイル・216 KiBのstaged siteにROM/tape/recording拡張子はなく、browser
 smokeの外部requestは0件だった。
 
-この時点ではfresh cloneとP13候補commitのGitHub Actionsは未実行であり、P13受入完了や
-実機互換を意味しない。詳細は [P13_RELEASE_ACCEPTANCE.md](P13_RELEASE_ACCEPTANCE.md)。
+remote `main`の実装head `dff63edd501b8f4598718283ec93fe4338c73c60`を`/private/tmp`へ
+新規cloneし、`make test`、`make wasm-smoke`、`make wasm`、`make check`を実行した。
+native 9/9、直接WASM 7系統、Emscripten 6.0.9正式moduleとNode smoke、配布監査が成功し、
+tracked sourceはcleanだった。
+
+同じheadのGitHub Actions run `35675108809`はUbuntu/macOS native、sanitizer、WASM、
+browserの5ジョブすべてsuccess。browser jobはPlaywright 1.63.0とChromium 152.0.7977.0で
+合成ROM/UI/WAV操作と外部request 0件を確認した。先行run `35674971686`はworkflow YAMLの
+未引用コロンによるjob 0件の構文failureで、修正後の受入結果には使用していない。
+
+P13はprivate初版0.0.1として受入完了。これはP12の実機互換合格を意味しない。詳細は
+[P13_RELEASE_ACCEPTANCE.md](P13_RELEASE_ACCEPTANCE.md)。
 
 ## P11 録音WAV解析・CJR復元受入（2026-09-22 / macOS・GitHub Actions）
 

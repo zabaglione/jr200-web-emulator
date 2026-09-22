@@ -57,7 +57,7 @@ GitHub hosted runnerのOS、system Clang、CMake、Node.jsは更新され得る�
 | P10 | 受入済み | `P10_WAV_ACCEPTANCE.md` |
 | P11 | 受入済み | `P11_WAV_DECODE_ACCEPTANCE.md` |
 | P12 | 初版後へ延期・open | `HARDWARE_TEST_PLAN.md`。物理往復は未実施 |
-| P13 | 検証中 | 本文書。local/clean clone/remote CI結果を追記して判定 |
+| P13 | 受入済み | 本文書、実装head `dff63ed`、Actions run `35675108809` |
 
 ## 検証記録
 
@@ -88,8 +88,41 @@ node --check web/codec.mjs
 - GitHub APIでrepositoryはprivate、Actions artifactは0件、release listは空、Pages APIは
   HTTP 404だった。Pages作成、visibility変更、release作成は行っていない。
 
-候補commit、fresh clone、GitHub Actionsの実測結果はpush後に追記する。設定ファイルの
-作成だけでは成功扱いにしない。
+実装はcommit `723454ac4a7b6214b8152a4b0a5fe81120968330`へまとめ、workflowのYAMLで
+引用されていない末尾コロンをcommit `dff63edd501b8f4598718283ec93fe4338c73c60`で修正した。
+最初のActions run `35674971686`はworkflow構文エラーでjob 0件のfailureであり、受入証拠に
+使っていない。
+
+remote `main`の`dff63ed`を`/private/tmp`配下へ新規cloneし、既存project buildを使わずに
+次を実行した。
+
+```sh
+make test
+make wasm-smoke
+make wasm
+make check
+```
+
+fresh cloneのnativeはCTest 9/9、直接WASMは7系統、Emscripten 6.0.9正式moduleとNode
+smoke、配布監査はすべて成功し、試験後もtracked sourceはcleanだった。
+
+同じheadに対するGitHub Actions run
+[`35675108809`](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35675108809)は
+次の5ジョブすべてsuccessだった。
+
+| ジョブ | 結果 |
+|---|---|
+| native (ubuntu-latest) | `make test` success |
+| native (macos-latest) | `make test` success |
+| sanitized | `make sanitize` success |
+| wasm-codec | `make wasm-smoke` success |
+| browser-smoke | pinned Python依存、Playwright Chromium、WASM build、UI smoke success |
+
+browser jobではPlaywright 1.63.0とChromium 152.0.7977.0を実行し、合成ROM、Web Audio、
+cassette、debugger、CJR/WAV tools、download、外部request 0件を確認した。
+
+以上によりP13は受入完了とする。P12の物理実機試験はこの判定に含めず、Issue #13を
+openのまま残す。
 
 ## 残る未対応・未検証
 

@@ -17,7 +17,7 @@
 | P10 | [CJR信号生成・WAVエンコード](issues/P10.md) | P09 | 2026-09-22受入完了。44.1/48 kHz、600/2400、独立decodeを確認。 |
 | P11 | [録音WAV解析・CJR復元](issues/P11.md) | P10 | 2026-09-22受入完了。独立WAVと利用者提供録音、失敗隔離、remote CIを確認。 |
 | P12 | [実機とのWAV往復受入試験](issues/P12.md) | P11 | 初版後へ延期。実機MSAVE録音は受領済みだが、自前変換と双方向往復は未確認。 |
-| P13 | [配布監査・再現可能ビルド・初版受入](issues/P13.md) | P11 | 実施中。実機互換未検証を明記したprivate初版を監査する。 |
+| P13 | [配布監査・再現可能ビルド・初版受入](issues/P13.md) | P11 | 2026-09-22受入完了。private、fresh clone、5ジョブCI、SBOM、ROM非同梱を確認。 |
 
 最新の検証結果は [STATUS.md](STATUS.md) を正とする。初期commitのGitHub Actionsは4ジョブ成功しており、上表のremote CI未実行という履歴とは区別する。
 
