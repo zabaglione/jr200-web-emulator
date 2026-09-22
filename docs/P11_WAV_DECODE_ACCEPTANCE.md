@@ -1,10 +1,9 @@
-# P11 録音WAV解析・CJR復元 ローカル受入記録
+# P11 録音WAV解析・CJR復元 受入記録
 
 確認日: 2026-09-22。実装commitは
-`756d69c4363620bac19a9b936a757e92a47e5fa3`（ローカルのみ）である。
-P11の技術的な受入条件はローカルで満たしたが、GitHub Actionsの月間枠が利用者申告で
-3000/3000分に達しているため、push、remote CI、Issue #12のcloseは実施していない。
-したがって本記録は最終受入完了やremote反映を主張しない。
+`756d69c4363620bac19a9b936a757e92a47e5fa3`である。これを含むhead
+`92722edc10aab6558337b5fbda43fff20f431308`のGitHub Actions run `35672191674`は、
+Ubuntu/macOS native、sanitized、wasm-codecの4ジョブすべてsuccessだった。
 
 ## 実装境界
 
@@ -83,6 +82,7 @@ node --check web/app.mjs
 - 一時仮想環境のPlaywright 1.63.0と既存Chrome 153.0.8010.48で正式siteを試験し、
   検証済みCJRのdownload、無音入力時の保存禁止、外部request 0件を確認した。
 - `make check`はライセンス全文、source notice、Web link、source-only inventoryを合格した。
+- GitHub Actions run `35672191674`はnative、sanitizer、直接WASMの全4ジョブに成功した。
 
 ## CLIとWeb
 
@@ -92,10 +92,8 @@ node --check web/app.mjs
   波形診断、生WAV非変更、hardware由来を推定しないことを表示し、成功時だけCJR保存を
   有効にする。
 
-## 未完了・未検証範囲
+## 未検証範囲
 
-- 実装commitはローカルにだけ存在する。Actions枠のreset後にpushし、4 jobのremote CIを
-  実測し、結果を追記してからIssue #12をcloseする。
 - 圧縮WAV、WAVE_FORMAT_EXTENSIBLE、24/32-bit PCM、3 channel以上、対応外sample rate、
   JR2、headerなし、特殊loaderは未対応である。
 - 2%を超えるtransport速度差、dropout、wow/flutter、clipping、非常に低いS/N比を網羅した

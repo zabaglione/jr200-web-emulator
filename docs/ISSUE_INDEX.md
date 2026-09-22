@@ -1,6 +1,6 @@
 # 開発Issue一覧
 
-登録日: 2026-09-21。対象は `zabaglione/jr200-web-emulator`（private）。以下はGitHubから返された実際のIssue番号。2026-09-22までにP00〜P10を順に受け入れた。
+登録日: 2026-09-21。対象は `zabaglione/jr200-web-emulator`（private）。以下はGitHubから返された実際のIssue番号。2026-09-22までにP00〜P11を順に受け入れた。
 
 | 計画 | Issue | 作業 | 依存 |
 |---|---|---|---|
@@ -21,7 +21,5 @@
 
 順序: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12 → #13 → #14。
 
-#1〜#11は順に受入完了。#12はローカル実装と技術条件確認まで完了したが、GitHub Actions
-利用枠のreset待ちで未push、remote CI未実行、Issue openのため受入保留である。
-#12をremoteで受け入れるまで#13へ進まない。独立toolによる生成WAVのdecode、
-自前WAV decoder、実機WAV往復の合格は別である。
+#1〜#12は順に受入完了。次は#13の実機WAV往復受入試験である。独立toolによる生成WAVの
+decode、自前WAV decoder、利用者提供録音のdecode、実機WAV往復の合格はそれぞれ別である。

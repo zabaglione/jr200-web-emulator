@@ -1,5 +1,21 @@
 # 初期実装の試験記録
 
+## P11 録音WAV解析・CJR復元受入（2026-09-22 / macOS・GitHub Actions）
+
+RIFF/PCM検査、DC/RMS/極性/channel/half-span/実測baud診断、frame/block/checksum/CJR検証、
+CLI/WASM/Webの候補隔離を実装した。独立ツール生成の44.1/48 kHz・600/2400 baud全4 WAVを
+入力52 byteのCJRへ戻し、Git対象外の利用者提供録音3本も独立復元済みCJRと各全バイト一致した。
+
+`make test`と`make sanitize`は各CTest 9/9、直接WASMは7系統、Emscripten 6.0.9正式module、
+Chrome 153とPlaywright 1.63.0のbrowser smoke、`make check`がローカルで成功した。無音、切断、
+noise、不正RIFF、float PCM、checksum破損を検証済み出力として保存しないことも確認した。
+
+実装commit `756d69c4363620bac19a9b936a757e92a47e5fa3`を含むhead
+`92722edc10aab6558337b5fbda43fff20f431308`のGitHub Actions run `35672191674`は、
+wasm-codec、Ubuntu/macOS native、sanitizedの4ジョブすべてsuccess。これはWAV decoderの
+remote受入であり、本実装生成WAVの物理JR-200読込や独立2回の録音往復ではない。
+詳細は [P11_WAV_DECODE_ACCEPTANCE.md](P11_WAV_DECODE_ACCEPTANCE.md)。
+
 ## P10 CJR信号生成・WAVエンコード受入（2026-09-22 / macOS）
 
 P08の共通4800 Hz信号源から12-bit frame、固定600 baud header、600/2400 data、
