@@ -29,6 +29,7 @@
     "docs/P08_CASSETTE_ACCEPTANCE.md",
     "docs/P09_AUDIO_ACCEPTANCE.md",
     "docs/P10_WAV_ACCEPTANCE.md",
+    "docs/P11_WAV_DECODE_ACCEPTANCE.md",
     "docs/SOW.md",
     "docs/STATUS.md",
     "docs/TEST_RESULTS.md",

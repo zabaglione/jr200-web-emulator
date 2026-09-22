@@ -1,14 +1,14 @@
 # JR-200 Web Emulator
 
-**状態: P10まで受入完了。ブラウザBASIC、通常カセット、Web Audio、CJR→WAVを確認済みです。**
+**状態: P10まで受入完了。P11のWAV→CJRはローカル実装・試験済みですが、Actions利用枠待ちでremote受入保留です。**
 
 VJR200forWindowsを基に、C++20→WebAssembly＋JavaScriptのJR-200 Webエミュレータを開発する計画です。CJR互換と、実機と往復するWAVを段階的に実装します。計画と現状を混同しないでください。
 
 ## 今回入っているもの
 
-CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CJR→RIFF PCM WAV、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、固定PCMキュー、利用者操作式Web Audio、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、キーボード入力、ポーズ/リセット、固定長デバッガ、通常CJRカセットtransport、native/WASM/ブラウザ試験、14件のIssue本文です。
+CJRの安全な検査、原バイト列を保持するコピー、連続領域のBIN→CJR包装、CJR↔RIFF PCM WAV、CLI、OS非依存のMC6800、MN1271/MN1544/CRTC、明示的メモリバスとcycle clock、固定PCMキュー、利用者操作式Web Audio、ARGBフレームバッファ、ローカルROM/フォント選択、Canvas表示、キーボード入力、ポーズ/リセット、固定長デバッガ、通常CJRカセットtransport、native/WASM/ブラウザ試験、14件のIssue本文です。
 
-**入っていないもの:** WAV→CJRデコーダ、Web Audioのpan、物理出力の音圧測定、生成WAVのJR-200実機互換結果、ROM/メーカー由来フォント本体。ROM、フォント、録音は利用者のローカルファイルとしてのみ扱います。
+**入っていないもの:** Web Audioのpan、物理出力の音圧測定、生成WAVのJR-200実機互換結果、ROM/メーカー由来フォント本体。ROM、フォント、録音は利用者のローカルファイルとしてのみ扱います。
 
 リポジトリ: [zabaglione/jr200-web-emulator](https://github.com/zabaglione/jr200-web-emulator)（private）。開発順と実際のIssue番号は [Issue一覧](docs/ISSUE_INDEX.md) を参照してください。CIの結果は [Actions](https://github.com/zabaglione/jr200-web-emulator/actions) で確認できます。
 
@@ -35,7 +35,7 @@ make sanitize    # clang++ と sanitizer が必要
 ./build/native/cjrtool
 ```
 
-CLIは `inspect` / `copy` / `extract` / `pack` / `wav` を持ちます。WAVは44.1/48 kHz、mono 16-bit、600/2400 baudで、無指定時はCJR header速度へ従います。引数は引数なしのヘルプで確認できます。既存出力への上書きは拒否します。離れたアドレスのCJRを単純に連結してBINへ変換することも拒否します。
+CLIは `inspect` / `copy` / `extract` / `pack` / `wav` / `wav-decode` を持ちます。WAV出力は44.1/48 kHz、mono 16-bit、600/2400 baudで、無指定時はCJR header速度へ従います。WAV入力はinteger PCMのmono/stereo、8/16-bit、22.05/44.1/48 kHzに限定し、検証成功時だけCJRを書き出します。引数は引数なしのヘルプで確認できます。既存出力への上書きを拒否し、離れたアドレスのCJRを単純に連結してBINへ変換することも拒否します。
 
 ## WASM版Webエミュレータ
 
@@ -47,9 +47,9 @@ make serve
 # ブラウザで http://127.0.0.1:8000 を開く
 ```
 
-結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査、BIN→標準CJR包装、検証済み標準CJR→WAV保存も同じ画面から利用できます。WAVは44.1/48 kHz、mono 16-bit、600/2400 baudで、自動再生せず、実機互換未検証を表示します。デバッガは実行/停止/step、16件ずつのbreakpoint/watchpoint、命令256件・CPUアクセス512件の履歴、手動256 byte peekを持ちます。標準BASIC/マシン語CJRを通常のMN1271信号経路へmountし、LOAD/MLOAD/SAVE/MSAVEを実行できます。音声は利用者が有効化するまで開始せず、既定20%/上限50%の音量、ミュート、sample rate/underrun表示、休止時のqueue破棄を持ちます。高速RAM注入、PRINT#、INPUT#、特殊・連結CJRは対象外です。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
+結合ROMまたは分割ROMとフォントを選択してJR-200を起動でき、CJR検査、BIN→標準CJR包装、検証済み標準CJR→WAV保存、録音WAV→検証済みCJR復元も同じ画面から利用できます。WAV復元候補は診断だけを表示し、block/checksumを含む全検証に成功した場合だけ保存できます。WAV出力は44.1/48 kHz、mono 16-bit、600/2400 baudで、自動再生せず、実機互換未検証を表示します。デバッガは実行/停止/step、16件ずつのbreakpoint/watchpoint、命令256件・CPUアクセス512件の履歴、手動256 byte peekを持ちます。標準BASIC/マシン語CJRを通常のMN1271信号経路へmountし、LOAD/MLOAD/SAVE/MSAVEを実行できます。音声は利用者が有効化するまで開始せず、既定20%/上限50%の音量、ミュート、sample rate/underrun表示、休止時のqueue破棄を持ちます。高速RAM注入、PRINT#、INPUT#、特殊・連結CJRは対象外です。通常は選択データを保持せず、チェックボックスで明示許可した場合だけIndexedDBへ保存します。入力ファイルはブラウザ内部のみで処理し、ローカルHTTPサーバーは静的ファイルの配信だけを行います。
 
-Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。ブラウザ起動の詳細は [P06受入記録](docs/P06_BROWSER_ACCEPTANCE.md)、デバッガの停止・観測境界は [P07受入記録](docs/P07_DEBUGGER_ACCEPTANCE.md)、通常CJR transportは [P08受入記録](docs/P08_CASSETTE_ACCEPTANCE.md)、Web Audioは [P09受入記録](docs/P09_AUDIO_ACCEPTANCE.md)、CJR→WAVと独立decodeは [P10受入記録](docs/P10_WAV_ACCEPTANCE.md) を参照してください。
+Emscriptenは `.emscripten-version` の6.0.9へ固定し、CJR/CPU/周辺回路を含むmoduleの生成、Node.js起動、Chrome・Firefox・Safariでの実ROM起動を確認しています。ブラウザ起動の詳細は [P06受入記録](docs/P06_BROWSER_ACCEPTANCE.md)、デバッガの停止・観測境界は [P07受入記録](docs/P07_DEBUGGER_ACCEPTANCE.md)、通常CJR transportは [P08受入記録](docs/P08_CASSETTE_ACCEPTANCE.md)、Web Audioは [P09受入記録](docs/P09_AUDIO_ACCEPTANCE.md)、CJR→WAVと独立decodeは [P10受入記録](docs/P10_WAV_ACCEPTANCE.md)、WAV→CJRのローカル試験とremote保留は [P11記録](docs/P11_WAV_DECODE_ACCEPTANCE.md) を参照してください。
 
 ```sh
 # emsdk を導入・有効化済みの環境で

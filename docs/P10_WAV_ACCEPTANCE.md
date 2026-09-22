@@ -107,7 +107,8 @@ node --check web/app.mjs
 
 - JR-200実機によるLOAD/MLOAD、実機側の音量・極性許容度、再生device/ケーブル差は
   P12まで未検証である。JR2Rescueでの読込成功は物理実機互換の証拠ではない。
-- WAVからCJRを復元する本プロジェクト自身のdecoderはP11であり、まだ未実装である。
+- WAVからCJRを復元する本プロジェクト自身のdecoderはP11でローカル実装済みだが、
+  remote CIとIssue受入はActions利用枠のreset待ちである。
 - JR2、特殊loader、headerなしCJR、stereo/8-bit/22.05 kHz出力は本Issueの対象外。
 - 参照実行はMono上であり、native Windows上の同一操作は今回再確認していない。
 - ROM、font、WAV、CJR、BIN、browser download、参照バイナリをGitへ追加していない。
