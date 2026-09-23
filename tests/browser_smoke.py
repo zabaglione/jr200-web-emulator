@@ -7,6 +7,7 @@ manufacturer ROM reaches BASIC or that hardware interchange works.
 """
 from __future__ import annotations
 import functools
+import hashlib
 import http.server
 import json
 import os
@@ -244,6 +245,141 @@ def main() -> None:
                         route.continue_()
                 page.route('**/*',guard)
                 page.goto(base+'/',wait_until='networkidle')
+
+                linked = main_context.new_page()
+                linked.on('pageerror', lambda error: errors.append(str(error)))
+                linked.route('**/*', guard)
+                linked_catalog = {
+                    'schemaVersion': 1,
+                    'games': [{
+                        'id': 'test-game', 'title': 'TEST GAME', 'version': '1.0.0',
+                        'path': 'games/test-game/1.0.0/test-game.cjr',
+                        'sha256': hashlib.sha256(GOLDEN).hexdigest(),
+                        'runCommand': 'A=USR($7000)',
+                    }],
+                }
+                linked.route('**/game-catalog.json', lambda route: route.fulfill(
+                    status=200, content_type='application/json',
+                    body=json.dumps(linked_catalog)))
+                linked.route('**/games/test-game/1.0.0/test-game.cjr',
+                             lambda route: route.fulfill(
+                                 status=200, content_type='application/octet-stream',
+                                 body=GOLDEN))
+                linked.goto(base+'/?game=test-game', wait_until='networkidle')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    'TEST GAME 1.0.0 をカセットにセット')
+                expect(linked.locator('#game-launch-instructions')).to_contain_text(
+                    'MLOAD、続いて A=USR($7000)')
+                expect(linked.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'mounted')
+                expect(linked.locator('#tape-status')).to_contain_text('payload 1 bytes')
+                for linked_width, linked_height in [(1920, 960), (1280, 720)]:
+                    linked.set_viewport_size({'width': linked_width, 'height': linked_height})
+                    placement = linked.evaluate('''() => {
+                      const banner = document.querySelector('#game-launch').getBoundingClientRect();
+                      const workspace = document.querySelector('.workspace').getBoundingClientRect();
+                      return {left: banner.left, right: banner.right, bottom: banner.bottom,
+                              workspaceTop: workspace.top,
+                              viewportWidth: innerWidth,
+                              documentWidth: document.documentElement.scrollWidth};
+                    }''')
+                    assert placement['left'] >= 0, placement
+                    assert placement['right'] <= linked_width, placement
+                    assert placement['bottom'] <= placement['workspaceTop'], placement
+                    assert placement['documentWidth'] <= linked_width, placement
+                linked.locator('#rom-combined').set_input_files({
+                    'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
+                    'buffer': bytes(ROM),
+                })
+                linked.locator('#font').set_input_files({
+                    'name': 'synthetic-font.bin',
+                    'mimeType': 'application/octet-stream', 'buffer': FONT,
+                })
+                linked.locator('#start').click()
+                expect(linked.locator('#machine-status')).to_contain_text('実行中')
+                expect(linked.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'mounted')
+                linked.locator('#tape-cjr').set_input_files({
+                    'name': 'local.cjr', 'mimeType': 'application/octet-stream',
+                    'buffer': GOLDEN,
+                })
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    'ローカルのCJRへ切り替え')
+                expect(linked.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'pending')
+                linked.goto(base+'/?game=missing', wait_until='networkidle')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    '公開作品が見つかりません')
+                linked.goto(base+'/?game=../bad', wait_until='networkidle')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    'ゲームIDが不正')
+                linked.add_init_script('''
+                    const nativeFetch = globalThis.fetch.bind(globalThis);
+                    globalThis.fetch = async (...args) => {
+                      const response = await nativeFetch(...args);
+                      if (String(args[0]).endsWith('/games/test-game/1.0.0/test-game.cjr')) {
+                        await new Promise(resolve => { globalThis.__releaseGameCjr = resolve; });
+                        globalThis.__delayedGameResponseReturned = true;
+                      }
+                      return response;
+                    };
+                ''')
+                linked.goto(base+'/?game=test-game', wait_until='networkidle')
+                linked.wait_for_function('typeof window.__releaseGameCjr === "function"')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    '作品CJRを確認しています')
+                linked.locator('#tape-heading').click()
+                linked.locator('#tape-record').click()
+                expect(linked.locator('#tape-status')).to_contain_text('状態: 録音待機')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    '手動のカセット操作を優先')
+                linked.evaluate('window.__releaseGameCjr()')
+                linked.wait_for_function('window.__delayedGameResponseReturned === true')
+                linked.wait_for_timeout(250)
+                expect(linked.locator('#tape-status')).to_contain_text('状態: 録音待機')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    '手動のカセット操作を優先')
+                linked.close()
+
+                local_rom = os.environ.get('JR200_TEST_ROM')
+                local_font = os.environ.get('JR200_TEST_FONT')
+                local_cjr = os.environ.get('JR200_TEST_CJR')
+                if any((local_rom, local_font, local_cjr)):
+                    if not all((local_rom, local_font, local_cjr)):
+                        raise AssertionError('JR200_TEST_ROM, JR200_TEST_FONT and JR200_TEST_CJR must be set together')
+                    cjr_bytes = Path(local_cjr).read_bytes()
+                    local_catalog = {
+                        'schemaVersion': 1,
+                        'games': [{
+                            'id': 'local-rom-test', 'title': 'LOCAL ROM TEST',
+                            'version': '0.1.0',
+                            'path': 'games/local-rom-test/0.1.0/local-rom-test.cjr',
+                            'sha256': hashlib.sha256(cjr_bytes).hexdigest(),
+                            'runCommand': 'A=USR($1000)',
+                        }],
+                    }
+                    local_linked = main_context.new_page()
+                    local_linked.on('pageerror', lambda error: errors.append(str(error)))
+                    local_linked.route('**/*', guard)
+                    local_linked.route('**/game-catalog.json', lambda route: route.fulfill(
+                        status=200, content_type='application/json',
+                        body=json.dumps(local_catalog)))
+                    local_linked.route('**/games/local-rom-test/0.1.0/local-rom-test.cjr',
+                                       lambda route: route.fulfill(
+                                           status=200,
+                                           content_type='application/octet-stream',
+                                           body=cjr_bytes))
+                    local_linked.goto(base+'/?game=local-rom-test', wait_until='networkidle')
+                    expect(local_linked.locator('#game-launch-status')).to_contain_text(
+                        'LOCAL ROM TEST 0.1.0 をカセットにセット')
+                    local_linked.locator('#rom-combined').set_input_files(local_rom)
+                    local_linked.locator('#font').set_input_files(local_font)
+                    local_linked.locator('#start').click()
+                    expect(local_linked.locator('#machine-status')).to_contain_text('実行中')
+                    expect(local_linked.locator('#tape-mount-state')).to_have_attribute(
+                        'data-state', 'mounted')
+                    local_linked.close()
+                    print('PASS local ROM/FONT: linked CJR mount persists after boot')
 
                 real_audio_context = browser.new_context(
                     viewport={'width':1280,'height':720},

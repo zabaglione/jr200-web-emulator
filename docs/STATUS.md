@@ -100,3 +100,12 @@ HARDWARE_TEST_PLAN.mdに従い、生成WAVの物理JR-200読込と独立2回録�
 2026-09-23の公開追補では、P12の物理WAV往復を未検証の制限として維持しつつ、固定Emscriptenで生成する`build/site`のみをGitHub Pagesへ配信する手順とワークフローを追加する。リポジトリ可視性、Pagesの有効化、配信成功、公開URLでの実行はそれぞれ別に確認する。[Pages配信手順](PAGES_DEPLOYMENT.md)を参照する。
 
 2026-09-23にリポジトリをpublicへ変更し、GitHub Actionsを配信元とするPagesを有効化した。初回公開のCI・PagesとROMなし実ブラウザ確認の結果は[公開前検査記録](PUBLICATION_AUDIT.md)に追記した。P12は引き続きopenであり、公開サイトでのWASM初期化は物理JR-200とのWAV互換を示さない。
+
+作品IDリンク追補: JR-100方式を参考に、同一Pagesの固定カタログ・SHA-256を使う
+`?game=<id>`のCJR自動マウントをローカル実装した。Nodeと合成ROM/FONTのChrome試験では
+通常カセットへのセットと起動後の保持を確認した。ローカル保有の実ROM/FONTと
+RELIC DIVE開発版CJRでも、Chromeのlocalhost上でマウントと起動後の保持を確認したが、
+リンク経由のMLOAD／USR実行までは確認していない。現在の公開用カタログは空で、
+SIDE CATCH・RELIC DIVEなど開発中のCJRはPagesへ配信していない。
+[作品リンクの契約](GAME_LINKS.md)を参照。remote Pagesでの新機能稼働や
+作品別MLOAD／実行の確認は、コードの公開・配信後に別途必要である。

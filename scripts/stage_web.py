@@ -26,7 +26,8 @@ else:
 (site / 'backend.json').write_text('{"backend":"' + a.backend + '"}\n')
 expected = {
     'LICENSE.txt', 'THIRD_PARTY_NOTICES.md', 'SBOM.spdx.json', 'LICENSES',
-    'app.mjs', 'audio.mjs', 'codec.mjs', 'keyboard.mjs', 'index.html', 'style.css',
+    'app.mjs', 'audio.mjs', 'codec.mjs', 'keyboard.mjs', 'game-launch.mjs',
+    'game-catalog.json', 'index.html', 'style.css',
     'jr200_codec.wasm', 'backend.json',
 }
 if a.backend == 'emscripten':

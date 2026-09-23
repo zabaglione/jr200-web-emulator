@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
+.game-launch { grid-column: 1 / -1; min-width: 0; margin: 0; padding: 0.4rem 0.7rem; border: 1px solid currentColor; }
+.game-launch[hidden] { display: none; }
+.game-launch p { margin: 0.2rem 0 0; }
 :root {
   color-scheme: light;
   --bg: #aeb3b7;

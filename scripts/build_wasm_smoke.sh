@@ -85,5 +85,6 @@ node "$ROOT/tests/system_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.was
 node "$ROOT/tests/wrapper_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/audio_output_smoke.mjs"
 node "$ROOT/tests/keyboard_smoke.mjs"
+node "$ROOT/tests/game_launch_smoke.mjs"
 node "$ROOT/tests/wav_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"
 node "$ROOT/tests/wav_decode_wasm_smoke.mjs" "$ROOT/build/wasm-smoke/jr200_codec.wasm"

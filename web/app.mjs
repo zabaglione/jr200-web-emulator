@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {loadCodec} from './codec.mjs';
 import {WebAudioOutput} from './audio.mjs';
+import {fetchGame, requestedGame} from './game-launch.mjs';
 import {
   CONTROL_KEYS,
   INPUT_MODES,
@@ -71,6 +72,9 @@ const state = {
   tapeSelectionRevision: 0,
   tapeMountedSelectionRevision: 0,
   tapeSelectionStatus: '',
+  linkedGame: null,
+  gameLinkPending: false,
+  gameLinkRevision: 0,
   wavCjr: null,
   wavName: '',
   decodedCjr: null,
@@ -143,6 +147,7 @@ try {
   $('status').textContent = 'WASM起動済み / 処理はローカルのみ';
   updateAssetStatus();
   await restoreSavedAssets({automatic: true});
+  void prepareLinkedGame();
   for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'remember-assets', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'tape-monitor-enabled', 'tape-monitor-volume', 'audio-enable', 'audio-volume', 'audio-mute', 'pause-on-focus-loss', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel', 'fullscreen', 'screen-scale', 'screen-aspect', 'screen-rotation', 'screen-smoothing', 'cpu-speed', 'tape-turbo', 'ram-expansion-1', 'ram-expansion-2', 'ram-init-pattern', 'quick-type-text', 'quick-type-interval', 'macro-slot', 'macro-text', 'macro-save', 'macro-delete', 'romaji-kana', 'gamepad-button-a', 'gamepad-button-b', 'gamepad-one-button', 'forced-joystick', 'forced-joystick-a', 'forced-joystick-b']) {
     $(id).disabled = false;
   }
@@ -156,6 +161,52 @@ try {
 }
 
 requestAnimationFrame(runFrame);
+
+async function prepareLinkedGame() {
+  let id;
+  const selectionRevision = state.tapeSelectionRevision;
+  const requestRevision = state.gameLinkRevision;
+  try {
+    id = requestedGame(location.search);
+    if (id === null) return;
+    state.gameLinkPending = true;
+    $('game-launch').hidden = false;
+    $('game-launch-status').textContent = '作品CJRを確認しています。';
+    const game = await fetchGame(id, new URL('./', location.href));
+    if (state.tapeSelectionRevision !== selectionRevision
+        || state.gameLinkRevision !== requestRevision) return;
+    const summary = codec.inspect(game.bytes);
+    if (summary.fileType !== 1 || summary.dataBlocks < 1) {
+      throw new Error('作品は標準マシン語CJRではありません。');
+    }
+    codec.machine.tape.mount(game.bytes);
+    state.linkedGame = game;
+    state.tapeSelectedName = `${id}.cjr`;
+    state.tapeName = state.tapeSelectedName;
+    state.tapeSelectionRevision++;
+    state.tapeMountedSelectionRevision = state.tapeSelectionRevision;
+    state.tapeSelectionStatus = 'マシン語 / MLOAD用です。';
+    state.gameLinkPending = false;
+    $('game-launch-status').textContent = `${game.entry.title} ${game.entry.version} をカセットにセットしました。`;
+    $('game-launch-instructions').textContent = `手元のROMとフォントで起動後、MLOAD、続いて ${game.entry.runCommand} を入力してください。CJRの自動実行や高速ロードはしていません。`;
+    showTapeStatus();
+  } catch (error) {
+    if (state.tapeSelectionRevision !== selectionRevision
+        || state.gameLinkRevision !== requestRevision) return;
+    state.gameLinkPending = false;
+    $('game-launch').hidden = false;
+    $('game-launch-status').textContent = `作品リンクを開けません: ${error.message}`;
+    $('game-launch-instructions').textContent = '手元のCJRを選んで読み込むことはできます。';
+  }
+}
+
+function cancelPendingLinkedGame() {
+  if (!state.gameLinkPending) return;
+  state.gameLinkPending = false;
+  state.gameLinkRevision++;
+  $('game-launch-status').textContent = '手動のカセット操作を優先しました。';
+  $('game-launch-instructions').textContent = '作品CJRの自動セットは中止しました。';
+}
 
 function applyScreenPreferences() {
   document.body.dataset.screenScale = preferences.screenScale;
@@ -1805,7 +1856,13 @@ function downloadBytes(bytes, name, type = 'application/octet-stream') {
 }
 
 $('tape-cjr').addEventListener('change', async () => {
+  cancelPendingLinkedGame();
   const file = $('tape-cjr').files[0];
+  state.linkedGame = null;
+  if (!$('game-launch').hidden) {
+    $('game-launch-status').textContent = 'ローカルのCJRへ切り替えました。';
+    $('game-launch-instructions').textContent = '';
+  }
   state.tapeSelectedName = file?.name || '';
   const revision = ++state.tapeSelectionRevision;
   state.tapeSelectionStatus = '';
@@ -1832,15 +1889,16 @@ $('tape-cjr').addEventListener('change', async () => {
 
 async function mountSelectedTape() {
   const file = $('tape-cjr').files[0];
-  const bytes = await readLimited(file);
+  const bytes = state.linkedGame?.bytes || await readLimited(file);
   state.tapeName = '';
   state.tapeMountedSelectionRevision = 0;
   codec.machine.tape.mount(bytes);
-  state.tapeName = file.name;
+  state.tapeName = file?.name || state.linkedGame?.entry.id + '.cjr';
   state.tapeMountedSelectionRevision = state.tapeSelectionRevision;
 }
 
 $('tape-mount').addEventListener('click', async () => {
+  cancelPendingLinkedGame();
   try {
     await mountSelectedTape();
     showTapeStatus('通常のカセット入力信号としてマウントしました。LOADまたはMLOADを実行してください。');
@@ -1850,9 +1908,11 @@ $('tape-mount').addEventListener('click', async () => {
 });
 
 $('tape-quick-load').addEventListener('click', async () => {
+  cancelPendingLinkedGame();
   try {
     const file = $('tape-cjr').files[0];
-    const bytes = await readLimited(file);
+    const bytes = state.linkedGame?.bytes || await readLimited(file);
+    const name = file?.name || state.linkedGame?.entry.id + '.cjr';
     stopAutomaticInput();
     releaseKeys();
     const result = codec.machine.quickLoad(bytes);
@@ -1860,7 +1920,7 @@ $('tape-quick-load').addEventListener('click', async () => {
     paintMachine();
     refreshDebugger();
     showMachineStatus();
-    showTapeStatus(`${file.name} の${kind} ${result.injectedBytes}バイトを高速ロードしました。これはカセット信号経路を通らない便宜機能です。`);
+    showTapeStatus(`${name} の${kind} ${result.injectedBytes}バイトを高速ロードしました。これはカセット信号経路を通らない便宜機能です。`);
     canvas.focus();
   } catch (error) {
     showTapeStatus(`高速ロードできません: ${error.message}`);
@@ -1868,6 +1928,7 @@ $('tape-quick-load').addEventListener('click', async () => {
 });
 
 $('tape-eject').addEventListener('click', () => {
+  cancelPendingLinkedGame();
   codec.machine.tape.eject();
   state.tapeName = '';
   state.tapeMountedSelectionRevision = 0;
@@ -1875,6 +1936,7 @@ $('tape-eject').addEventListener('click', () => {
 });
 
 $('tape-rewind').addEventListener('click', () => {
+  cancelPendingLinkedGame();
   try {
     codec.machine.tape.rewind();
     showTapeStatus('CJRの信号位置を先頭へ戻しました。');
@@ -1884,6 +1946,7 @@ $('tape-rewind').addEventListener('click', () => {
 });
 
 $('tape-record').addEventListener('click', () => {
+  cancelPendingLinkedGame();
   try {
     codec.machine.tape.armRecord();
     state.tapeName = '';
@@ -1895,6 +1958,7 @@ $('tape-record').addEventListener('click', () => {
 });
 
 $('tape-download').addEventListener('click', () => {
+  cancelPendingLinkedGame();
   try {
     const output = codec.machine.tape.output();
     if (output.length === 0) throw new Error('保存できる録音CJRがありません');
@@ -1911,6 +1975,7 @@ $('tape-download').addEventListener('click', () => {
 });
 
 $('tape-replay-output').addEventListener('click', () => {
+  cancelPendingLinkedGame();
   try {
     const output = codec.machine.tape.output();
     if (output.length === 0) throw new Error('再生できる録音CJRがありません');
