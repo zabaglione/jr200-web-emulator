@@ -28,3 +28,9 @@
 4. 最後に明示許可を確認してGitHubの可視性を変更する。これはGitHub Pagesの設定変更やROM・録音の配布を意味しない。
 
 P12の物理JR-200とWAVの往復検証は未完了のまま明示し、CJR検査やブラウザ内でのMLOAD試験をその代用にしない。
+
+## 初回公開の結果（2026-09-23）
+
+公開候補`7fba0c633e932152a679d71b1675343b50666f77`をprivateのまま検査した。`source-and-codec`の[5ジョブ](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35813178116)は全成功し、[Pages事前ビルド](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35813287554)も成功した。非公開中はPages artifactとdeployをスキップした。ソース一覧は122ファイルで、Git対象と一致し、ROM・録音・ビルド出力を含まなかった。Actionsの32実行のうち、取得可能な31件のログで検査対象の秘密情報形式と個人パスは見つからず、残る1件はジョブがなくログがない。
+
+その後、明示許可に基づきリポジトリをpublicへ変更し、Pagesの配信元をGitHub Actionsに設定した。公開後の[CI](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35813544803)は全5ジョブ成功し、[Pages build/deploy](https://github.com/zabaglione/jr200-web-emulator/actions/runs/35813680462)も成功した。[公開URL](https://zabaglione.github.io/jr200-web-emulator/)からHTML、backend.json、生成JS、WASM、Emscriptenとlibc++abiのライセンスがHTTP 200で取得できた。新規ChromeセッションではROMなしでWASM初期化が成功し、CPU未起動の表示を確認した。ページエラーと外部リクエストは0件だった。これは実ROM／フォントを使ったPages上のBASIC動作、または物理JR-200とのWAV往復の証拠ではない。

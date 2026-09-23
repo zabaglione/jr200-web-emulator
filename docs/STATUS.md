@@ -98,3 +98,5 @@ HARDWARE_TEST_PLAN.mdに従い、生成WAVの物理JR-200読込と独立2回録�
 2026-09-22時点ではprivateを維持し、Pages/外部公開デプロイ、アクセス権・branch protectionは変更していない。以後の公開判断と検査状況は[PUBLICATION_AUDIT.md](PUBLICATION_AUDIT.md)を参照する。
 
 2026-09-23の公開追補では、P12の物理WAV往復を未検証の制限として維持しつつ、固定Emscriptenで生成する`build/site`のみをGitHub Pagesへ配信する手順とワークフローを追加する。リポジトリ可視性、Pagesの有効化、配信成功、公開URLでの実行はそれぞれ別に確認する。[Pages配信手順](PAGES_DEPLOYMENT.md)を参照する。
+
+2026-09-23にリポジトリをpublicへ変更し、GitHub Actionsを配信元とするPagesを有効化した。初回公開のCI・PagesとROMなし実ブラウザ確認の結果は[公開前検査記録](PUBLICATION_AUDIT.md)に追記した。P12は引き続きopenであり、公開サイトでのWASM初期化は物理JR-200とのWAV互換を示さない。
