@@ -3,6 +3,7 @@
 const DEFAULT_VOLUME = 0.2;
 const DEFAULT_LEAD_SECONDS = 0.04;
 const DEFAULT_LATE_MARGIN_SECONDS = 0.005;
+const DEFAULT_MAX_AHEAD_SECONDS = 0.25;
 
 export class WebAudioOutput {
   constructor(machineAudio, options = {}) {
@@ -16,18 +17,25 @@ export class WebAudioOutput {
       globalThis.AudioContext ?? globalThis.webkitAudioContext ?? null;
     this.onChange = options.onChange ?? (() => {});
     this.volume = options.initialVolume ?? DEFAULT_VOLUME;
+    const initialEnabled = options.initialEnabled ?? false;
     this.leadSeconds = options.leadSeconds ?? DEFAULT_LEAD_SECONDS;
     this.lateMarginSeconds = options.lateMarginSeconds ?? DEFAULT_LATE_MARGIN_SECONDS;
+    this.maxAheadSeconds = options.maxAheadSeconds ?? DEFAULT_MAX_AHEAD_SECONDS;
+    if (typeof initialEnabled !== 'boolean') {
+      throw new Error('Initial enabled state must be boolean');
+    }
     if (!Number.isFinite(this.volume) || this.volume < 0 || this.volume > 0.5) {
       throw new Error('Initial volume must be between 0 and 0.5');
     }
     if (!Number.isFinite(this.leadSeconds) || this.leadSeconds < 0 ||
-        !Number.isFinite(this.lateMarginSeconds) || this.lateMarginSeconds < 0) {
+        !Number.isFinite(this.lateMarginSeconds) || this.lateMarginSeconds < 0 ||
+        !Number.isFinite(this.maxAheadSeconds) ||
+        this.maxAheadSeconds < this.leadSeconds) {
       throw new Error('Audio timing values must be non-negative');
     }
     this.context = null;
     this.gain = null;
-    this.enabled = false;
+    this.enabled = initialEnabled;
     this.desiredRunning = false;
     this.muted = false;
     this.nextStartTime = 0;
@@ -37,6 +45,8 @@ export class WebAudioOutput {
     this.nonzeroFrames = 0;
     this.peakSample = 0;
     this.discardedFrames = 0;
+    this.aheadDroppedFrames = 0;
+    this.lastPlaybackRate = 1;
     this.lastError = '';
   }
 
@@ -64,6 +74,10 @@ export class WebAudioOutput {
     try {
       if (this.context.state !== 'running') {
         await this.context.resume();
+      }
+      if ((!this.desiredRunning || !this.enabled) &&
+          this.context.state !== 'suspended' && this.context.state !== 'closed') {
+        await this.context.suspend();
       }
     } catch (error) {
       this.enabled = false;
@@ -164,7 +178,11 @@ export class WebAudioOutput {
     return this.state();
   }
 
-  pump() {
+  pump(playbackRate = 1) {
+    if (!Number.isFinite(playbackRate) || playbackRate <= 0) {
+      throw new Error('Playback rate must be positive');
+    }
+    this.lastPlaybackRate = playbackRate;
     if (!this.enabled || !this.context || this.context.state !== 'running' ||
         this.muted) {
       this._resetTimeline();
@@ -184,6 +202,7 @@ export class WebAudioOutput {
     }
 
     let source = null;
+    let scheduledLength = pcm.length;
     try {
       const earliest = this.context.currentTime + this.leadSeconds;
       if (this.nextStartTime === 0) {
@@ -193,25 +212,44 @@ export class WebAudioOutput {
         ++this.underruns;
         this.nextStartTime = earliest;
       }
+      const scheduledAhead = Math.max(0, this.nextStartTime - this.context.currentTime);
+      const availableSeconds = Math.max(0, this.maxAheadSeconds - scheduledAhead);
+      scheduledLength = Math.min(
+        pcm.length,
+        Math.floor(availableSeconds * this.machineAudio.sampleRate * playbackRate),
+      );
+      if (scheduledLength === 0) {
+        this.discardedFrames += pcm.length;
+        this.aheadDroppedFrames += pcm.length;
+        return 0;
+      }
+      const aheadDropped = pcm.length - scheduledLength;
+      this.discardedFrames += aheadDropped;
+      this.aheadDroppedFrames += aheadDropped;
       const buffer = this.context.createBuffer(
         1,
-        pcm.length,
+        scheduledLength,
         this.machineAudio.sampleRate);
       const channel = buffer.getChannelData(0);
-      for (let i = 0; i < pcm.length; ++i) {
+      for (let i = 0; i < scheduledLength; ++i) {
         channel[i] = pcm[i] / 32768;
         if (pcm[i] !== 0) ++this.nonzeroFrames;
         this.peakSample = Math.max(this.peakSample, Math.abs(pcm[i]));
       }
       source = this.context.createBufferSource();
       source.buffer = buffer;
+      if (typeof source.playbackRate?.setValueAtTime === 'function') {
+        source.playbackRate.setValueAtTime(playbackRate, this.nextStartTime);
+      } else if (source.playbackRate) {
+        source.playbackRate.value = playbackRate;
+      }
       source.connect(this.gain);
       this.activeSources.add(source);
       source.onended = () => this.activeSources.delete(source);
       source.start(this.nextStartTime);
-      this.nextStartTime += pcm.length / this.machineAudio.sampleRate;
-      this.scheduledFrames += pcm.length;
-      return pcm.length;
+      this.nextStartTime += scheduledLength / this.machineAudio.sampleRate / playbackRate;
+      this.scheduledFrames += scheduledLength;
+      return scheduledLength;
     } catch (error) {
       if (source) {
         this.activeSources.delete(source);
@@ -221,7 +259,7 @@ export class WebAudioOutput {
           // A source that failed before connection has nothing to disconnect.
         }
       }
-      this.discardedFrames += pcm.length;
+      this.discardedFrames += scheduledLength;
       this.lastError = error instanceof Error ? error.message : String(error);
       this._resetTimeline();
       this._notify();
@@ -247,7 +285,10 @@ export class WebAudioOutput {
       nonzeroFrames: this.nonzeroFrames,
       peakSample: this.peakSample,
       discardedFrames: this.discardedFrames,
+      aheadDroppedFrames: this.aheadDroppedFrames,
       activeSources: this.activeSources.size,
+      playbackRate: this.lastPlaybackRate,
+      maxAheadSeconds: this.maxAheadSeconds,
       scheduledAheadSeconds: this.context
         ? Math.max(0, this.nextStartTime - this.context.currentTime)
         : 0,

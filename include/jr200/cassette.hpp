@@ -73,6 +73,7 @@ public:
 
     void set_remote(bool enabled) noexcept;
     void reset_remote() noexcept;
+    void set_monitor(bool enabled, uint8_t volume_percent) noexcept;
     [[nodiscard]] bool read_level() noexcept;
     void write_signal_byte(uint8_t value) noexcept;
     void tick(uint32_t cycles) noexcept;
@@ -83,6 +84,10 @@ public:
     [[nodiscard]] uint32_t error_detail() const noexcept;
     [[nodiscard]] bool remote() const noexcept;
     [[nodiscard]] bool read_started() const noexcept;
+    [[nodiscard]] bool monitor_enabled() const noexcept;
+    [[nodiscard]] uint8_t monitor_volume() const noexcept;
+    [[nodiscard]] bool monitor_active() const noexcept;
+    [[nodiscard]] int16_t monitor_sample() const noexcept;
     [[nodiscard]] uint64_t sample_position() const noexcept;
     [[nodiscard]] uint64_t total_samples() const noexcept;
     [[nodiscard]] size_t capture_size() const noexcept;
@@ -115,6 +120,8 @@ private:
     uint32_t error_detail_{};
     bool remote_{};
     bool read_started_{};
+    bool monitor_enabled_{true};
+    uint8_t monitor_volume_{25U};
     uint32_t cycle_remainder_{};
     uint64_t sample_position_{};
     uint64_t total_samples_{};

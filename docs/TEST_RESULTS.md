@@ -1,5 +1,145 @@
 # 初期実装の試験記録
 
+## Windows版機能差追補（2026-09-22 / macOS・Windows 11 ARM）
+
+VJR-200 V1.8.2の固定commit `dd748995bede57da5baebc1225c7a33433aa6934`を
+Windows版の基準とし、Windows 11 ARMでx64版の起動を確認した。機能と設定値は同commitの
+`VJR200.cpp`、`VJR200.rc`、`OptionDialog.cpp`、`Address.cpp`、`Mn1544.cpp`、
+`AppSettingXml.cpp`を照合した。Web版にはCJR高速ロード、Quick Type、10件のマクロ、
+ローマ字カナ、64 KiBメモリダンプ、画面倍率／全画面／画素比／補間／回転、CPU速度、
+CMT再生時の高速化、RAM拡張2種／初期化2種、gamepadのbutton割当／1button／強制入力を追加した。
+system ABIは9である。
+
+`make test`と`make sanitize`は各CTest 10/10、`make wasm-smoke`は8系統、
+Emscripten 6.0.9の`make wasm`とmodule smokeが成功した。正式Emscripten配布物を
+Playwright 1.63.0とGoogle Chrome 153.0.8010.53で検査し、追加機能の画面操作、
+Quick Typeの中止、設定保存、高速ロードの書込み、64 KiB download、既存機能の回帰、
+外部request 0件を確認した。固定scenarioは非表示2,723,036 cycles、表示2,678,568 cycles、
+Web Audio underrunはいずれも0だった。
+
+このturnでは新規3ファイルを利用者のGit indexへstageしていない。そのままの
+`make test`／`make sanitize`は機能・安全性の9項目が合格し、tracked source一覧だけが
+意図どおり不一致で停止した。実indexのcopyへ3ファイルをintent-to-addした隔離indexでは
+両CTest 10/10と`make check`が成功した。実indexは変更していないため、commit候補をstageした
+時点で通常indexの追跡一覧gateを再確認する必要がある。
+
+差分レビューで検出したCPU高速時の音声予約蓄積、ローマ字`KKA`の途中子音消失、
+最大長BASIC CJRの終端pointer、1700px幅での手動倍率上書き、1button時の任意button、
+高速ロードのfile単位provenanceを修正した。音声はCPU倍率へ再生倍率を追従させ、
+50 ms相当ごとにPCMを排出し、予約先行を250 ms以内に制限した。Chrome内の決定的な
+fake AudioContextではCPU 1000%を1.2秒継続しても先行300 ms以下、active source 30未満だった。
+`KKA`は`ｯ`、`ｶ`の順、
+`XTU`／`LTU`は`ｯ`、`TSU`は`ﾂ`へ変換し、1button時は標準D-pad以外のbutton 2もAになった。
+63,487 byteのBASIC CJRは書込み後の終端pointerが`$0000`となり、途中例外を起こさない。
+全画面はボタンで入り、Canvas上の`Alt+Enter`で終了するところまで確認した。
+
+state save、JR2、FDD、printer、debug label／disassembler等は、不完全な代替を作らず
+必要な周辺機器、format、直列化または受入fixtureを定義するまで保留した。今回の結果は
+Windows版固定ソースとの機能対応と合成ROM上のWeb配線を示す。物理JR-200、物理gamepad、
+保留機能、およびWindows版の全機能を実操作で照合した証拠ではない。詳細は
+[WINDOWS_PARITY.md](WINDOWS_PARITY.md)を参照する。
+
+## CTRL・TV外周色・画面優先レイアウト追補（2026-09-22 / macOS・Windows 11 ARM）
+
+仮想keyboardを既定で閉じ、上部の状態と操作を1行へ圧縮した。CSS viewport 1920×960と
+1920×1080では320×224画面を3倍（960×672）、1536×768と1280×720では2倍（640×448）に
+した。keyboard表示時も倍率を変えず、Full HDでは右横の最大520px、1536／1280幅では中央の
+最大620pxへ配置した。desktop用key高は通常配置25px以上、Full HD横配置29px以上とし、
+BREAK／DELの右辺とcursor十字配置を維持した。仮想keyboardは補助機能であり、画面と物理
+keyboardを優先した意図的な受入変更である。
+
+固定commit `dd748995bede57da5baebc1225c7a33433aa6934`のWindows版`Mn1544.cpp`から、
+MN1271 KSTAT bit 7に応じたCTRLのneutral／JR BASIC分岐を再構成した。Windows 11 ARM上で
+VJR-200 1.8.2 x64を実行し、権利確認済み実ROMのJR BASICで`CTRL+A`が`AUTO`を入力することを
+目視確認した。Web側はneutral code、BASIC直接code、keyword列、SHIFT併用、仮想CTRLの1回
+latch、macro中断をNodeとChromeの合成ROMで確認した。これはWindows参照実装との一致であり、
+物理JR-200のkey matrixを実測した証拠ではない。
+
+CRTCが持つ320×224 framebufferをそのままCanvasへ描き、中央256×192の表示領域と左右32px・
+上下16pxのTV外周色を分離した。合成ROMから`$CA00`へ7を書き、Chrome Canvas左上pixelが
+赤`[255,0,0,255]`になることを確認した。表示領域を狭める追加panelは作っていない。
+
+現行候補で`make test`と`make sanitize`は各CTest 10/10、`make check`、`make wasm-smoke`の
+8系統が成功した。Playwright 1.63.0とGoogle Chrome 153.0.8010.53の`make browser-smoke`は、
+上記5 viewport／DPR条件、keyboardの表示・非表示、物理`Control+C`／`Control+A`、外周色、
+既存のGamepad、Web Audio、cassette、debugger、CJR／WAV機能、外部request 0件を確認した。
+現行layoutのFirefox／Safari再試験と物理JR-200でのCTRL／外周色確認は未実施である。
+
+macOS日本語入力が`Control+3`をcomposition扱いにする場合の回帰試験を追加した。Canvasへ
+focusした合成`isComposing` eventでdefault actionが抑止され、JR BASICの`SAVE `列が最後まで
+入力されることをChromeで確認する。macOS IMEの実UIを使った最終確認は手動試験として残る。
+
+## CJR自動起動機能の撤回（2026-09-23）
+
+CJRはロード先を記録するが実行開始アドレスを記録しないため、先頭ロード先を実行先とみなす
+自動起動機能を削除した。通常のマウントとJR BASICでの手動`MLOAD`は利用できる。
+以前のMAZY試験結果はローカル検証記録に残すが、現行UIの機能受入とは扱わない。
+`make wasm-smoke`の8系統とChrome 153.0.8010.54の`make browser-smoke`が成功し、
+自動起動欄の不在、CJR選択・マウント・高速ロード、既存機能の回帰を確認した。
+`make test`と`make sanitize`は各CTest 10/10、`make check`も成功した。未追跡の
+新規3ファイルは検査用の隔離Git indexに仮登録し、利用者のindexは変更していない。
+
+## キークリック・音声既定ON追補（2026-09-22 / macOS・Chrome）
+
+JR-200UサービスマニュアルのPB6 key detection sound gateを共通MN1271コアへ追加した。
+通常キーコードの遷移を1回のpending clickとし、KACK立上り時にPB6が1なら
+2400 Hz・6 ms・peak 7000の短いPCMを生成する。PB6のgate動作は資料準拠だが、波形仕様は
+資料にないため可聴確認用の近似である。実ROMを使った直接WASM probeは、`$0000=0`で
+66 frame中nonzero 0、`$0000=$40`で66 frame中nonzero 57、peak 7000だった。
+重なった別key codeは各1回発音し、同一keyのhold／repeatは再発音せず、PB6を下げると進行中の
+burstも停止することをnative／直接WASMで確認した。
+
+固定commit `dd748995bede57da5baebc1225c7a33433aa6934`のWindows版VJR-200全ソースも確認した。
+`Mn1271.h`は`KEYSOUND=64`を宣言するが参照はその1か所だけで、`Reg3_write`は
+`SetKeyTest(val)`のみ、DirectSound生成は3 channelの`GetWave(ch)`だけだった。したがって、
+現行Windows版はキークリックを実装しておらず、実機挙動の対照には使っていない。
+
+Web Audioは既定ONの待機状態に変更した。ページ表示だけではAudioContextを作らず、最初の
+「起動」clickで開始するため、自動再生制限と既定ONを両立する。`make test`と`make sanitize`は
+各CTest 10/10、`make wasm-smoke`は8系統、Emscripten 6.0.9の`make wasm`も成功した。
+永続`.venv/`のPlaywright 1.63.0とGoogle Chrome 153.0.8010.53による`make browser-smoke`は、
+実`AudioContext`で起動前0、起動後running、停止後suspended、再開後runningを確認した。
+決定的なPCM検査はfake 48 kHz contextを使い、仮想Aキー操作後に追加されたsourceだけで
+非0 click PCMを確認した。遅延resume中のdisable競合、既存機能、外部request 0件も成功した。
+実機音の録音比較と物理speaker出力は未検証である。
+
+## ブラウザジョイスティック追補（2026-09-22 / macOS・Chrome）
+
+system ABI 8へ2 playerのactive-low joystick setterを追加し、Gamepad APIの左stick／D-pad、
+A／B、接続中が1台なら必ず1Pとなる割当、切断・focus喪失時のニュートラル化、boot／reset／復帰時の再同期を
+実装した。上流固定commitのbit割当とW3C標準mappingを分離して使用している。
+
+`make test`と`make sanitize`は各CTest 10/10、`make wasm-smoke`は直接WASM scan、JS wrapper、
+入力controllerを含む8系統、Emscripten 6.0.9の`make wasm`とABI 8 Node smokeが成功した。
+Playwright 1.63.0＋Google Chrome 153.0.8010.53では、合成Gamepad APIの2台を通常MN1544
+scanで`EA`／`D5`として観測し、2P切断時`FF`、1P切断時に残った2Pが1Pへ移る`D5 FF`、
+focus喪失時`FF FF`、復帰時の再同期を確認した。
+既存のkeyboard、音声、cassette、debugger、CJR／WAV回帰と外部request 0件も成功した。
+これはbrowser配線の合成試験であり、物理USB／Bluetooth controllerの機種別互換証拠ではない。
+
+## 操作性・保存・ロードモニター追補（2026-09-22 / macOS・Chrome）
+
+タブを離れた場合はキーだけを解放して既定で実行継続し、自動一時停止設定をONにした場合だけCPUと
+音声を一時停止するよう変更した。CJRの選択名と現在のマウント名を別表示し、未マウントを
+黄色、マウント済みを緑と文言で区別した。カセットの実信号レベルをPCMへ加算するロード
+モニターを既定ON・25%で追加し、再生中のON/OFFと音量変更を数値試験した。
+
+利用者提供の実機写真を配置参照に、仮想キーボードを数字列、QWERTY列、左右SHIFT、下段の
+英数／GRAPH／SPACE／カナ、独立cursor群を持つ5段へ変更した。右側はBREAK、INS／DEL、`↑`、
+`←`／`→`、`↓`の順に分離し、BREAKとDELの右辺、上下キーの中心と左右キーの中間を揃えた。全キーは44px以上、
+cursor群の縦横間隔は8px以上であることをChrome上の座標で確認した。写真自体は配布物へ含めていない。
+macOS JIS配列で`]`キーが`Backslash` codeを報告する場合は`event.key`で右角括弧へ補正し、
+右角括弧の仮想キーだけが押下表示となって`$5D`を入力することも確認した。
+IndexedDB保存形式にはROM／fontのブラウザ提供ファイル名だけを加え、再起動後は空のfile inputの
+代わりに状態欄へ表示する。旧保存形式は名称fallback付きで読み込める。
+
+`make test`と`make sanitize`は各CTest 10/10、`make wasm-smoke`の直接WASM／JS 8系統、
+Emscripten 6.0.9の`make wasm`とABI 8 Node smoke、`make check`が成功した。Playwright 1.63.0と
+Google Chrome 153.0.8010.53で正式Emscripten siteを検査し、1920×960、1920×1080、
+1536×768、1280×720、DPR 2を含むlayout、設定永続化、ROM名自動復元、focus動作2種、
+選択／mount差分、モニターUI、5段keyboard、既存機能、外部request 0件を確認した。
+このPCM試験は物理RQ-8300の音質や物理JR-200とのカセット互換を証明しない。
+
 ## UI follow-up #15〜#20受入（2026-09-22 / macOS・三ブラウザ）
 
 Full HD layout、シルバー／チャコール／青theme、英数／カナ／GRAPHの共有入力解決、

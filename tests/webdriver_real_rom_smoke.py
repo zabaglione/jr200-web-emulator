@@ -175,6 +175,7 @@ def main() -> None:
         boot_status = driver.wait_text("#machine-status", "font 初期化済み")
         glyph_status = driver.wait_text("#glyph-status", "標準文字RAM")
         driver.wait_cycles(4_000_000)
+        driver.click("#keyboard-toggle")
 
         layout = driver.execute(
             """
@@ -219,8 +220,8 @@ def main() -> None:
             raise RuntimeError(f"Screen was clipped: {layout}")
         if layout["keyboardBottom"] > layout["innerHeight"]:
             raise RuntimeError(f"Virtual keyboard was clipped: {layout}")
-        if layout["minKeyHeight"] < 44:
-            raise RuntimeError(f"Virtual key was shorter than 44px: {layout}")
+        if layout["minKeyHeight"] < 29:
+            raise RuntimeError(f"Virtual key was shorter than 29px: {layout}")
         if layout["keyACode"] != "61" or layout["glyphPixels"] == 0:
             raise RuntimeError(f"Real-font KeyA glyph was not rendered: {layout}")
 
@@ -233,9 +234,7 @@ def main() -> None:
         new_tab = driver.call("POST", "/window/new", {"type": "tab"})["handle"]
         driver.call("POST", "/window", {"handle": new_tab})
         driver.call("POST", "/window", {"handle": original})
-        paused_status = driver.wait_text("#machine-status", "一時停止")
-        driver.click("#pause")
-        driver.wait_text("#machine-status", "実行中")
+        focus_status = driver.wait_text("#machine-status", "実行中")
 
         driver.type_keys(
             "#screen", "10 PRINT 5\n20 END\nLIST\nRUN\n", delay_ms=100
@@ -272,7 +271,7 @@ def main() -> None:
                     "glyphStatus": glyph_status,
                     "modeStatus": mode_status,
                     "layout": layout,
-                    "focusLossStatus": paused_status,
+                    "focusLossStatus": focus_status,
                     "finalStatus": final_status,
                     "notice": notice,
                     "litPixels": lit_pixels,

@@ -314,6 +314,14 @@ void CassetteDeck::reset_remote() noexcept
     }
 }
 
+void CassetteDeck::set_monitor(
+    bool enabled,
+    uint8_t volume_percent) noexcept
+{
+    monitor_enabled_ = enabled;
+    monitor_volume_ = volume_percent > 100U ? 100U : volume_percent;
+}
+
 bool CassetteDeck::read_level() noexcept
 {
     if (mode_ != CassetteMode::Playback || !remote_) {
@@ -361,6 +369,24 @@ CassetteError CassetteDeck::error() const noexcept { return error_; }
 uint32_t CassetteDeck::error_detail() const noexcept { return error_detail_; }
 bool CassetteDeck::remote() const noexcept { return remote_; }
 bool CassetteDeck::read_started() const noexcept { return read_started_; }
+bool CassetteDeck::monitor_enabled() const noexcept { return monitor_enabled_; }
+uint8_t CassetteDeck::monitor_volume() const noexcept { return monitor_volume_; }
+bool CassetteDeck::monitor_active() const noexcept
+{
+    return monitor_enabled_ && monitor_volume_ != 0U &&
+        mode_ == CassetteMode::Playback && remote_ && read_started_ &&
+        state_ == CassetteState::Playing && phase_ != Phase::Done;
+}
+
+int16_t CassetteDeck::monitor_sample() const noexcept
+{
+    if (!monitor_active()) {
+        return 0;
+    }
+    const int32_t amplitude =
+        (7000 * static_cast<int32_t>(monitor_volume_)) / 100;
+    return static_cast<int16_t>(current_level() ? amplitude : -amplitude);
+}
 uint64_t CassetteDeck::sample_position() const noexcept { return sample_position_; }
 uint64_t CassetteDeck::total_samples() const noexcept { return total_samples_; }
 size_t CassetteDeck::capture_size() const noexcept { return capture_size_; }

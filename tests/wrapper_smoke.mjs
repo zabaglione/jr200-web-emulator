@@ -30,6 +30,11 @@ try {
   assert.equal(mounted.payloadBytes,1);
   assert.equal(mounted.firstAddress,0x7000);
   assert.ok(mounted.totalSamples>0);
+  assert.equal(mounted.monitorEnabled,true);
+  assert.equal(mounted.monitorVolume,25);
+  assert.equal(codec.machine.tape.setMonitor(false,40).monitorEnabled,false);
+  assert.equal(codec.machine.tape.setMonitor(true,40).monitorVolume,40);
+  assert.throws(()=>codec.machine.tape.setMonitor(true,101),/0〜100%/);
   assert.equal(codec.machine.tape.rewind().samplePosition,0);
   assert.equal(codec.machine.tape.eject().state,0);
   const special=Uint8Array.from(preserved);
@@ -50,7 +55,32 @@ try {
   rom.set([0x86,0x2a,0xb7,0xc1,0x00,0x20,0xfe],8192);
   rom.set([0xe0,0x00],16382);
   assert.throws(()=>codec.machine.run(1),/ROM/);
+  assert.deepEqual(codec.machine.configureMemory({
+    ramExpansion1:true,
+    ramExpansion2:false,
+    ramInitPattern:1,
+  }),{ramExpansion1:true,ramExpansion2:false,ramInitPattern:1});
+  assert.throws(()=>codec.machine.configureMemory({ramInitPattern:2}),/パターン/);
   assert.equal(codec.machine.boot(rom,font).pc,0xe000);
+  assert.equal(codec.machine.peek(0x0001),0xff);
+  codec.machine.write(0x8000,0x6a);
+  assert.equal(codec.machine.peek(0x8000),0x6a);
+  assert.throws(()=>codec.machine.write(0,256),/0〜255/);
+  const quickMachine=codec.machine.quickLoad(preserved);
+  assert.equal(quickMachine.injectedBytes,1);
+  assert.equal(codec.machine.peek(0x7000),0xab);
+  const basicCjr=codec.pack(Uint8Array.of(0x12,0x34),'BASIC',0,true,0);
+  const quickBasic=codec.machine.quickLoad(basicCjr);
+  assert.equal(quickBasic.fileType,0);
+  assert.deepEqual(Array.from(codec.machine.peekRange(0x0801,2)),[0x12,0x34]);
+  assert.deepEqual(Array.from(codec.machine.peekRange(0x0071,2)),[0x08,0x03]);
+  const memoryDump=codec.machine.dump();
+  assert.equal(memoryDump.length,65536);
+  assert.equal(memoryDump[0x7000],0xab);
+  codec.machine.setJoystick(0, 0xea);
+  codec.machine.setJoystick(1, 0xd5);
+  assert.throws(()=>codec.machine.setJoystick(2,0xff),/番号/);
+  assert.throws(()=>codec.machine.setJoystick(0,256),/状態/);
   assert.deepEqual(codec.machine.glyph(0x42, 'font'), {
     bank: 'font',
     code: 0x42,
@@ -122,11 +152,16 @@ try {
   assert.throws(()=>codec.machine.peekRange(0,257),/1〜256/);
   assert.equal(codec.machine.render().length,320*224);
   assert.equal(codec.machine.reset().pc,0xe000);
+  const maximumBasicPayload = new Uint8Array(65536 - 0x0801).fill(0x5a);
+  const maximumBasicCjr = codec.pack(maximumBasicPayload,'MAXBASIC',0,true,0);
+  const maximumBasic = codec.machine.quickLoad(maximumBasicCjr);
+  assert.equal(maximumBasic.injectedBytes,maximumBasicPayload.length);
+  assert.deepEqual(Array.from(codec.machine.peekRange(0x0071,2)),[0,0]);
   assert.throws(()=>codec.machine.boot(rom.subarray(1),font),/16384/);
   codec.machine.clear();
   assert.equal(codec.machine.tape.state().state,0);
   assert.throws(()=>codec.machine.run(1),/ROM/);
-  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, WAV encode/decode, cassette transport, machine boot/run/reset, bounded debugger, framebuffer, input guards');
+  console.log('PASS JS wrapper (Node, local fetch stub): inspect, pack, WAV encode/decode, cassette transport, machine boot/run/reset, bounded debugger, framebuffer, keyboard and joystick guards');
 } finally {
   globalThis.fetch=originalFetch;
 }

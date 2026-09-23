@@ -27,34 +27,37 @@
   <main class="workspace">
     <section class="machine-stage" aria-labelledby="emulator-heading">
       <div class="stage-heading">
-        <div>
-          <p class="section-number">01 / MACHINE</p>
-          <h2 id="emulator-heading">JR-200を操作</h2>
+        <div class="machine-heading-copy">
+          <div class="machine-title-line">
+            <p class="section-number">01 / MACHINE</p>
+            <h2 id="emulator-heading">JR-200を操作</h2>
+          </div>
+          <p id="machine-status" role="status">ROM未提供のためCPUは実行していません。</p>
         </div>
         <div class="controls primary-controls" aria-label="主要操作">
           <button id="start" type="button" disabled>起動</button>
           <button id="pause" type="button" disabled>一時停止</button>
           <button id="reset" type="button" disabled>リセット</button>
-          <button id="audio-enable" type="button" disabled>音声ON</button>
-          <button id="keyboard-toggle" type="button" aria-controls="keyboard-deck" aria-expanded="true">キーボードを隠す</button>
+          <button id="audio-enable" type="button" disabled>音声を開始</button>
+          <button id="keyboard-toggle" type="button" aria-controls="keyboard-deck" aria-expanded="false">仮想キー</button>
+          <button id="fullscreen" type="button" disabled>全画面</button>
         </div>
       </div>
-      <p id="machine-status" role="status">ROM未提供のためCPUは実行していません。</p>
 
       <div class="display-area">
-        <div class="screen-shell">
+        <div id="screen-shell" class="screen-shell">
           <canvas id="screen" width="320" height="224" tabindex="0" aria-label="JR-200画面。起動後にクリックするとキーボード入力できます。"></canvas>
         </div>
       </div>
 
-      <div id="keyboard-deck" class="keyboard-deck" aria-label="仮想キーボード領域">
+      <div id="keyboard-deck" class="keyboard-deck" aria-label="仮想キーボード領域" hidden>
         <div class="keyboard-statusbar">
           <strong id="input-mode-status">入力モード: 英数</strong>
           <span id="glyph-status" role="status">FONT未読込 / キー操作不可</span>
         </div>
         <div id="virtual-keyboard" class="virtual-keyboard" role="group" aria-label="JR-200仮想キーボード" aria-disabled="true"></div>
       </div>
-      <p class="hint stage-hint">起動後、画面をクリックして物理キーボードで入力できます。フォーカスを失うとキーを解放し、CPUと音声を一時停止します。</p>
+      <p class="hint stage-hint">起動後、画面をクリックして物理キーボードで入力できます。別のタブへ移ると押下中のキーだけを解放し、既定では実行を続けます。</p>
     </section>
 
     <aside class="utility-rail" aria-label="補助操作パネル">
@@ -74,7 +77,8 @@
           </div>
           <label class="file">フォント（2048バイト）<input id="font" type="file" accept=".rom,.bin,application/octet-stream" disabled></label>
           <ul id="asset-status" class="asset-status" aria-live="polite"><li>ROM: 未選択</li><li>フォント: 未選択</li></ul>
-          <label class="check permission"><input id="remember-assets" type="checkbox"> このブラウザにROMとフォントを保存することを許可</label>
+          <label class="check permission"><input id="remember-assets" type="checkbox" disabled> 次回も使うため、このブラウザへの保存と自動復元を許可</label>
+          <p class="hint">保存済みROMとフォントは、同じURLで次回開いたとき自動復元します。ブラウザの安全仕様によりファイル選択欄は空欄のままですが、上の状態表示には最後に読み込んだファイル名を表示します。</p>
           <div class="controls compact"><button id="restore-assets" type="button" disabled>保存済みファイルを復元</button><button id="forget-assets" type="button" disabled>保存済みファイルを削除</button></div>
         </div>
       </details>
@@ -82,8 +86,8 @@
       <details class="tool-panel">
         <summary><span>03 / AUDIO</span><strong id="audio-heading">音声</strong></summary>
         <div class="tool-panel-body" aria-labelledby="audio-heading">
-          <p>MN1271の3チャンネル44.1 kHz PCMをモノラルへmixし、Web Audioへ出力します。</p>
-          <p class="hint">ページ表示だけでは音声デバイスを開始しません。音声ONの後だけ、既定20%で出力します。</p>
+          <p>MN1271の3チャンネル、キークリック、ロードモニターを44.1 kHzモノラルPCMへmixし、Web Audioへ出力します。</p>
+          <p class="hint">音声は既定でONです。ブラウザの自動再生制限に従い、「起動」など最初の操作で音声デバイスを開始し、既定20%で出力します。</p>
           <div class="controls compact"><button id="audio-disable" type="button" disabled>音声を停止</button></div>
           <div class="audio-controls">
             <label>音量（最大50%）<input id="audio-volume" type="range" min="0" max="50" step="1" value="20" disabled></label>
@@ -100,10 +104,19 @@
           <p>CJRをMN1271の通常信号経路で再生し、SAVE/MSAVEの出力波形をCJRへ復号します。</p>
           <p class="hint">標準のBASIC（LOAD/SAVE）とマシン語（MLOAD/MSAVE）だけに対応します。</p>
           <label class="file">再生するCJRファイル<input id="tape-cjr" type="file" accept=".cjr,application/octet-stream" disabled></label>
+          <div id="tape-mount-state" class="tape-mount-state" data-state="none" aria-live="polite">選択中: なし / 現在のマウント: なし</div>
           <div class="controls compact">
             <button id="tape-mount" type="button" disabled>マウント</button><button id="tape-eject" type="button" disabled>取出し</button><button id="tape-rewind" type="button" disabled>巻戻し</button>
+            <button id="tape-quick-load" type="button" disabled>高速ロード</button>
             <button id="tape-record" type="button" disabled>新規録音を待機</button><button id="tape-download" type="button" disabled>録音CJRを保存</button><button id="tape-replay-output" type="button" disabled>録音CJRを再生へマウント</button>
           </div>
+          <p class="hint">マシン語CJRの読込みにはMLOADを使います。CJRには実行開始アドレスがないため、起動方法はプログラム付属の説明を確認してください。</p>
+          <div class="tape-monitor-controls">
+            <label class="check"><input id="tape-monitor-enabled" type="checkbox" checked disabled> LOAD/MLOAD中のモニター音</label>
+            <label>モニター音量<input id="tape-monitor-volume" type="range" min="0" max="100" step="1" value="25" disabled></label>
+            <output id="tape-monitor-volume-value" for="tape-monitor-volume">25%</output>
+          </div>
+          <p class="hint">既定はONです。本体音声を停止している場合は上部の「音声を有効化」で再開できます。読込み中でもON/OFFと音量を変更できます。</p>
           <pre id="tape-status" aria-live="polite">WASMの準備を待っています。</pre>
         </div>
       </details>
@@ -151,8 +164,32 @@
         </div>
       </details>
 
+      <details class="tool-panel">
+        <summary><span>07 / INPUT</span><strong id="input-assist-heading">入力支援</strong></summary>
+        <div class="tool-panel-body" aria-labelledby="input-assist-heading">
+          <h3>クイックタイプ</h3>
+          <p>Windows版と同様に、テキストをJR-200のキーコードとして順番に入力します。改行はRETURNへ変換します。</p>
+          <label>入力テキスト<textarea id="quick-type-text" rows="5" maxlength="65536" disabled></textarea></label>
+          <div class="range-control"><label>入力間隔<input id="quick-type-interval" type="range" min="10" max="100" step="10" value="30" disabled></label><output id="quick-type-interval-value" for="quick-type-interval">30 ms</output></div>
+          <div class="controls compact"><button id="quick-type-start" type="button" disabled>入力開始</button><button id="quick-type-stop" type="button" disabled>停止</button></div>
+          <p id="quick-type-status" class="hint" role="status">ROM起動後に利用できます。</p>
+
+          <h3>マクロ（10件）</h3>
+          <p class="hint"><code>\r</code> はRETURN、<code>\\</code> は円記号／バックスラッシュとして入力します。</p>
+          <label>スロット<select id="macro-slot" disabled>
+            <option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option><option value="4">5</option>
+            <option value="5">6</option><option value="6">7</option><option value="7">8</option><option value="8">9</option><option value="9">0</option>
+          </select></label>
+          <label>内容<textarea id="macro-text" rows="3" maxlength="256" disabled></textarea></label>
+          <div class="controls compact"><button id="macro-save" type="button" disabled>保存</button><button id="macro-run" type="button" disabled>実行</button><button id="macro-delete" type="button" disabled>削除</button></div>
+          <p id="macro-status" class="hint" role="status">未登録です。</p>
+          <label class="check permission"><input id="romaji-kana" type="checkbox" disabled> カナモードで物理キーボードをローマ字カナ変換する</label>
+          <p class="hint">Windows版のローマ字カナ表に合わせます。仮想キーボードはJR-200のキーを直接押すため変換しません。</p>
+        </div>
+      </details>
+
       <details class="tool-panel debugger-panel">
-        <summary><span>07 / DEBUG</span><strong id="debugger-heading">デバッガ</strong></summary>
+        <summary><span>08 / DEBUG</span><strong id="debugger-heading">デバッガ</strong></summary>
         <div class="tool-panel-body" aria-labelledby="debugger-heading">
           <p>停止条件と上限付き履歴はWASMメモリ内だけに保持します。メモリ表示は副作用のないpeekで最大256バイトを読みます。</p>
           <div class="controls compact"><button id="debug-run" class="debug-control" type="button" disabled>実行 / 再開</button><button id="debug-pause" class="debug-control" type="button" disabled>一時停止</button><button id="debug-step" class="debug-control" type="button" disabled>1命令step</button><button id="debug-refresh" class="debug-control" type="button" disabled>表示更新</button></div>
@@ -175,10 +212,46 @@
           </div>
           <h3>メモリpeek</h3>
           <div class="memory-controls"><label>開始アドレス（16進）<input id="debug-memory-address" class="debug-control" value="0000" maxlength="4" pattern="[0-9a-fA-F]{1,4}" disabled></label><button id="debug-memory-read" class="debug-control" type="button" disabled>最大256バイト表示</button></div>
+          <div class="controls compact"><button id="debug-memory-save" class="debug-control" type="button" disabled>全64 KiBをdump.binへ保存</button></div>
           <pre id="debug-memory">手動で表示してください。peekはI/O読出し副作用を起こしません。</pre>
           <div class="controls compact"><button id="debug-clear-history" class="debug-control" type="button" disabled>履歴を消去</button></div>
           <p id="debug-history-status" class="hint">命令履歴 0 / 256、CPUアクセス履歴 0 / 512。</p>
           <div class="debug-grid trace-grid"><div><h3>直近の命令</h3><pre id="debug-instructions">履歴記録は無効です。</pre></div><div><h3>直近のCPUアクセス</h3><pre id="debug-accesses">履歴記録は無効です。</pre></div></div>
+        </div>
+      </details>
+
+      <details class="tool-panel">
+        <summary><span>09 / SETTINGS</span><strong id="behavior-heading">動作設定</strong></summary>
+        <div class="tool-panel-body" aria-labelledby="behavior-heading">
+          <label class="check permission"><input id="pause-on-focus-loss" type="checkbox" disabled> 別のブラウザタブへ移ったとき自動で一時停止</label>
+          <p class="hint">既定はOFFです。OFFでも押下中のキーは必ず解放します。ブラウザ側の省電力機能により、非表示タブの実行頻度が制限される場合があります。</p>
+          <h3>画面</h3>
+          <div class="settings-grid">
+            <label>倍率<select id="screen-scale" disabled><option value="auto">自動</option><option value="1">1倍</option><option value="2">2倍</option><option value="3">3倍</option><option value="4">4倍</option><option value="5">5倍</option></select></label>
+            <label>画素比<select id="screen-aspect" disabled><option value="square">正方形画素</option><option value="video">ビデオ出力相当（横85%）</option></select></label>
+            <label>回転<select id="screen-rotation" disabled><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label>
+          </div>
+          <label class="check"><input id="screen-smoothing" type="checkbox" disabled> 拡大時にスムージングする</label>
+          <h3>CPU・メモリ</h3>
+          <div class="range-control"><label>CPU速度<input id="cpu-speed" type="range" min="50" max="1000" step="10" value="100" disabled></label><output id="cpu-speed-value" for="cpu-speed">100%</output></div>
+          <label class="check"><input id="tape-turbo" type="checkbox" disabled> LOAD/MLOAD中は1000%で実行</label>
+          <label class="check"><input id="ram-expansion-1" type="checkbox" disabled> RAM拡張1（$8000–$9FFF）</label>
+          <label class="check"><input id="ram-expansion-2" type="checkbox" disabled> RAM拡張2（$A000–$BFFF、ROM1の代わり）</label>
+          <label>RAM初期化パターン<select id="ram-init-pattern" disabled><option value="0">FF FF 00 00 / 256バイト位相</option><option value="1">00 FF / 128バイト位相</option></select></label>
+          <p id="memory-config-status" class="hint">RAM設定は次の起動またはリセットで反映します。</p>
+          <h3>ジョイスティック</h3>
+          <pre id="gamepad-status" class="gamepad-status">WASMの準備を待っています。</pre>
+          <div class="settings-grid">
+            <label>Aボタン番号<input id="gamepad-button-a" type="number" min="0" max="31" value="0" disabled></label>
+            <label>Bボタン番号<input id="gamepad-button-b" type="number" min="0" max="31" value="1" disabled></label>
+          </div>
+          <label class="check"><input id="gamepad-one-button" type="checkbox" disabled> 1ボタン互換（方向以外のどのボタンもAとして扱う）</label>
+          <label class="check permission"><input id="forced-joystick" type="checkbox" disabled> 1Pを強制ジョイスティックモード（カーソルキー入力）にする</label>
+          <div class="settings-grid">
+            <label>強制モード A（JRコード16進）<input id="forced-joystick-a" value="20" maxlength="2" pattern="[0-9a-fA-F]{2}" disabled></label>
+            <label>強制モード B（JRコード16進）<input id="forced-joystick-b" value="20" maxlength="2" pattern="[0-9a-fA-F]{2}" disabled></label>
+          </div>
+          <p class="hint">接続中が1台なら必ず1P、2台目を2Pへ割り当てます。既定は左スティック／十字キー、A=button 0、B=button 1です。強制モードでは1Pをポートから外し、方向をカーソルキー、A/Bを指定したJRコードとして入力します。</p>
         </div>
       </details>
     </aside>

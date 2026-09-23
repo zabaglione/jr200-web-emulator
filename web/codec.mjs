@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2017,2020 FIND
+// Copyright (c) 2026 jr200-web contributors
+// CJR quick load follows VJR-200 Address.cpp at the pinned upstream revision.
 export async function loadCodec() {
   const config = await (await fetch('./backend.json')).json();
   let e, memory;
@@ -16,7 +19,7 @@ export async function loadCodec() {
     memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
-  if (e.jr200_system_api_version() !== 6) throw new Error('システムABIのバージョンが一致しません');
+  if (e.jr200_system_api_version() !== 9) throw new Error('システムABIのバージョンが一致しません');
   if (e.jr200_wav_api_version() !== 1) throw new Error('WAV ABIのバージョンが一致しません');
   if (e.jr200_wav_decode_api_version() !== 1) throw new Error('WAV解析ABIのバージョンが一致しません');
   const text = new TextDecoder();
@@ -55,7 +58,63 @@ export async function loadCodec() {
     }
     return limit;
   };
+  const cjrDataBlocks = bytes => {
+    const blocks = [];
+    let offset = 0;
+    while (offset < bytes.length) {
+      const number = bytes[offset + 2];
+      if (number === 0xff) break;
+      const size = bytes[offset + 3] || 256;
+      if (number !== 0) {
+        blocks.push({
+          address: (bytes[offset + 4] << 8) | bytes[offset + 5],
+          payload: bytes.subarray(offset + 6, offset + 6 + size),
+        });
+      }
+      offset += size + 7;
+    }
+    return blocks;
+  };
+  const inspect = (bytes, allowHeaderless = false) => {
+    if (!(bytes instanceof Uint8Array) || bytes.length > e.jr200_capacity()) {
+      throw new Error('入力上限は1 MiBです');
+    }
+    memory().set(bytes, e.jr200_input_ptr());
+    checked(e.jr200_inspect(bytes.length, allowHeaderless ? 1 : 0));
+    const names = ['hasHeader', 'fileType', 'baudFlag', 'dataBlocks', 'payloadBytes',
+      'firstAddress', 'footerAddress', 'lastEndExclusive', 'warnings'];
+    const summary = Object.fromEntries(names.map((name, index) =>
+      [name, e.jr200_summary_field(index)]));
+    const name = memory().slice(e.jr200_name_ptr(), e.jr200_name_ptr() + 16);
+    summary.nameHex = Array.from(name, value => value.toString(16).padStart(2, '0')).join(' ');
+    summary.nameAscii = Array.from(name)
+      .filter(value => value !== 0)
+      .map(value => value >= 32 && value < 127 ? String.fromCharCode(value) : '·')
+      .join('');
+    return summary;
+  };
   const machine = {
+    configureMemory({ramExpansion1 = false, ramExpansion2 = false, ramInitPattern = 0} = {}) {
+      if (typeof ramExpansion1 !== 'boolean' || typeof ramExpansion2 !== 'boolean' ||
+          !Number.isInteger(ramInitPattern) || ramInitPattern < 0 || ramInitPattern > 1) {
+        throw new Error('RAM設定は拡張ON/OFFと初期化パターン0または1が必要です');
+      }
+      if (e.jr200_system_configure_memory(
+        ramExpansion1 ? 1 : 0,
+        ramExpansion2 ? 1 : 0,
+        ramInitPattern,
+      ) !== 1) {
+        throw new Error('RAM設定を反映できませんでした');
+      }
+      return this.memoryConfig();
+    },
+    memoryConfig() {
+      return {
+        ramExpansion1: e.jr200_system_memory_config(0) !== 0,
+        ramExpansion2: e.jr200_system_memory_config(1) !== 0,
+        ramInitPattern: e.jr200_system_memory_config(2),
+      };
+    },
     boot(rom, font) {
       if (!(rom instanceof Uint8Array) || rom.length !== e.jr200_system_rom_capacity()) {
         throw new Error('結合ROMは16384バイト（ROM1、ROM2の順）が必要です');
@@ -95,6 +154,17 @@ export async function loadCodec() {
       if (!Number.isInteger(code) || code < 0 || code > 255) throw new Error('キーコードが範囲外です');
       e.jr200_system_set_key(code, pressed ? 1 : 0);
     },
+    setJoystick(player, activeLowState) {
+      if (!Number.isInteger(player) || player < 0 || player > 1) {
+        throw new Error('ジョイスティック番号が範囲外です');
+      }
+      if (!Number.isInteger(activeLowState) || activeLowState < 0 || activeLowState > 255) {
+        throw new Error('ジョイスティック状態が範囲外です');
+      }
+      if (e.jr200_system_set_joystick(player, activeLowState) !== 1) {
+        throw new Error('ジョイスティック状態を設定できませんでした');
+      }
+    },
     pulseNmi() {
       e.jr200_system_pulse_nmi();
     },
@@ -111,6 +181,51 @@ export async function loadCodec() {
         throw new Error('メモリ表示はアドレス範囲内の1〜256バイトで指定してください');
       }
       return Uint8Array.from({length}, (_, offset) => e.jr200_system_peek(address + offset));
+    },
+    dump() {
+      if (!machineBooted) throw new Error('先にROMとフォントを読み込んでください');
+      return Uint8Array.from({length: 65536}, (_, address) => e.jr200_system_peek(address));
+    },
+    write(address, value) {
+      checkedAddress(address);
+      if (!Number.isInteger(value) || value < 0 || value > 255) {
+        throw new Error('書込み値は0〜255で指定してください');
+      }
+      e.jr200_system_write(address, value);
+    },
+    poke(address, value) {
+      checkedAddress(address);
+      if (!Number.isInteger(value) || value < 0 || value > 255) {
+        throw new Error('poke値は0〜255で指定してください');
+      }
+      e.jr200_system_poke(address, value);
+    },
+    quickLoad(bytes) {
+      if (!machineBooted) throw new Error('先にROMとフォントを読み込んでください');
+      const summary = inspect(bytes);
+      if (!summary.hasHeader || summary.fileType > 1) {
+        throw new Error('高速ロードはヘッダー付きBASICまたはマシン語CJRだけに対応します');
+      }
+      const blocks = cjrDataBlocks(bytes);
+      if (summary.fileType === 0) {
+        if (summary.payloadBytes > 65536 - 0x0801) {
+          throw new Error('BASIC CJRがメモリ範囲を超えています');
+        }
+        let address = 0x0801;
+        for (const block of blocks) {
+          for (const value of block.payload) this.write(address++, value);
+        }
+        const endAddress = address & 0xffff;
+        this.poke(0x0071, endAddress >> 8);
+        this.poke(0x0072, endAddress & 0xff);
+      } else {
+        for (const block of blocks) {
+          for (let index = 0; index < block.payload.length; ++index) {
+            this.write(block.address + index, block.payload[index]);
+          }
+        }
+      }
+      return {...summary, injectedBytes: summary.payloadBytes};
     },
     glyph(code, bank = 'standard') {
       if (!Number.isInteger(code) || code < 0 || code > 255) {
@@ -305,6 +420,16 @@ export async function loadCodec() {
       checkedTape(e.jr200_system_tape_arm_record());
       return this.state();
     },
+    setMonitor(enabled, volumePercent) {
+      if (typeof enabled !== 'boolean' || !Number.isInteger(volumePercent) ||
+          volumePercent < 0 || volumePercent > 100) {
+        throw new Error('カセットモニターはON/OFFと0〜100%の整数音量で指定してください');
+      }
+      if (e.jr200_system_tape_set_monitor(enabled ? 1 : 0, volumePercent) !== 1) {
+        throw new Error('カセットモニター設定を反映できません');
+      }
+      return this.state();
+    },
     output() {
       const size = e.jr200_system_tape_output_size();
       return memory().slice(e.jr200_system_tape_output_ptr(), e.jr200_system_tape_output_ptr() + size);
@@ -326,6 +451,9 @@ export async function loadCodec() {
         payloadBytes: e.jr200_system_tape_field(14),
         firstAddress: e.jr200_system_tape_field(15),
         footerAddress: e.jr200_system_tape_field(16),
+        monitorEnabled: e.jr200_system_tape_field(17) !== 0,
+        monitorVolume: e.jr200_system_tape_field(18),
+        monitorActive: e.jr200_system_tape_field(19) !== 0,
         errorMessage: readCString(e.jr200_system_tape_error_message()),
       };
     },
@@ -456,17 +584,7 @@ export async function loadCodec() {
   return {
     machine,
     wav,
-    inspect(bytes, allowHeaderless=false) {
-      if (!(bytes instanceof Uint8Array) || bytes.length > e.jr200_capacity()) throw new Error('入力上限は1 MiBです');
-      memory().set(bytes,e.jr200_input_ptr());
-      checked(e.jr200_inspect(bytes.length,allowHeaderless?1:0));
-      const names=['hasHeader','fileType','baudFlag','dataBlocks','payloadBytes','firstAddress','footerAddress','lastEndExclusive','warnings'];
-      const summary=Object.fromEntries(names.map((n,i)=>[n,e.jr200_summary_field(i)]));
-      const name=memory().slice(e.jr200_name_ptr(),e.jr200_name_ptr()+16);
-      summary.nameHex=Array.from(name,v=>v.toString(16).padStart(2,'0')).join(' ');
-      summary.nameAscii=Array.from(name).filter(v=>v!==0).map(v=>v>=32&&v<127?String.fromCharCode(v):'·').join('');
-      return summary;
-    },
+    inspect,
     pack(bytes,name,address,basic,baudFlag) {
       if (!(bytes instanceof Uint8Array)) throw new Error('入力はUint8Arrayで指定してください');
       if (typeof basic !== 'boolean') throw new Error('BASIC指定はbooleanが必要です');

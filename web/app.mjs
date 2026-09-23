@@ -2,23 +2,54 @@
 import {loadCodec} from './codec.mjs';
 import {WebAudioOutput} from './audio.mjs';
 import {
+  CONTROL_KEYS,
   INPUT_MODES,
   KEY_ROWS,
   MODE_NAMES,
+  GamepadController,
   InputController,
+  RomajiKanaConverter,
   displayCodeFor,
+  encodeJrText,
+  forcedKeyCodeForJoystick,
   keyIdForKeyboardEvent,
   resolveKey,
 } from './keyboard.mjs';
 
 const $ = id => document.getElementById(id);
 const CPU_HZ = 1_339_285;
+const AUDIO_RUN_SLICE_CYCLES = Math.floor(CPU_HZ * 0.05);
 const FRAME_WIDTH = 320;
 const FRAME_HEIGHT = 224;
 const DEBUG_STOP_NAMES = ['実行可能', 'breakpoint', 'read watchpoint', 'write watchpoint', 'step'];
 const DEBUG_EVENT_NAMES = ['RESET', 'instruction', 'IRQ', 'NMI', 'waiting'];
 const DEBUG_ACCESS_NAMES = ['opcode', 'operand', 'data', 'stack', 'vector'];
 const TAPE_STATE_NAMES = ['取出し済み', '停止', '再生中', '録音待機', '録音中', '録音完了', '終端', 'エラー'];
+const PREFERENCE_KEY = 'jr200-web-preferences-v1';
+const DEFAULT_PREFERENCES = Object.freeze({
+  pauseOnFocusLoss: false,
+  tapeMonitorEnabled: true,
+  tapeMonitorVolume: 25,
+  screenScale: 'auto',
+  screenAspect: 'square',
+  screenRotation: 0,
+  screenSmoothing: false,
+  cpuSpeed: 100,
+  tapeTurbo: false,
+  ramExpansion1: false,
+  ramExpansion2: false,
+  ramInitPattern: 0,
+  quickTypeInterval: 30,
+  romajiKana: false,
+  macros: Object.freeze(Array(10).fill('')),
+  gamepadButtonA: 0,
+  gamepadButtonB: 1,
+  gamepadOneButton: false,
+  forcedJoystick: false,
+  forcedJoystickA: 0x20,
+  forcedJoystickB: 0x20,
+});
+const preferences = loadPreferences();
 const state = {
   romMode: 'combined',
   rom: null,
@@ -26,24 +57,39 @@ const state = {
   rom2: null,
   font: null,
   names: {},
+  origins: {},
   booted: false,
   paused: true,
   lastFrame: 0,
   cycleBalance: 0,
   lastStatus: 0,
+  fpsWindowStart: 0,
+  fpsFrames: 0,
+  measuredFps: 0,
   tapeName: '',
+  tapeSelectedName: '',
+  tapeSelectionRevision: 0,
+  tapeMountedSelectionRevision: 0,
+  tapeSelectionStatus: '',
   wavCjr: null,
   wavName: '',
   decodedCjr: null,
   decodedName: '',
+  autoType: null,
+  appliedMemoryConfig: null,
 };
 
 let codec;
 let audioOutput;
+let gamepadController;
 let inputController;
 const canvas = $('screen');
 const context = canvas.getContext('2d', {alpha: false});
-const image = context.createImageData(FRAME_WIDTH, FRAME_HEIGHT);
+let image = context.createImageData(FRAME_WIDTH, FRAME_HEIGHT);
+const romajiConverter = new RomajiKanaConverter();
+const forcedJoystickSource = 'gamepad:forced';
+let forcedJoystickCode = null;
+applyScreenPreferences();
 paintBlank();
 
 const keyboardToggle = $('keyboard-toggle');
@@ -55,15 +101,16 @@ let virtualSourceSequence = 0;
 let glyphCacheToken = '';
 const glyphCache = new Map();
 buildVirtualKeyboard();
+syncPreferenceControls();
 keyboardToggle.addEventListener('click', () => {
   const visible = keyboardDeck.hidden;
   keyboardDeck.hidden = !visible;
   document.body.dataset.keyboardVisible = String(visible);
   keyboardToggle.setAttribute('aria-expanded', String(visible));
-  keyboardToggle.textContent = visible ? 'キーボードを隠す' : 'キーボードを表示';
+  keyboardToggle.textContent = visible ? '仮想キーを閉じる' : '仮想キー';
   if (!visible) releaseKeys();
 });
-document.body.dataset.keyboardVisible = 'true';
+document.body.dataset.keyboardVisible = String(!keyboardDeck.hidden);
 
 try {
   codec = await loadCodec();
@@ -71,18 +118,37 @@ try {
     sendCode: (code, pressed) => codec.machine.setKey(code, pressed),
     pulseNmi: () => codec.machine.pulseNmi(),
     onChange: input => {
+      if (input.mode !== INPUT_MODES.KANA) romajiConverter.reset();
       document.body.dataset.inputMode = input.mode;
       keyboardDeck.dataset.mode = input.mode;
       refreshVirtualKeyboard();
     },
   });
   inputController.notify();
-  audioOutput = new WebAudioOutput(codec.machine.audio, {onChange: () => showAudioStatus()});
+  gamepadController = new GamepadController({
+    setJoystick: (player, activeLowState) => setGamepadState(player, activeLowState),
+    getMapping: () => ({
+      buttonA: preferences.gamepadButtonA,
+      buttonB: preferences.gamepadButtonB,
+      oneButton: preferences.gamepadOneButton,
+    }),
+    onChange: snapshot => showGamepadStatus(snapshot),
+  });
+  gamepadController.update();
+  audioOutput = new WebAudioOutput(codec.machine.audio, {
+    initialEnabled: true,
+    onChange: () => showAudioStatus(),
+  });
+  applyTapeMonitorPreferences();
   $('status').textContent = 'WASM起動済み / 処理はローカルのみ';
-  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'audio-enable', 'audio-volume', 'audio-mute', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel']) {
+  updateAssetStatus();
+  await restoreSavedAssets({automatic: true});
+  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'remember-assets', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'tape-monitor-enabled', 'tape-monitor-volume', 'audio-enable', 'audio-volume', 'audio-mute', 'pause-on-focus-loss', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel', 'fullscreen', 'screen-scale', 'screen-aspect', 'screen-rotation', 'screen-smoothing', 'cpu-speed', 'tape-turbo', 'ram-expansion-1', 'ram-expansion-2', 'ram-init-pattern', 'quick-type-text', 'quick-type-interval', 'macro-slot', 'macro-text', 'macro-save', 'macro-delete', 'romaji-kana', 'gamepad-button-a', 'gamepad-button-b', 'gamepad-one-button', 'forced-joystick', 'forced-joystick-a', 'forced-joystick-b']) {
     $(id).disabled = false;
   }
-  updateAssetStatus();
+  $('fullscreen').disabled = !document.fullscreenEnabled;
+  showAutomaticInputStatus('ROM起動後に利用できます。');
+  updateMacroEditor();
   showAudioStatus();
   showTapeStatus();
 } catch (error) {
@@ -91,42 +157,149 @@ try {
 
 requestAnimationFrame(runFrame);
 
+function applyScreenPreferences() {
+  document.body.dataset.screenScale = preferences.screenScale;
+  if (preferences.screenScale === 'auto') {
+    document.documentElement.style.removeProperty('--screen-scale');
+  } else {
+    document.documentElement.style.setProperty('--screen-scale', preferences.screenScale);
+  }
+  document.body.dataset.screenSmoothing = String(preferences.screenSmoothing);
+  document.body.dataset.screenRotation = String(preferences.screenRotation);
+  document.body.dataset.screenAspect = preferences.screenAspect;
+
+  const rotated = preferences.screenRotation === 90 || preferences.screenRotation === 270;
+  const pixelWidth = rotated ? FRAME_HEIGHT : FRAME_WIDTH;
+  const pixelHeight = rotated ? FRAME_WIDTH : FRAME_HEIGHT;
+  const videoRatio = preferences.screenAspect === 'video' ? 0.85 : 1;
+  const displayWidth = rotated ? FRAME_HEIGHT : FRAME_WIDTH * videoRatio;
+  const displayHeight = rotated ? FRAME_WIDTH * videoRatio : FRAME_HEIGHT;
+  document.documentElement.style.setProperty('--screen-display-width', `${displayWidth}px`);
+  document.documentElement.style.setProperty('--screen-display-height', `${displayHeight}px`);
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+    image = context.createImageData(pixelWidth, pixelHeight);
+  }
+  updateFullscreenSize();
+  if (state.booted && codec) paintMachine();
+  else paintBlank();
+}
+
+function updateFullscreenSize() {
+  const shell = $('screen-shell');
+  if (document.fullscreenElement !== shell) return;
+  const displayWidth = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--screen-display-width')) || FRAME_WIDTH;
+  const displayHeight = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--screen-display-height')) || FRAME_HEIGHT;
+  const availableWidth = Math.max(1, window.innerWidth - 40);
+  const availableHeight = Math.max(1, window.innerHeight - 40);
+  const scale = Math.min(availableWidth / displayWidth, availableHeight / displayHeight);
+  shell.style.setProperty('--fullscreen-screen-width', `${displayWidth * scale}px`);
+  shell.style.setProperty('--fullscreen-screen-height', `${displayHeight * scale}px`);
+}
+
+async function toggleFullscreen() {
+  try {
+    const shell = $('screen-shell');
+    if (document.fullscreenElement === shell) {
+      await document.exitFullscreen();
+    } else {
+      await shell.requestFullscreen();
+    }
+  } catch (error) {
+    setNotice('error', `全画面表示を切り替えられません: ${error.message}`);
+  }
+}
+
+$('fullscreen').addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  const fullscreen = document.fullscreenElement === $('screen-shell');
+  $('fullscreen').textContent = fullscreen ? '全画面を終了' : '全画面';
+  if (fullscreen) updateFullscreenSize();
+  else {
+    $('screen-shell').style.removeProperty('--fullscreen-screen-width');
+    $('screen-shell').style.removeProperty('--fullscreen-screen-height');
+  }
+  canvas.focus();
+});
+window.addEventListener('resize', updateFullscreenSize);
+
 function paintBlank() {
   context.fillStyle = '#050806';
-  context.fillRect(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
+  context.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 function paintMachine() {
   const pixels = codec.machine.render();
   const rgba = image.data;
-  for (let i = 0; i < pixels.length; ++i) {
-    const color = pixels[i];
-    const offset = i * 4;
-    rgba[offset] = (color >>> 16) & 0xff;
-    rgba[offset + 1] = (color >>> 8) & 0xff;
-    rgba[offset + 2] = color & 0xff;
-    rgba[offset + 3] = 0xff;
+  const rotation = preferences.screenRotation;
+  for (let sourceY = 0; sourceY < FRAME_HEIGHT; ++sourceY) {
+    for (let sourceX = 0; sourceX < FRAME_WIDTH; ++sourceX) {
+      let targetX = sourceX;
+      let targetY = sourceY;
+      if (rotation === 90) {
+        targetX = FRAME_HEIGHT - 1 - sourceY;
+        targetY = sourceX;
+      } else if (rotation === 180) {
+        targetX = FRAME_WIDTH - 1 - sourceX;
+        targetY = FRAME_HEIGHT - 1 - sourceY;
+      } else if (rotation === 270) {
+        targetX = sourceY;
+        targetY = FRAME_WIDTH - 1 - sourceX;
+      }
+      const color = pixels[sourceY * FRAME_WIDTH + sourceX];
+      const offset = (targetY * canvas.width + targetX) * 4;
+      rgba[offset] = (color >>> 16) & 0xff;
+      rgba[offset + 1] = (color >>> 8) & 0xff;
+      rgba[offset + 2] = color & 0xff;
+      rgba[offset + 3] = 0xff;
+    }
   }
   context.putImageData(image, 0, 0);
 }
 
 function runFrame(timestamp) {
+  gamepadController?.update();
   if (state.booted && !state.paused) {
     if (state.lastFrame === 0) state.lastFrame = timestamp;
     const seconds = Math.min(Math.max((timestamp - state.lastFrame) / 1000, 0), 0.05);
     state.lastFrame = timestamp;
-    state.cycleBalance = Math.min(state.cycleBalance + seconds * CPU_HZ, CPU_HZ * 0.1);
+    const cpuPercent = effectiveCpuPercent();
+    const effectiveHz = CPU_HZ * cpuPercent / 100;
+    state.cycleBalance = Math.min(state.cycleBalance + seconds * effectiveHz, effectiveHz * 0.1);
     if (state.cycleBalance >= 1) {
-      state.cycleBalance -= codec.machine.run(Math.floor(state.cycleBalance));
-      const debug = codec.machine.debugger.state();
+      const autoTypeFinished = pumpAutomaticInput(timestamp);
+      const cycleBudget = Math.floor(state.cycleBalance);
+      let executedCycles = 0;
+      let debug = codec.machine.debugger.state();
+      while (executedCycles < cycleBudget && debug.stopReason === 0) {
+        const slice = Math.min(cycleBudget - executedCycles, AUDIO_RUN_SLICE_CYCLES);
+        const executed = codec.machine.run(slice);
+        executedCycles += executed;
+        debug = codec.machine.debugger.state();
+        if (debug.stopReason === 0) audioOutput?.pump(cpuPercent / 100);
+        if (executed <= 0) break;
+      }
+      state.cycleBalance -= executedCycles;
       if (debug.stopReason !== 0) {
         state.cycleBalance = 0;
         setPaused(true, describeDebugStop(debug));
-      } else {
-        audioOutput?.pump();
+      }
+      if (state.autoType && autoTypeFinished) {
+        finishAutomaticInput('入力が完了しました。');
       }
     }
     paintMachine();
+    if (state.fpsWindowStart === 0) state.fpsWindowStart = timestamp;
+    ++state.fpsFrames;
+    const fpsElapsed = timestamp - state.fpsWindowStart;
+    if (fpsElapsed >= 500) {
+      state.measuredFps = state.fpsFrames * 1000 / fpsElapsed;
+      state.fpsWindowStart = timestamp;
+      state.fpsFrames = 0;
+    }
     if (timestamp - state.lastStatus >= 500) {
       showMachineStatus();
       showAudioStatus();
@@ -136,8 +309,99 @@ function runFrame(timestamp) {
     }
   } else {
     state.lastFrame = 0;
+    state.fpsWindowStart = 0;
+    state.fpsFrames = 0;
   }
   requestAnimationFrame(runFrame);
+}
+
+function effectiveCpuPercent() {
+  if (state.autoType) return 1000;
+  if (preferences.tapeTurbo && codec && state.booted) {
+    const tape = codec.machine.tape.state();
+    if (tape.mode === 1 && tape.remote) return 1000;
+  }
+  return preferences.cpuSpeed;
+}
+
+function pumpAutomaticInput(timestamp) {
+  const automatic = state.autoType;
+  if (!automatic) return false;
+  if (automatic.activeCode !== null) {
+    // Keep the key asserted across at least one emulation slice so the
+    // MN1544 scan path can observe it, then release before the next code.
+    codec.machine.setKey(automatic.activeCode, false);
+    automatic.activeCode = null;
+    if (automatic.index >= automatic.codes.length) return true;
+  }
+  if (automatic.lastSent !== null &&
+      timestamp - automatic.lastSent < automatic.intervalMs) return false;
+  const code = automatic.codes[automatic.index++];
+  codec.machine.setKey(code, true);
+  automatic.activeCode = code;
+  automatic.lastSent = timestamp;
+  showAutomaticInputStatus();
+  return false;
+}
+
+function startAutomaticInput(codes, {label, origin, intervalMs = 30} = {}) {
+  if (!state.booted || state.paused) throw new Error('JR-200を起動して実行状態にしてください');
+  if (!(codes instanceof Uint8Array) || codes.length === 0) {
+    throw new Error('入力する文字がありません');
+  }
+  stopAutomaticInput();
+  releaseKeys({preserveRomaji: origin === 'romaji'});
+  state.autoType = {
+    codes,
+    index: 0,
+    intervalMs,
+    lastSent: null,
+    activeCode: null,
+    label: label || '自動入力',
+    origin: origin || 'quick-type',
+  };
+  state.cycleBalance = 0;
+  showAutomaticInputStatus();
+  refreshVirtualKeyboard();
+}
+
+function finishAutomaticInput(message) {
+  const origin = state.autoType?.origin;
+  if (state.autoType?.activeCode !== null) {
+    codec.machine.setKey(state.autoType.activeCode, false);
+  }
+  state.autoType = null;
+  gamepadController?.resync();
+  showAutomaticInputStatus(message, origin);
+  refreshVirtualKeyboard();
+}
+
+function stopAutomaticInput(message = '') {
+  if (!state.autoType) return false;
+  const origin = state.autoType.origin;
+  if (state.autoType.activeCode !== null) {
+    codec.machine.setKey(state.autoType.activeCode, false);
+  }
+  state.autoType = null;
+  gamepadController?.resync();
+  showAutomaticInputStatus(message || '入力を停止しました。', origin);
+  refreshVirtualKeyboard();
+  return true;
+}
+
+function showAutomaticInputStatus(message = '', origin = state.autoType?.origin) {
+  const automatic = state.autoType;
+  const activeText = automatic
+    ? `${automatic.label}: ${automatic.index} / ${automatic.codes.length} バイト`
+    : message || '待機中です。';
+  if (origin !== 'romaji') {
+    $('quick-type-status').textContent = activeText;
+  }
+  $('quick-type-stop').disabled = !automatic;
+  $('quick-type-start').disabled = !state.booted || state.paused || Boolean(automatic);
+  $('macro-run').disabled = !state.booted || state.paused ||
+    Boolean(automatic) ||
+    preferences.macros[Number($('macro-slot').value)] === '';
 }
 
 async function readExact(file, size, label) {
@@ -192,7 +456,7 @@ function updateAssetStatus(message = '') {
   if (state.romMode === 'combined') {
     if (state.rom) {
       try {
-        lines.push(`結合ROM: 16384バイト / RESET $${hex4(validateCombinedRom(state.rom))} / ${state.names.rom || '保存データ'}`);
+        lines.push(`結合ROM: 16384バイト / RESET $${hex4(validateCombinedRom(state.rom))} / ${assetDisplayName('rom')}`);
       } catch (error) {
         lines.push(`結合ROM: エラー — ${error.message}`);
       }
@@ -200,8 +464,8 @@ function updateAssetStatus(message = '') {
       lines.push('結合ROM: 未選択');
     }
   } else {
-    lines.push(`ROM1 ($A000): ${state.rom1 ? `8192バイト / ${state.names.rom1}` : '未選択'}`);
-    lines.push(`ROM2 ($E000): ${state.rom2 ? `8192バイト / ${state.names.rom2}` : '未選択'}`);
+    lines.push(`ROM1 ($A000): ${state.rom1 ? `8192バイト / ${assetDisplayName('rom1')}` : '未選択'}`);
+    lines.push(`ROM2 ($E000): ${state.rom2 ? `8192バイト / ${assetDisplayName('rom2')}` : '未選択'}`);
     if (state.rom1 && state.rom2) {
       try {
         lines.push(`ROM順序: 検証済み / RESET $${hex4(validateCombinedRom(selectedRom()))}`);
@@ -210,7 +474,7 @@ function updateAssetStatus(message = '') {
       }
     }
   }
-  lines.push(`フォント: ${state.font ? `2048バイト / ${state.names.font || '保存データ'}` : '未選択'}`);
+  lines.push(`フォント: ${state.font ? `2048バイト / ${assetDisplayName('font')}` : '未選択'}`);
   if (message) lines.push(message);
   $('asset-status').replaceChildren(...lines.map(text => {
     const item = document.createElement('li');
@@ -218,6 +482,11 @@ function updateAssetStatus(message = '') {
     return item;
   }));
   $('start').disabled = !codec || !assetsReady();
+}
+
+function assetDisplayName(key) {
+  const name = state.names[key] || '保存データ';
+  return state.origins[key] === 'indexeddb' ? `${name}（保存済み）` : name;
 }
 
 function hex4(value) {
@@ -229,12 +498,15 @@ async function loadInput(id, key, size, label) {
     const file = $(id).files[0];
     state[key] = await readExact(file, size, label);
     state.names[key] = file.name;
+    state.origins[key] = 'file';
     updateAssetStatus();
   } catch (error) {
     state[key] = null;
     state.names[key] = '';
+    state.origins[key] = '';
     updateAssetStatus(`エラー: ${error.message}`);
   }
+  await persistAssetsIfAllowed();
 }
 
 $('rom-combined').addEventListener('change', () => loadInput('rom-combined', 'rom', 16384, '結合ROM'));
@@ -243,42 +515,44 @@ $('rom2').addEventListener('change', () => loadInput('rom2', 'rom2', 8192, 'ROM2
 $('font').addEventListener('change', () => loadInput('font', 'font', 2048, 'フォント'));
 
 for (const input of document.querySelectorAll('input[name="rom-mode"]')) {
-  input.addEventListener('change', () => {
+  input.addEventListener('change', async () => {
     state.romMode = input.value;
     $('combined-fields').hidden = state.romMode !== 'combined';
     $('split-fields').hidden = state.romMode !== 'split';
     updateAssetStatus();
+    await persistAssetsIfAllowed();
   });
 }
 
 $('start').addEventListener('click', async () => {
   try {
+    stopAutomaticInput();
     inputController.reset();
     const rom = selectedRom();
     const resetVector = validateCombinedRom(rom);
+    applyMemoryConfiguration();
     codec.machine.boot(rom, state.font);
+    gamepadController?.resync();
     state.booted = true;
     state.paused = false;
     state.cycleBalance = 0;
     state.lastFrame = 0;
+    state.measuredFps = 0;
     resumeAudioForRun();
     $('pause').disabled = false;
     $('reset').disabled = false;
     setDebuggerEnabled(true);
     $('pause').textContent = '一時停止';
     setNotice('running', `選択したROMとフォントでCPUを起動しました。RESET vector $${hex4(resetVector)}。画面をクリックして入力してください。`);
-    if ($('remember-assets').checked) {
-      try {
-        await saveAssets(rom, state.font);
-        updateAssetStatus('明示許可により、このブラウザのIndexedDBへ保存しました');
-      } catch (error) {
-        updateAssetStatus(`CPUは起動しましたが、IndexedDBへ保存できません: ${error.message}`);
-      }
-    }
+    await persistAssetsIfAllowed('ROMとフォントをIndexedDBへ保存しました。次回は自動復元します');
     paintMachine();
-    showMachineStatus();
+      showMachineStatus();
+      showAudioStatus();
+      showTapeStatus();
     refreshVirtualKeyboard(true);
     refreshDebugger();
+    showAutomaticInputStatus('入力できます。');
+    updateMacroEditor();
     canvas.focus();
   } catch (error) {
     setNotice('error', `起動できません: ${error.message}`);
@@ -295,19 +569,25 @@ $('pause').addEventListener('click', () => {
 
 $('reset').addEventListener('click', () => {
   try {
+    stopAutomaticInput();
     inputController.reset();
+    applyMemoryConfiguration();
     codec.machine.reset();
+    gamepadController?.resync();
     audioOutput?.flush();
     state.paused = false;
     state.cycleBalance = 0;
     state.lastFrame = 0;
+    state.measuredFps = 0;
     resumeAudioForRun();
     $('pause').textContent = '一時停止';
     setNotice('running', 'ROMとフォントを保持してリセットしました。');
     paintMachine();
     showMachineStatus();
+    showTapeStatus();
     refreshVirtualKeyboard(true);
     refreshDebugger();
+    showAutomaticInputStatus('入力できます。');
     canvas.focus();
   } catch (error) {
     setNotice('error', `リセットできません: ${error.message}`);
@@ -315,12 +595,15 @@ $('reset').addEventListener('click', () => {
 });
 
 function setPaused(paused, reason) {
+  if (paused) stopAutomaticInput('一時停止したため自動入力を終了しました。');
   state.paused = paused;
   state.lastFrame = 0;
   if (paused) {
+    releaseForcedJoystick();
     audioOutput?.suspend().catch(error => showAudioStatus(`音声停止エラー: ${error.message}`));
   } else {
     resumeAudioForRun();
+    gamepadController?.resync();
   }
   $('pause').textContent = paused ? '再開' : '一時停止';
   setNotice(paused ? 'paused' : 'running', reason);
@@ -331,12 +614,16 @@ function setPaused(paused, reason) {
 
 function resumeAudioForRun() {
   if (!audioOutput) return;
-  if (!audioOutput.state().enabled) {
+  const audio = audioOutput.state();
+  if (!audio.enabled) {
     codec.machine.audio.discard();
     showAudioStatus();
     return;
   }
-  audioOutput.resume().catch(error => showAudioStatus(`音声再開エラー: ${error.message}`));
+  const operation = audio.contextState === 'not-created'
+    ? audioOutput.enable()
+    : audioOutput.resume();
+  operation.catch(error => showAudioStatus(`音声開始エラー: ${error.message}`));
 }
 
 function setNotice(kind, text) {
@@ -353,7 +640,34 @@ function showMachineStatus() {
   const machine = codec.machine.state();
   const debug = codec.machine.debugger.state();
   const mode = debug.stopReason !== 0 ? `デバッガ停止 (${DEBUG_STOP_NAMES[debug.stopReason]})` : state.paused ? '一時停止' : '実行中';
-  $('machine-status').textContent = `${mode} / PC $${hex4(registers.pc)} / cycles ${machine.cycles} / font ${machine.fontInitialized ? '初期化済み' : '転送中'}`;
+  const automatic = state.autoType ? ` / ${state.autoType.label}` : '';
+  const fps = state.measuredFps > 0 ? state.measuredFps.toFixed(1) : '計測中';
+  $('machine-status').textContent = `${mode}${automatic} / FPS ${fps} / CPU ${effectiveCpuPercent()}% / PC $${hex4(registers.pc)} / cycles ${machine.cycles} / font ${machine.fontInitialized ? '初期化済み' : '転送中'}`;
+}
+
+function selectedMemoryConfiguration() {
+  return {
+    ramExpansion1: preferences.ramExpansion1,
+    ramExpansion2: preferences.ramExpansion2,
+    ramInitPattern: preferences.ramInitPattern,
+  };
+}
+
+function applyMemoryConfiguration() {
+  state.appliedMemoryConfig = codec.machine.configureMemory(selectedMemoryConfiguration());
+  showMemoryConfigurationStatus();
+}
+
+function showMemoryConfigurationStatus(pending = false) {
+  const selected = selectedMemoryConfiguration();
+  const parts = [
+    `拡張1 ${selected.ramExpansion1 ? 'ON' : 'OFF'}`,
+    `拡張2 ${selected.ramExpansion2 ? 'ON' : 'OFF'}`,
+    `パターン${selected.ramInitPattern}`,
+  ];
+  $('memory-config-status').textContent = pending && state.booted
+    ? `${parts.join(' / ')}。次の起動またはリセットで反映します。`
+    : `${parts.join(' / ')}${state.appliedMemoryConfig ? ' を反映済みです。' : '。起動時に反映します。'}`;
 }
 
 function showAudioStatus(message = '') {
@@ -363,7 +677,7 @@ function showAudioStatus(message = '') {
   }
   const audio = audioOutput.state();
   const context = audio.contextState === 'not-created'
-    ? '未作成（自動再生なし）'
+    ? audio.enabled ? '未作成（起動操作待ち）' : '未作成'
     : audio.contextState;
   const lines = [
     `Web Audio: ${audio.enabled ? '有効' : '無効'} / context ${context}`,
@@ -372,24 +686,87 @@ function showAudioStatus(message = '') {
     `音量: ${Math.round(audio.volume * 100)}% / ミュート ${audio.muted ? 'ON' : 'OFF'}`,
     `予約済み: ${audio.scheduledFrames} frames / 非0 ${audio.nonzeroFrames} / peak ${audio.peakSample}`,
     `active ${audio.activeSources} / underrun ${audio.underruns} / 破棄 ${audio.discardedFrames}`,
+    `再生倍率: ${audio.playbackRate.toFixed(2)}x / 先行 ${Math.round(audio.scheduledAheadSeconds * 1000)} ms / 先行上限破棄 ${audio.aheadDroppedFrames}`,
   ];
   if (audio.lastError) lines.push(`エラー: ${audio.lastError}`);
   if (message) lines.push(message);
-  lines.push('この出力はエミュレータ音声です。カセットWAV生成ではありません。');
+  lines.push('本体3音、キークリック、有効なロードモニターを出力します。カセットWAV生成とは別です。');
   $('audio-status').textContent = lines.join('\n');
   $('audio-enable').disabled = !audio.supported ||
     (audio.enabled && audio.contextState === 'running');
-  $('audio-enable').textContent = audio.enabled ? '音声を再開' : '音声を有効化';
+  $('audio-enable').textContent = !audio.enabled
+    ? '音声を有効化'
+    : audio.contextState === 'not-created'
+      ? '音声を開始'
+      : audio.contextState === 'running' ? '音声ON' : '音声を再開';
   $('audio-disable').disabled = !audio.enabled;
   $('audio-volume').disabled = false;
   $('audio-mute').disabled = false;
   $('audio-volume-value').textContent = `${Math.round(audio.volume * 100)}%`;
 }
 
+function showGamepadStatus(snapshot = gamepadController?.snapshot()) {
+  if (!snapshot) {
+    $('gamepad-status').textContent = 'WASMの準備を待っています。';
+    return;
+  }
+  if (!snapshot.supported) {
+    $('gamepad-status').textContent = 'このブラウザはGamepad APIに対応していません。';
+    return;
+  }
+  const lines = snapshot.ports.map((port, player) => {
+    if (!port) return `${player + 1}P: 未接続`;
+    const directions = [
+      [0x01, '↑'], [0x02, '↓'], [0x04, '←'], [0x08, '→'],
+      [0x10, 'A'], [0x20, 'B'],
+    ].filter(([mask]) => (port.state & mask) === 0).map(([, label]) => label);
+    const id = port.id.replace(/\s+/g, ' ').trim().slice(0, 80);
+    const mapping = port.mapping === 'standard' ? '標準マッピング' : '汎用マッピング';
+    return `${player + 1}P: ${id} / ${mapping} / ${directions.join(' ') || 'ニュートラル'}`;
+  });
+  if (snapshot.suspended) lines.push('フォーカス外のため入力をニュートラルにしました。');
+  if (preferences.forcedJoystick) {
+    lines.push('1P: 強制ジョイスティックモード（JRキー入力）');
+  }
+  if (snapshot.error) lines.push(`取得エラー: ${snapshot.error}`);
+  $('gamepad-status').textContent = lines.join('\n');
+}
+
+function releaseForcedJoystick() {
+  inputController?.release(forcedJoystickSource, {immediate: true});
+  forcedJoystickCode = null;
+}
+
+function updateForcedJoystick(activeLowState) {
+  const code = forcedKeyCodeForJoystick(
+    activeLowState,
+    preferences.forcedJoystickA,
+    preferences.forcedJoystickB,
+  );
+  if (code === forcedJoystickCode) return;
+  releaseForcedJoystick();
+  if (code === null || !state.booted || state.paused || state.autoType) return;
+  if (inputController?.pressCode(code, forcedJoystickSource, {keyId: `Forced${code}`})) {
+    forcedJoystickCode = code;
+  }
+}
+
+function setGamepadState(player, activeLowState) {
+  if (!codec) return;
+  if (player === 0 && preferences.forcedJoystick) {
+    codec.machine.setJoystick(0, 0xff);
+    updateForcedJoystick(activeLowState);
+    return;
+  }
+  if (player === 0) releaseForcedJoystick();
+  codec.machine.setJoystick(player, activeLowState);
+}
+
 $('audio-enable').addEventListener('click', async () => {
   try {
     await audioOutput.enable();
     showAudioStatus('利用者操作で音声デバイスを有効化しました。');
+    showTapeStatus();
   } catch (error) {
     showAudioStatus(`音声を有効化できません: ${error.message}`);
   }
@@ -399,6 +776,7 @@ $('audio-disable').addEventListener('click', async () => {
   try {
     await audioOutput.disable();
     showAudioStatus('予約済み音声とPCM queueを破棄して停止しました。');
+    showTapeStatus();
   } catch (error) {
     showAudioStatus(`音声を停止できません: ${error.message}`);
   }
@@ -424,6 +802,33 @@ $('audio-mute').addEventListener('change', event => {
   }
 });
 
+function updateTapeMountState(tape) {
+  const selected = state.tapeSelectedName;
+  const mounted = tape.mode === 1 ? state.tapeName : '';
+  const selectedIsMounted = Boolean(
+    selected && mounted &&
+    state.tapeSelectionRevision === state.tapeMountedSelectionRevision,
+  );
+  const indicator = $('tape-mount-state');
+  let visualState = 'none';
+  let text = '選択中: なし / 現在のマウント: なし';
+  if (selectedIsMounted) {
+    visualState = 'mounted';
+    text = `選択中: ${selected} / マウント済み`;
+  } else if (selected) {
+    visualState = 'pending';
+    text = `選択中: ${selected}（未マウント） / 現在のマウント: ${mounted || 'なし'}`;
+  } else if (mounted) {
+    visualState = 'mounted';
+    text = `選択中: なし / 現在のマウント: ${mounted}（マウント済み）`;
+  }
+  indicator.dataset.state = visualState;
+  indicator.textContent = text;
+  $('tape-mount').classList.toggle('is-pending', visualState === 'pending');
+  $('tape-mount').disabled = !codec || !selected;
+  $('tape-quick-load').disabled = !codec || !state.booted || !selected;
+}
+
 function showTapeStatus(message = '') {
   if (!codec) return;
   const tape = codec.machine.tape.state();
@@ -441,9 +846,20 @@ function showTapeStatus(message = '') {
   } else {
     lines.push('媒体: なし');
   }
+  if (tape.monitorEnabled) {
+    const webAudioEnabled = audioOutput?.state().enabled;
+    const activity = tape.monitorActive
+      ? (webAudioEnabled ? '出力中' : '信号あり・Web Audio OFF')
+      : (webAudioEnabled ? '待機中' : '待機中・本体音声が停止中');
+    lines.push(`ロードモニター: ON / ${tape.monitorVolume}% / ${activity}`);
+  } else {
+    lines.push(`ロードモニター: OFF / ${tape.monitorVolume}%`);
+  }
   if (tape.error) lines.push(`エラー: ${tape.errorMessage} (code ${tape.error}, detail ${tape.errorDetail})`);
+  if (state.tapeSelectionStatus) lines.push(`選択検査: ${state.tapeSelectionStatus}`);
   if (message) lines.push(message);
   $('tape-status').textContent = lines.join('\n');
+  updateTapeMountState(tape);
   $('tape-eject').disabled = tape.state === 0;
   $('tape-rewind').disabled = tape.mode !== 1;
   $('tape-download').disabled = tape.state !== 5 || tape.outputBytes === 0;
@@ -603,70 +1019,100 @@ $('debug-memory-read').addEventListener('click', () => debugAction(() => {
   $('debug-memory').textContent = rows.join('\n');
 }));
 
+$('debug-memory-save').addEventListener('click', () => debugAction(() => {
+  const bytes = codec.machine.dump();
+  downloadBytes(bytes, 'dump.bin');
+  $('debug-memory').textContent = `0000–FFFFの${bytes.length}バイトをdump.binへ保存しました。`;
+}));
+
+function createVirtualKey(key, className = '') {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `virtual-key key-${key.tone}${className ? ` ${className}` : ''}`;
+  button.dataset.keyId = key.id;
+  button.style.setProperty('--key-width', String(key.width));
+  button.setAttribute('aria-label', key.name);
+  button.setAttribute('aria-pressed', 'false');
+  button.disabled = true;
+  if (key.text !== null) {
+    const label = document.createElement('span');
+    label.className = 'key-text';
+    label.textContent = key.text;
+    button.append(label);
+  } else {
+    const glyph = document.createElement('canvas');
+    glyph.className = 'key-glyph';
+    glyph.width = 8;
+    glyph.height = 8;
+    glyph.setAttribute('aria-hidden', 'true');
+    button.append(glyph);
+  }
+  const entries = virtualKeys.get(key.id) ?? [];
+  entries.push(button);
+  virtualKeys.set(key.id, entries);
+  button.addEventListener('pointerdown', event => {
+    if (button.disabled || event.button !== 0 ||
+        key.id === 'ModifierShift' || key.id === 'ModifierControl') return;
+    const source = `pointer:${event.pointerId}:${++virtualSourceSequence}`;
+    const resolved = pressInput(key.id, source, {minimumHold: true});
+    if (!resolved) return;
+    pointerSources.set(event.pointerId, source);
+    try { button.setPointerCapture(event.pointerId); } catch { /* capture is best effort */ }
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    button.addEventListener(type, event => releasePointer(event.pointerId));
+  }
+  button.addEventListener('click', event => {
+    if (button.disabled) return;
+    if (key.id === 'ModifierShift') {
+      inputController.toggleLatch('shift');
+      return;
+    }
+    if (key.id === 'ModifierControl') {
+      inputController.toggleLatch('ctrl');
+      return;
+    }
+    if (event.detail === 0) {
+      const source = `accessible:${++virtualSourceSequence}`;
+      if (pressInput(key.id, source, {minimumHold: true})) {
+        inputController.release(source);
+      }
+    }
+  });
+  return button;
+}
+
 function buildVirtualKeyboard() {
-  const fragment = document.createDocumentFragment();
+  const main = document.createElement('div');
+  main.className = 'keyboard-main';
   for (const keys of KEY_ROWS) {
     const row = document.createElement('div');
     row.className = 'keyboard-row';
     for (const key of keys) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `virtual-key key-${key.tone}`;
-      button.dataset.keyId = key.id;
-      button.style.setProperty('--key-width', String(key.width));
-      button.setAttribute('aria-label', key.name);
-      button.setAttribute('aria-pressed', 'false');
-      button.disabled = true;
-      if (key.text !== null) {
-        const label = document.createElement('span');
-        label.className = 'key-text';
-        label.textContent = key.text;
-        button.append(label);
-      } else {
-        const glyph = document.createElement('canvas');
-        glyph.className = 'key-glyph';
-        glyph.width = 8;
-        glyph.height = 8;
-        glyph.setAttribute('aria-hidden', 'true');
-        button.append(glyph);
+      if (key.kind === 'spacer') {
+        const spacer = document.createElement('span');
+        spacer.className = 'keyboard-spacer';
+        spacer.style.setProperty('--key-width', String(key.width));
+        spacer.setAttribute('aria-hidden', 'true');
+        row.append(spacer);
+        continue;
       }
-      const entries = virtualKeys.get(key.id) ?? [];
-      entries.push(button);
-      virtualKeys.set(key.id, entries);
-      button.addEventListener('pointerdown', event => {
-        if (button.disabled || event.button !== 0 ||
-            key.id === 'ModifierShift' || key.id === 'ModifierControl') return;
-        const source = `pointer:${event.pointerId}:${++virtualSourceSequence}`;
-        const resolved = inputController?.press(key.id, source, {minimumHold: true});
-        if (!resolved) return;
-        pointerSources.set(event.pointerId, source);
-        try { button.setPointerCapture(event.pointerId); } catch { /* capture is best effort */ }
-      });
-      for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-        button.addEventListener(type, event => releasePointer(event.pointerId));
-      }
-      button.addEventListener('click', event => {
-        if (button.disabled) return;
-        if (key.id === 'ModifierShift') {
-          inputController.toggleLatch('shift');
-          return;
-        }
-        if (key.id === 'ModifierControl') {
-          inputController.toggleLatch('ctrl');
-          return;
-        }
-        if (event.detail === 0) {
-          const source = `accessible:${++virtualSourceSequence}`;
-          if (inputController.press(key.id, source, {minimumHold: true})) {
-            inputController.release(source);
-          }
-        }
-      });
-      row.append(button);
+      row.append(createVirtualKey(key));
     }
-    fragment.append(row);
+    main.append(row);
   }
-  virtualKeyboard.replaceChildren(fragment);
+
+  const controls = document.createElement('div');
+  controls.id = 'keyboard-control-cluster';
+  controls.className = 'keyboard-control-cluster';
+  controls.setAttribute('role', 'group');
+  controls.setAttribute('aria-label', '編集・カーソルキー');
+  for (const key of CONTROL_KEYS) {
+    const button = createVirtualKey(key, 'cluster-key');
+    button.style.gridArea = key.area;
+    controls.append(button);
+  }
+  virtualKeyboard.replaceChildren(main, controls);
 }
 
 function releasePointer(pointerId) {
@@ -687,7 +1133,21 @@ function keyboardGlyphState() {
 }
 
 function isKeyboardReady() {
-  return Boolean(codec && state.booted && !state.paused && codec.machine.glyph(0, 'standard').ready);
+  return Boolean(codec && state.booted && !state.paused && !state.autoType &&
+    codec.machine.glyph(0, 'standard').ready);
+}
+
+function ctrlBasicMode() {
+  return Boolean(codec && state.booted && (codec.machine.peek(0xc803) & 0x80) === 0);
+}
+
+function pressInput(keyId, source, {minimumHold = false} = {}) {
+  const resolved = inputController?.press(keyId, source, {
+    minimumHold,
+    ctrlBasicMode: ctrlBasicMode(),
+  });
+  if (resolved && resolved.kind !== 'modifier') inputController.clearLatch('ctrl');
+  return resolved;
 }
 
 function refreshVirtualKeyboard(force = false) {
@@ -700,12 +1160,18 @@ function refreshVirtualKeyboard(force = false) {
     pressedKeyIds: new Set(),
   };
   const glyphState = keyboardGlyphState();
-  const interactive = glyphState.standardReady && state.booted && !state.paused;
+  const interactive = glyphState.standardReady && state.booted && !state.paused &&
+    !state.autoType;
+  const resolverState = {...input, ctrlBasicMode: ctrlBasicMode()};
   const modifiers = [
     input.latchedShift ? 'SHIFT保持' : '',
-    input.latchedCtrl ? 'CTRL保持' : '',
+    input.latchedCtrl ? 'CTRL待機' : '',
   ].filter(Boolean);
-  $('input-mode-status').textContent = `入力モード: ${MODE_NAMES[input.mode]}${modifiers.length ? ` / ${modifiers.join(' / ')}` : ''}`;
+  const romajiPending = preferences.romajiKana && input.mode === INPUT_MODES.KANA &&
+      romajiConverter.pending
+    ? ` / ローマ字 ${romajiConverter.pending}` : '';
+  const automatic = state.autoType ? ` / ${state.autoType.label}中` : '';
+  $('input-mode-status').textContent = `入力モード: ${MODE_NAMES[input.mode]}${modifiers.length ? ` / ${modifiers.join(' / ')}` : ''}${romajiPending}${automatic}`;
   $('glyph-status').textContent = !glyphState.ready
     ? 'FONT未読込 / キー操作不可'
     : glyphState.standardReady
@@ -713,15 +1179,15 @@ function refreshVirtualKeyboard(force = false) {
       : `FONT読込済み / 文字RAM転送待ち（字形プレビュー、キー操作不可）`;
   virtualKeyboard.setAttribute('aria-disabled', String(!interactive));
 
-  const token = `${glyphState.bank}:${glyphState.generation}:${input.mode}:${input.shift}:${input.ctrl}`;
+  const token = `${glyphState.bank}:${glyphState.generation}:${input.mode}:${input.shift}:${input.ctrl}:${resolverState.ctrlBasicMode}`;
   const redraw = force || token !== glyphCacheToken;
   if (redraw) {
     glyphCacheToken = token;
     glyphCache.clear();
   }
   for (const [keyId, buttons] of virtualKeys) {
-    const resolved = resolveKey(keyId, input);
-    const code = displayCodeFor(keyId, input);
+    const resolved = resolveKey(keyId, resolverState);
+    const code = displayCodeFor(keyId, resolverState);
     const pressed = input.pressedKeyIds.has(keyId);
     const isMode = (keyId === 'ModeAnk' && input.mode === INPUT_MODES.ANK) ||
       (keyId === 'ModeKana' && input.mode === INPUT_MODES.KANA) ||
@@ -772,41 +1238,402 @@ function drawGlyph(canvas, rows) {
 }
 
 document.addEventListener('keydown', event => {
-  if (!isKeyboardReady() || event.isComposing) return;
   const virtualKey = event.target.closest?.('.virtual-key');
   if (event.target !== canvas && !virtualKey) return;
   if (virtualKey && (event.code === 'Enter' || event.code === 'Space')) return;
+  if (event.altKey && event.code === 'Enter' && !event.metaKey && !event.ctrlKey) {
+    event.preventDefault();
+    toggleFullscreen();
+    return;
+  }
+  if (state.autoType && (event.code === 'Escape' || event.code === 'F11')) {
+    event.preventDefault();
+    stopAutomaticInput();
+    return;
+  }
   const keyId = keyIdForKeyboardEvent(event);
+  const isControlInput = keyId === 'ModifierControl' ||
+    (Boolean(keyId) && event.ctrlKey && !event.metaKey && !event.altKey);
+  // macOS Japanese IME marks some CTRL shortcuts (notably CTRL+3) as
+  // composing.  When the emulator owns focus, those chords belong to the
+  // JR-200 keyboard; ordinary composition events must still stay with the IME.
+  if (!isKeyboardReady() || (event.isComposing && !isControlInput)) return;
+  const input = inputController.snapshot();
+  if (preferences.romajiKana && input.mode === INPUT_MODES.KANA &&
+      !event.metaKey && !event.altKey && !event.ctrlKey) {
+    if (event.code === 'Backspace' && romajiConverter.backspace()) {
+      event.preventDefault();
+      refreshVirtualKeyboard();
+      return;
+    }
+    const match = /^Key([A-Z])$/.exec(event.code);
+    if (match) {
+      event.preventDefault();
+      if (event.repeat) return;
+      try {
+        const codes = romajiConverter.feed(match[1]);
+        if (codes.length > 0) {
+          startAutomaticInput(codes, {
+            label: 'ローマ字カナ',
+            origin: 'romaji',
+            intervalMs: 10,
+          });
+        }
+        refreshVirtualKeyboard();
+      } catch (error) {
+        $('quick-type-status').textContent = `ローマ字入力エラー: ${error.message}`;
+      }
+      return;
+    }
+  }
   if (!keyId || event.metaKey || event.altKey) return;
-  if (event.ctrlKey && keyId !== 'ModifierControl') return;
   const minimumHold = keyId !== 'ModifierShift' && keyId !== 'ModifierControl';
-  const resolved = inputController.press(
+  const resolved = pressInput(
     keyId,
     `keyboard:${event.code}`,
     {minimumHold},
   );
   if (!resolved) return;
   if (resolved.kind !== 'modifier') event.preventDefault();
-});
+}, {capture: true});
 
 window.addEventListener('keyup', event => {
   inputController?.release(`keyboard:${event.code}`, {immediate: true});
 });
 
-function releaseKeys() {
+function releaseKeys({preserveRomaji = false} = {}) {
   inputController?.releaseAll();
+  if (!preserveRomaji) romajiConverter.reset();
+  forcedJoystickCode = null;
   pointerSources.clear();
 }
 
+function loadPreferences() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PREFERENCE_KEY) || 'null');
+    const integer = (candidate, minimum, maximum, fallback) =>
+      Number.isInteger(candidate) && candidate >= minimum && candidate <= maximum
+        ? candidate : fallback;
+    const oneOf = (candidate, values, fallback) => values.includes(candidate) ? candidate : fallback;
+    const macros = Array.isArray(value?.macros)
+      ? Array.from({length: 10}, (_, index) =>
+        typeof value.macros[index] === 'string' ? value.macros[index].slice(0, 256) : '')
+      : [...DEFAULT_PREFERENCES.macros];
+    return {
+      pauseOnFocusLoss: typeof value?.pauseOnFocusLoss === 'boolean'
+        ? value.pauseOnFocusLoss
+        : DEFAULT_PREFERENCES.pauseOnFocusLoss,
+      tapeMonitorEnabled: typeof value?.tapeMonitorEnabled === 'boolean'
+        ? value.tapeMonitorEnabled
+        : DEFAULT_PREFERENCES.tapeMonitorEnabled,
+      tapeMonitorVolume: Number.isInteger(value?.tapeMonitorVolume) &&
+          value.tapeMonitorVolume >= 0 && value.tapeMonitorVolume <= 100
+        ? value.tapeMonitorVolume
+        : DEFAULT_PREFERENCES.tapeMonitorVolume,
+      screenScale: oneOf(value?.screenScale, ['auto', '1', '2', '3', '4', '5'], DEFAULT_PREFERENCES.screenScale),
+      screenAspect: oneOf(value?.screenAspect, ['square', 'video'], DEFAULT_PREFERENCES.screenAspect),
+      screenRotation: oneOf(value?.screenRotation, [0, 90, 180, 270], DEFAULT_PREFERENCES.screenRotation),
+      screenSmoothing: typeof value?.screenSmoothing === 'boolean'
+        ? value.screenSmoothing : DEFAULT_PREFERENCES.screenSmoothing,
+      cpuSpeed: integer(value?.cpuSpeed, 50, 1000, DEFAULT_PREFERENCES.cpuSpeed),
+      tapeTurbo: typeof value?.tapeTurbo === 'boolean' ? value.tapeTurbo : DEFAULT_PREFERENCES.tapeTurbo,
+      ramExpansion1: typeof value?.ramExpansion1 === 'boolean'
+        ? value.ramExpansion1 : DEFAULT_PREFERENCES.ramExpansion1,
+      ramExpansion2: typeof value?.ramExpansion2 === 'boolean'
+        ? value.ramExpansion2 : DEFAULT_PREFERENCES.ramExpansion2,
+      ramInitPattern: integer(value?.ramInitPattern, 0, 1, DEFAULT_PREFERENCES.ramInitPattern),
+      quickTypeInterval: integer(value?.quickTypeInterval, 10, 100, DEFAULT_PREFERENCES.quickTypeInterval),
+      romajiKana: typeof value?.romajiKana === 'boolean'
+        ? value.romajiKana : DEFAULT_PREFERENCES.romajiKana,
+      macros,
+      gamepadButtonA: integer(value?.gamepadButtonA, 0, 31, DEFAULT_PREFERENCES.gamepadButtonA),
+      gamepadButtonB: integer(value?.gamepadButtonB, 0, 31, DEFAULT_PREFERENCES.gamepadButtonB),
+      gamepadOneButton: typeof value?.gamepadOneButton === 'boolean'
+        ? value.gamepadOneButton : DEFAULT_PREFERENCES.gamepadOneButton,
+      forcedJoystick: typeof value?.forcedJoystick === 'boolean'
+        ? value.forcedJoystick : DEFAULT_PREFERENCES.forcedJoystick,
+      forcedJoystickA: integer(value?.forcedJoystickA, 0, 255, DEFAULT_PREFERENCES.forcedJoystickA),
+      forcedJoystickB: integer(value?.forcedJoystickB, 0, 255, DEFAULT_PREFERENCES.forcedJoystickB),
+    };
+  } catch {
+    return {...DEFAULT_PREFERENCES, macros: [...DEFAULT_PREFERENCES.macros]};
+  }
+}
+
+function savePreferences() {
+  try {
+    localStorage.setItem(PREFERENCE_KEY, JSON.stringify(preferences));
+  } catch {
+    // The current-session setting still works when storage is unavailable.
+  }
+}
+
+function syncPreferenceControls() {
+  $('pause-on-focus-loss').checked = preferences.pauseOnFocusLoss;
+  $('tape-monitor-enabled').checked = preferences.tapeMonitorEnabled;
+  $('tape-monitor-volume').value = String(preferences.tapeMonitorVolume);
+  $('tape-monitor-volume-value').textContent = `${preferences.tapeMonitorVolume}%`;
+  $('screen-scale').value = preferences.screenScale;
+  $('screen-aspect').value = preferences.screenAspect;
+  $('screen-rotation').value = String(preferences.screenRotation);
+  $('screen-smoothing').checked = preferences.screenSmoothing;
+  $('cpu-speed').value = String(preferences.cpuSpeed);
+  $('cpu-speed-value').textContent = `${preferences.cpuSpeed}%`;
+  $('tape-turbo').checked = preferences.tapeTurbo;
+  $('ram-expansion-1').checked = preferences.ramExpansion1;
+  $('ram-expansion-2').checked = preferences.ramExpansion2;
+  $('ram-init-pattern').value = String(preferences.ramInitPattern);
+  $('quick-type-interval').value = String(preferences.quickTypeInterval);
+  $('quick-type-interval-value').textContent = `${preferences.quickTypeInterval} ms`;
+  $('romaji-kana').checked = preferences.romajiKana;
+  $('gamepad-button-a').value = String(preferences.gamepadButtonA);
+  $('gamepad-button-b').value = String(preferences.gamepadButtonB);
+  $('gamepad-one-button').checked = preferences.gamepadOneButton;
+  $('forced-joystick').checked = preferences.forcedJoystick;
+  $('forced-joystick-a').value = preferences.forcedJoystickA.toString(16).toUpperCase().padStart(2, '0');
+  $('forced-joystick-b').value = preferences.forcedJoystickB.toString(16).toUpperCase().padStart(2, '0');
+  showMemoryConfigurationStatus();
+  updateMacroEditor();
+}
+
+function updateMacroEditor(message = '') {
+  const slot = Number($('macro-slot').value);
+  const value = preferences.macros[slot] ?? '';
+  $('macro-text').value = value;
+  $('macro-status').textContent = message || (value
+    ? `スロット${slot === 9 ? 0 : slot + 1}: ${value.length}文字を登録済みです。`
+    : `スロット${slot === 9 ? 0 : slot + 1}: 未登録です。`);
+  $('macro-run').disabled = !state.booted || state.paused ||
+    Boolean(state.autoType) || value === '';
+  $('macro-delete').disabled = value === '';
+}
+
+function updateViewPreference(name, value) {
+  preferences[name] = value;
+  savePreferences();
+  applyScreenPreferences();
+}
+
+$('screen-scale').addEventListener('change', event => {
+  updateViewPreference('screenScale', event.target.value);
+});
+$('screen-aspect').addEventListener('change', event => {
+  updateViewPreference('screenAspect', event.target.value);
+});
+$('screen-rotation').addEventListener('change', event => {
+  updateViewPreference('screenRotation', Number(event.target.value));
+});
+$('screen-smoothing').addEventListener('change', event => {
+  updateViewPreference('screenSmoothing', event.target.checked);
+});
+
+$('cpu-speed').addEventListener('input', event => {
+  preferences.cpuSpeed = Number(event.target.value);
+  $('cpu-speed-value').textContent = `${preferences.cpuSpeed}%`;
+  savePreferences();
+  showMachineStatus();
+});
+
+$('tape-turbo').addEventListener('change', event => {
+  preferences.tapeTurbo = event.target.checked;
+  savePreferences();
+  showMachineStatus();
+});
+
+for (const [id, name] of [
+  ['ram-expansion-1', 'ramExpansion1'],
+  ['ram-expansion-2', 'ramExpansion2'],
+]) {
+  $(id).addEventListener('change', event => {
+    preferences[name] = event.target.checked;
+    savePreferences();
+    showMemoryConfigurationStatus(true);
+  });
+}
+
+$('ram-init-pattern').addEventListener('change', event => {
+  preferences.ramInitPattern = Number(event.target.value);
+  savePreferences();
+  showMemoryConfigurationStatus(true);
+});
+
+$('quick-type-interval').addEventListener('input', event => {
+  preferences.quickTypeInterval = Number(event.target.value);
+  $('quick-type-interval-value').textContent = `${preferences.quickTypeInterval} ms`;
+  savePreferences();
+});
+
+$('quick-type-start').addEventListener('click', () => {
+  try {
+    const codes = encodeJrText($('quick-type-text').value);
+    startAutomaticInput(codes, {
+      label: 'クイックタイプ',
+      origin: 'quick-type',
+      intervalMs: preferences.quickTypeInterval,
+    });
+    canvas.focus();
+  } catch (error) {
+    $('quick-type-status').textContent = `開始できません: ${error.message}`;
+  }
+});
+
+$('quick-type-stop').addEventListener('click', () => {
+  stopAutomaticInput();
+  canvas.focus();
+});
+
+$('macro-slot').addEventListener('change', () => updateMacroEditor());
+$('macro-text').addEventListener('input', () => {
+  const slot = Number($('macro-slot').value);
+  const registered = preferences.macros[slot] ?? '';
+  $('macro-status').textContent = $('macro-text').value === registered
+    ? (registered ? '登録済みです。' : '未登録です。')
+    : '未保存の変更があります。';
+});
+$('macro-save').addEventListener('click', () => {
+  const slot = Number($('macro-slot').value);
+  const value = $('macro-text').value.trimEnd();
+  preferences.macros[slot] = value;
+  savePreferences();
+  updateMacroEditor(value ? 'マクロを保存しました。' : '空のマクロを削除しました。');
+});
+$('macro-delete').addEventListener('click', () => {
+  const slot = Number($('macro-slot').value);
+  preferences.macros[slot] = '';
+  savePreferences();
+  updateMacroEditor('マクロを削除しました。');
+});
+$('macro-run').addEventListener('click', () => {
+  try {
+    const slot = Number($('macro-slot').value);
+    const codes = encodeJrText(preferences.macros[slot], {
+      interpretEscapes: true,
+      maximumBytes: 1024,
+    });
+    startAutomaticInput(codes, {
+      label: `マクロ${slot === 9 ? 0 : slot + 1}`,
+      origin: 'macro',
+      intervalMs: preferences.quickTypeInterval,
+    });
+    canvas.focus();
+  } catch (error) {
+    $('macro-status').textContent = `実行できません: ${error.message}`;
+  }
+});
+
+$('romaji-kana').addEventListener('change', event => {
+  preferences.romajiKana = event.target.checked;
+  romajiConverter.reset();
+  savePreferences();
+  refreshVirtualKeyboard();
+});
+
+function updateGamepadMapping(name, value) {
+  preferences[name] = value;
+  releaseForcedJoystick();
+  savePreferences();
+  gamepadController?.resync();
+  showGamepadStatus();
+}
+
+for (const [id, name] of [
+  ['gamepad-button-a', 'gamepadButtonA'],
+  ['gamepad-button-b', 'gamepadButtonB'],
+]) {
+  $(id).addEventListener('change', event => {
+    const value = Number(event.target.value);
+    if (!Number.isInteger(value) || value < 0 || value > 31) {
+      event.target.value = String(preferences[name]);
+      return;
+    }
+    updateGamepadMapping(name, value);
+  });
+}
+
+$('gamepad-one-button').addEventListener('change', event => {
+  updateGamepadMapping('gamepadOneButton', event.target.checked);
+});
+$('forced-joystick').addEventListener('change', event => {
+  updateGamepadMapping('forcedJoystick', event.target.checked);
+});
+
+for (const [id, name] of [
+  ['forced-joystick-a', 'forcedJoystickA'],
+  ['forced-joystick-b', 'forcedJoystickB'],
+]) {
+  $(id).addEventListener('change', event => {
+    const text = event.target.value.trim();
+    if (!/^[0-9a-fA-F]{2}$/.test(text)) {
+      event.target.value = preferences[name].toString(16).toUpperCase().padStart(2, '0');
+      return;
+    }
+    const value = parseInt(text, 16);
+    event.target.value = text.toUpperCase();
+    updateGamepadMapping(name, value);
+  });
+}
+
+function applyTapeMonitorPreferences() {
+  if (!codec) return;
+  codec.machine.tape.setMonitor(
+    preferences.tapeMonitorEnabled,
+    preferences.tapeMonitorVolume,
+  );
+}
+
+$('pause-on-focus-loss').addEventListener('change', event => {
+  preferences.pauseOnFocusLoss = event.target.checked;
+  savePreferences();
+});
+
+$('tape-monitor-enabled').addEventListener('change', event => {
+  preferences.tapeMonitorEnabled = event.target.checked;
+  savePreferences();
+  try {
+    applyTapeMonitorPreferences();
+    showTapeStatus();
+  } catch (error) {
+    showTapeStatus(`モニター設定を変更できません: ${error.message}`);
+  }
+});
+
+$('tape-monitor-volume').addEventListener('input', event => {
+  preferences.tapeMonitorVolume = Number(event.target.value);
+  $('tape-monitor-volume-value').textContent = `${preferences.tapeMonitorVolume}%`;
+  savePreferences();
+  try {
+    applyTapeMonitorPreferences();
+    showTapeStatus();
+  } catch (error) {
+    showTapeStatus(`モニター音量を変更できません: ${error.message}`);
+  }
+});
+
 window.addEventListener('blur', () => {
   releaseKeys();
-  if (state.booted && !state.paused) setPaused(true, 'フォーカスを失ったため一時停止しました。');
+  gamepadController?.suspend();
+  if (preferences.pauseOnFocusLoss && state.booted && !state.paused) {
+    setPaused(true, '設定に従い、フォーカスを失ったため一時停止しました。');
+  }
 });
+
+window.addEventListener('focus', () => {
+  gamepadController?.resume();
+});
+
+for (const eventName of ['gamepadconnected', 'gamepaddisconnected']) {
+  window.addEventListener(eventName, () => gamepadController?.update());
+}
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     releaseKeys();
-    if (state.booted && !state.paused) setPaused(true, 'ページが非表示になったため一時停止しました。');
+    gamepadController?.suspend();
+    if (preferences.pauseOnFocusLoss && state.booted && !state.paused) {
+      setPaused(true, '設定に従い、ページが非表示になったため一時停止しました。');
+    }
+  } else if (document.hasFocus()) {
+    gamepadController?.resume();
   }
 });
 
@@ -837,40 +1664,127 @@ async function withAssetStore(mode, operation) {
   }
 }
 
+function safeStoredAssetName(value, fallback) {
+  if (typeof value !== 'string') return fallback;
+  const name = value.replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  return name ? name.slice(0, 255) : fallback;
+}
+
+function currentRomAssetName() {
+  if (state.romMode === 'combined') {
+    return safeStoredAssetName(state.names.rom, '保存済み結合ROM');
+  }
+  return safeStoredAssetName(
+    [state.names.rom1, state.names.rom2].filter(Boolean).join(' + '),
+    '保存済み結合ROM',
+  );
+}
+
 async function saveAssets(rom, font) {
-  const value = {rom: rom.slice().buffer, font: font.slice().buffer};
+  const value = {
+    version: 2,
+    rom: rom.slice().buffer,
+    font: font.slice().buffer,
+    names: {
+      rom: currentRomAssetName(),
+      font: safeStoredAssetName(state.names.font, '保存済みフォント'),
+    },
+  };
   await withAssetStore('readwrite', store => store.put(value, 'jr200'));
 }
 
-$('restore-assets').addEventListener('click', async () => {
+async function persistAssetsIfAllowed(
+  message = 'ROMとフォントをIndexedDBへ保存しました。次回は自動復元します',
+) {
+  if (!$('remember-assets').checked || !assetsReady()) return false;
+  try {
+    await saveAssets(selectedRom(), state.font);
+    updateAssetStatus(message);
+    return true;
+  } catch (error) {
+    updateAssetStatus(`IndexedDBへ保存できません: ${error.message}`);
+    return false;
+  }
+}
+
+async function restoreSavedAssets({automatic = false} = {}) {
   try {
     const saved = await withAssetStore('readonly', store => store.get('jr200'));
-    if (!saved) throw new Error('保存済みファイルはありません');
+    if (!saved) {
+      if (!automatic) updateAssetStatus('復元エラー: 保存済みファイルはありません');
+      return false;
+    }
     const rom = new Uint8Array(saved.rom);
     const font = new Uint8Array(saved.font);
+    const hasStoredNames = typeof saved.names?.rom === 'string' &&
+      saved.names.rom.trim() !== '' && typeof saved.names?.font === 'string' &&
+      saved.names.font.trim() !== '';
     validateCombinedRom(rom);
     if (font.length !== 2048 || isUniform(font)) throw new Error('保存済みフォントが不正です');
     state.romMode = 'combined';
     state.rom = rom;
+    state.rom1 = null;
+    state.rom2 = null;
     state.font = font;
-    state.names.rom = 'IndexedDB';
-    state.names.font = 'IndexedDB';
+    state.names.rom = safeStoredAssetName(saved.names?.rom, '旧保存形式・ファイル名不明');
+    state.names.rom1 = '';
+    state.names.rom2 = '';
+    state.names.font = safeStoredAssetName(saved.names?.font, '旧保存形式・ファイル名不明');
+    state.origins.rom = 'indexeddb';
+    state.origins.rom1 = '';
+    state.origins.rom2 = '';
+    state.origins.font = 'indexeddb';
+    $('remember-assets').checked = true;
     document.querySelector('input[name="rom-mode"][value="combined"]').checked = true;
     $('combined-fields').hidden = false;
     $('split-fields').hidden = true;
-    updateAssetStatus('保存済みファイルを明示操作で復元しました');
+    const restoredMessage = automatic
+      ? '保存済みROMとフォントを自動復元しました。「起動」を押してください'
+      : '保存済みROMとフォントを復元しました。「起動」を押してください';
+    updateAssetStatus(hasStoredNames
+      ? restoredMessage
+      : `${restoredMessage}。旧保存形式にはファイル名がないため、一度選び直すと次回から表示できます`);
+    return true;
   } catch (error) {
-    updateAssetStatus(`復元エラー: ${error.message}`);
+    updateAssetStatus(`${automatic ? '自動復元エラー' : '復元エラー'}: ${error.message}`);
+    return false;
   }
+}
+
+async function forgetSavedAssets(message = 'IndexedDBの保存済みファイルを削除しました') {
+  try {
+    await withAssetStore('readwrite', store => store.delete('jr200'));
+    $('remember-assets').checked = false;
+    for (const key of ['rom', 'rom1', 'rom2', 'font']) {
+      if (state.origins[key] === 'indexeddb') state.origins[key] = 'memory';
+    }
+    updateAssetStatus(message);
+    return true;
+  } catch (error) {
+    $('remember-assets').checked = true;
+    updateAssetStatus(`削除エラー: ${error.message}`);
+    return false;
+  }
+}
+
+$('remember-assets').addEventListener('change', async event => {
+  if (!event.target.checked) {
+    await forgetSavedAssets('保存許可を解除し、IndexedDBの保存済みファイルを削除しました。現在の画面では引き続き使用できます');
+    return;
+  }
+  if (!assetsReady()) {
+    updateAssetStatus('ROMとフォントが揃うとIndexedDBへ保存し、次回自動復元します');
+    return;
+  }
+  await persistAssetsIfAllowed();
+});
+
+$('restore-assets').addEventListener('click', async () => {
+  await restoreSavedAssets();
 });
 
 $('forget-assets').addEventListener('click', async () => {
-  try {
-    await withAssetStore('readwrite', store => store.delete('jr200'));
-    updateAssetStatus('IndexedDBの保存済みファイルを削除しました');
-  } catch (error) {
-    updateAssetStatus(`削除エラー: ${error.message}`);
-  }
+  await forgetSavedAssets();
 });
 
 async function readLimited(file, maximumBytes = 1024 * 1024) {
@@ -881,21 +1795,82 @@ async function readLimited(file, maximumBytes = 1024 * 1024) {
   return new Uint8Array(await file.arrayBuffer());
 }
 
+function downloadBytes(bytes, name, type = 'application/octet-stream') {
+  const url = URL.createObjectURL(new Blob([bytes], {type}));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$('tape-cjr').addEventListener('change', async () => {
+  const file = $('tape-cjr').files[0];
+  state.tapeSelectedName = file?.name || '';
+  const revision = ++state.tapeSelectionRevision;
+  state.tapeSelectionStatus = '';
+  showTapeStatus();
+  if (!file) return;
+  try {
+    const bytes = await readLimited(file);
+    const summary = codec.inspect(bytes);
+    if (revision !== state.tapeSelectionRevision) return;
+    if (summary.fileType === 1 && summary.dataBlocks > 0) {
+      state.tapeSelectionStatus = 'マシン語 / MLOAD用です。';
+    } else if (summary.fileType === 0) {
+      state.tapeSelectionStatus = 'BASIC / LOAD用です。';
+    } else {
+      state.tapeSelectionStatus = '標準LOAD/MLOADに対応しないCJRです。';
+    }
+    showTapeStatus();
+  } catch (error) {
+    if (revision !== state.tapeSelectionRevision) return;
+    state.tapeSelectionStatus = `検査できません: ${error.message}`;
+    showTapeStatus();
+  }
+});
+
+async function mountSelectedTape() {
+  const file = $('tape-cjr').files[0];
+  const bytes = await readLimited(file);
+  state.tapeName = '';
+  state.tapeMountedSelectionRevision = 0;
+  codec.machine.tape.mount(bytes);
+  state.tapeName = file.name;
+  state.tapeMountedSelectionRevision = state.tapeSelectionRevision;
+}
+
 $('tape-mount').addEventListener('click', async () => {
   try {
-    const file = $('tape-cjr').files[0];
-    const bytes = await readLimited(file);
-    codec.machine.tape.mount(bytes);
-    state.tapeName = file.name;
+    await mountSelectedTape();
     showTapeStatus('通常のカセット入力信号としてマウントしました。LOADまたはMLOADを実行してください。');
   } catch (error) {
     showTapeStatus(`マウントできません: ${error.message}`);
   }
 });
 
+$('tape-quick-load').addEventListener('click', async () => {
+  try {
+    const file = $('tape-cjr').files[0];
+    const bytes = await readLimited(file);
+    stopAutomaticInput();
+    releaseKeys();
+    const result = codec.machine.quickLoad(bytes);
+    const kind = result.fileType === 0 ? 'BASIC' : 'マシン語';
+    paintMachine();
+    refreshDebugger();
+    showMachineStatus();
+    showTapeStatus(`${file.name} の${kind} ${result.injectedBytes}バイトを高速ロードしました。これはカセット信号経路を通らない便宜機能です。`);
+    canvas.focus();
+  } catch (error) {
+    showTapeStatus(`高速ロードできません: ${error.message}`);
+  }
+});
+
 $('tape-eject').addEventListener('click', () => {
   codec.machine.tape.eject();
   state.tapeName = '';
+  state.tapeMountedSelectionRevision = 0;
   showTapeStatus('CJRを取り出しました。');
 });
 
@@ -912,6 +1887,7 @@ $('tape-record').addEventListener('click', () => {
   try {
     codec.machine.tape.armRecord();
     state.tapeName = '';
+    state.tapeMountedSelectionRevision = 0;
     showTapeStatus('録音待機中です。JR-200側でSAVEまたはMSAVEを実行してください。REMOTE OFF後にCJRを検証します。');
   } catch (error) {
     showTapeStatus(`録音待機にできません: ${error.message}`);
@@ -940,6 +1916,7 @@ $('tape-replay-output').addEventListener('click', () => {
     if (output.length === 0) throw new Error('再生できる録音CJRがありません');
     codec.machine.tape.mount(output);
     state.tapeName = '録音結果';
+    state.tapeMountedSelectionRevision = -1;
     showTapeStatus('直前の録音CJRを通常のカセット入力信号としてマウントしました。');
   } catch (error) {
     showTapeStatus(`録音CJRをマウントできません: ${error.message}`);

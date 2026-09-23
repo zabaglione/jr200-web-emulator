@@ -50,18 +50,42 @@ JR200Machine::JR200Machine(MemoryConfig config) noexcept
     reset_peripherals();
 }
 
+bool JR200Machine::set_memory_config(MemoryConfig config) noexcept
+{
+    if (config.ram_init_pattern > 1U) {
+        return false;
+    }
+    config_ = config;
+    return true;
+}
+
+MemoryConfig JR200Machine::memory_config() const noexcept
+{
+    return config_;
+}
+
 void JR200Machine::initialize_memory() noexcept
 {
     for (uint32_t i = 0U; i < 65536U; ++i) {
         memory_[i] = 0U;
     }
-    for (uint32_t i = 0U; i < 0x8000U; i += 4U) {
-        if ((i & 0x100U) == 0U) {
-            memory_[i] = 0xffU;
-            memory_[i + 1U] = 0xffU;
-        } else {
-            memory_[i + 2U] = 0xffU;
-            memory_[i + 3U] = 0xffU;
+    if (config_.ram_init_pattern == 0U) {
+        for (uint32_t i = 0U; i < 0x8000U; i += 4U) {
+            if ((i & 0x100U) == 0U) {
+                memory_[i] = 0xffU;
+                memory_[i + 1U] = 0xffU;
+            } else {
+                memory_[i + 2U] = 0xffU;
+                memory_[i + 3U] = 0xffU;
+            }
+        }
+    } else {
+        for (uint32_t i = 0U; i < 0x8000U; i += 2U) {
+            if ((i & 0x80U) == 0U) {
+                memory_[i + 1U] = 0xffU;
+            } else {
+                memory_[i] = 0xffU;
+            }
         }
     }
     for (uint32_t i = 0xc001U; i < 0xc100U; i += 2U) {
@@ -174,7 +198,7 @@ void JR200Machine::advance_cycles(uint32_t cycles) noexcept
     if (cycles == 0U) {
         return;
     }
-    mn1271_.tick(cycles, pcm_);
+    mn1271_.tick(cycles, pcm_, cassette_.monitor_sample());
     cassette_.tick(cycles);
     crtc_.tick(cycles, memory_);
     mn1544_.tick(cycles, mn1271_);
@@ -294,6 +318,7 @@ void JR200Machine::poke(uint16_t address, uint8_t value) noexcept
 void JR200Machine::set_key_state(uint8_t code, bool pressed) noexcept
 {
     mn1544_.set_key_state(code, pressed);
+    mn1271_.set_key_detection(mn1544_.current_key());
 }
 
 void JR200Machine::set_joystick(

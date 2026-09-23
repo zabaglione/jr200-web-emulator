@@ -1,30 +1,31 @@
 # JR-200 Web Emulator — Statement of Work
-版: 0.4 / 更新日: 2026-09-22 / 状態: private初版0.0.1とUI follow-up受入完了
+版: 0.5 / 更新日: 2026-09-22 / 状態: private初版0.0.1、UI follow-up、Windows機能差分実装
 
 ## 1. 目的
-VJR200forWindowsを出発点に、JR-200日本向けモデルをブラウザで実行する独立した非公開プロジェクトを開発する。エミュレーションの実装主体はC++20とし、WebAssemblyにコンパイルしてJavaScriptの表示・入力・ファイル操作と接続する。CJRを互換ファイル形式として維持し、最終的にCJR→WAV→実機LOAD/MLOAD、および実機SAVE/MSAVE→WAV→CJRの両方向を検証する。
+VJR200forWindowsを出発点に、JR-200日本向けモデルをブラウザで実行する独立したプロジェクトを開発する。エミュレーションの実装主体はC++20とし、WebAssemblyにコンパイルしてJavaScriptの表示・入力・ファイル操作と接続する。CJRを互換ファイル形式として維持し、最終的にCJR→WAV→実機LOAD/MLOAD、および実機SAVE/MSAVE→WAV→CJRの両方向を検証する。
 
 ## 2. 要求と設計上の決定
 | 項目 | 決定 |
 |---|---|
 | 移植元 | find-jr200/VJR200forWindows。基準commitはUPSTREAM.mdに固定 |
-| 配置先 | zabaglione/jr200-web-emulator（利用者が作成済みのprivate repository）。このリポジトリのみを初期化し、public化しない |
+| 配置先 | zabaglione/jr200-web-emulator（利用者が作成済み）。既存リポジトリを再初期化しない。可視性の変更は利用者が別途判断する |
 | コア | C++20、固定幅整数、OS非依存。native/WASMで同じソースとテストベクトル |
-| Web | JavaScript ES modules、Canvas、後続フェーズでWeb Audio。UIだけをJSに置く |
+| Web | JavaScript ES modules、Canvas、Web Audio、Gamepad API。UIとhost入力だけをJSに置く |
 | UI follow-up | GitHub Issue #15〜#20でFull HD配置、実機を参照したtheme、ROM由来字形の仮想keyboard、三browser回帰を追加。初期計画P00〜P13の番号は増やさない |
+| Windows機能差分 | VJR-200 V1.8.2の固定sourceを正とし、既存共通coreとbrowserの安全モデルで実現可能な操作／設定を追加。Win32 GUIの外観複製は行わない |
 | ビルド | make→CMake。標準ルートはEmscripten。初期の依存なしコーデックはClang直接WASMビルドも検証 |
 | テープ | CJRバイト列と波形層を分離。CJR標準形式を優先し、マルチ領域を破壊しない |
 | ROM等 | ROM・メーカー由来フォントは利用者がローカル選択。コミット、WASMへの埋込、CIへのアップロードを禁止 |
-| 公開範囲 | private開発のみ。GitHub Pagesや外部サイトへの自動公開は範囲外 |
+| 配布範囲 | ソースとローカルビルド手順。GitHub Pagesや外部サイトへの自動公開は範囲外 |
 | 進め方 | P00〜P11後、P13でprivate初版を受入。P12の物理実機検証は独立した初版後試験 |
 
 「C++→WASM→JavaScript」は、WASMをさらにJSへ翻訳する意味ではない。C++をWASM本体にし、JS glue/ラッパーから呼び出す構成とする。
 
 ## 3. 含む作業
-ライセンスと由来の監査、ネイティブ/ブラウザ共通のCPU・バス・周辺回路コア、ROM選択とBASIC起動、文字・グラフィック表示、キーボード、音声、CJRロード/セーブ、WAV書出し/解析、テスト、基本デバッガ、開発文書を対象とする。UI follow-upではFull HD通常windowで整数倍画面・主要操作・仮想keyboardを併用し、英数／カナ／GRAPHと読み込んだFONT／文字RAM字形を共通入力定義へ接続する。
+ライセンスと由来の監査、ネイティブ/ブラウザ共通のCPU・バス・周辺回路コア、ROM選択とBASIC起動、文字・グラフィック表示、キーボード、2 playerジョイスティック、音声、CJRロード/セーブ、WAV書出し/解析、テスト、基本デバッガ、開発文書を対象とする。UI follow-upではFull HD通常windowで整数倍画面・主要操作・仮想keyboardを併用し、英数／カナ／GRAPHと読み込んだFONT／文字RAM字形を共通入力定義へ接続する。Windows機能差分は画面変換、自動入力／macro、ローマ字カナ、CJR高速load、memory dump、CPU/RAM、joystick設定を含む。
 
 ## 4. 初版の対象外
-FDD/D20/D88、プリンタ、RS-232C、JR-200U/JR-300の完全互換、特殊ローダーの網羅、JR2の全面実装、クラウド同期、ROMの取得代行・配布、一般公開サイト、Windows版GUIの再現。JR2は将来の生信号経路として設計上分離するが、CJR/WAVの完了を遅らせる必須条件にしない。
+FDD/D20/D88、プリンタ、RS-232C、JR-200U/JR-300の完全互換、特殊ローダーの網羅、JR2の全面実装、クラウド同期、ROMの取得代行・配布、一般公開サイト、Windows版GUIの外観再現。Windows版のstate save/load、debug label/disassembler、recent-fileは今回の差分実装に含めない。JR2は将来の生信号経路として設計上分離するが、CJR/WAVの完了を遅らせる必須条件にしない。
 
 初版0.0.1の受入では、生成WAVの物理JR-200読込と、実機SAVE/MSAVEからの独立2回録音による
 往復結果も対象外とする。CJR/WAV生成・解析機能は含むが、実機互換は未検証と表示し、P12で
@@ -33,7 +34,7 @@ FDD/D20/D88、プリンタ、RS-232C、JR-200U/JR-300の完全互換、特殊ロ
 ## 5. アーキテクチャ
 - core: CPU、メモリバス、MN1271、MN1544、CRTC、サイクル管理。Win32/Direct2D/DirectSound/cerealを直接参照しない。
 - tape: CJRの検証・ブロック列と原バイトの保持、シリアルビット/信号遷移、WAV RIFF入出力を別層にする。
-- platform: ROM/ファイル読み込み、画面表示、キーボードイベント、音声キュー、任意の保存を担当する。
+- platform: ROM/ファイル読み込み、画面表示、キーボードイベント、Gamepad API polling、音声キュー、任意の保存を担当する。
 - wasm: バージョン付きC ABI。所有権・バッファ容量・エラーコード・メモリ更新タイミングを明記する。
 
 CPU時間は実行サイクルで決める。requestAnimationFrameの呼び出し間隔やディスプレイのHzをCPUクロックとして扱わない。ブラウザ休止時は明示的にポーズし、復帰時の巨大な追いつき処理を避ける。初版でpthread/SharedArrayBufferを必須にしない。
@@ -57,8 +58,11 @@ M4はP12で判定し、private初版0.0.1のP13受入条件には含めない。
 「実機互換未検証」を維持する。
 
 ### M5: UI follow-up
-CSS viewport 1920×960と1920×1080の100%表示で、整数倍画面・主要操作・44px以上の仮想keyを
-ページ全体のscrollなしで併用する。1536×768、1280×720、実125% zoom、DPR 1／2で横切れを
+CSS viewport 1920×960と1920×1080の100%表示で、仮想keyboardを既定で閉じ、3倍の整数倍画面と
+主要操作をページ全体のscrollなしで表示する。仮想keyboard表示時も画面倍率を維持し、Full HDでは
+横の補助領域、1536×768と1280×720では最大620pxの中央配置として横へ引き伸ばさない。desktopの
+補助keyは25px以上（Full HD横配置は29px以上）とし、物理keyboard操作とfocus可能なbuttonを維持する。
+1536×768、1280×720、実125% zoom、DPR 1／2で横切れを
 起こさない。英数／カナ／GRAPH、修飾・制御key、複数入力元、focus喪失、glyph cacheを自動試験し、
 Chrome・Firefox・macOS Safariの実browserで確認する。実データ確認と合成再現試験を区別し、
 ROM／font／利用者情報を配布しない。詳細はUI_ACCEPTANCE.mdを正とする。
@@ -71,9 +75,9 @@ ROM1/ROM2各8192バイト、フォント2048バイトを利用者が権利を確
 ## 9. リスクと対処
 上流MN1271の挙動は作者自身が近似実装と説明している。したがって「Windows版との一致」と「実機との一致」を分ける。波形にはヘッダー固定速度、データ速度、位相、リーダー等の別条件がある。CJRパーサや参照ツールでのWAV復元成功を、自前WAV実装や実機互換と取り違えない。
 
-上流の無条件な添字参照や未検証のオフセット固定をそのまま取り込まない。ROM由来の初期化情報を一般ソースに埋め込まない。privateリポジトリであることを、第三者著作物を自由に追加できる根拠にしない。
+上流の無条件な添字参照や未検証のオフセット固定をそのまま取り込まない。ROM由来の初期化情報を一般ソースに埋め込まない。リポジトリの可視性を、第三者著作物を自由に追加できる根拠にしない。
 
 ## 10. 変更・完了管理
 各Issueには依存関係、対象、対象外、成果物、テスト、受入条件を持たせる。課題は「実装済」「合成テスト済」「上流対照済」「実データbrowser確認済」「実機試験済」を別に記録する。P13はP11に依存し、P12は初版後の独立検証としてopenのまま残す。UI follow-up #15〜#20は初期計画IDと区別し、#20、子Issue、親#15の順序で証拠を残す。未検証の条件を別Issueの完了で上書きしない。期間・費用見積は、上流差分試験と初回ブートの難易度を観測してから別途更新する。
 
-出典: UPSTREAM.md のS1〜S8、UI follow-upはS15〜S18。
+出典: UPSTREAM.md のS1〜S8、UI follow-upはS15〜S18、browser joystickはS16とS19。

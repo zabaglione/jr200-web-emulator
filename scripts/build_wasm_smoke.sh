@@ -18,7 +18,9 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_cpu_memory_ptr jr200_cpu_clear_memory jr200_cpu_set_wait
          jr200_cpu_reset jr200_cpu_set_registers jr200_cpu_set_irq
          jr200_cpu_pulse_nmi jr200_cpu_step jr200_cpu_register
-         jr200_cpu_trace_field jr200_system_api_version jr200_system_clear
+         jr200_cpu_trace_field jr200_system_api_version
+         jr200_system_configure_memory jr200_system_memory_config
+         jr200_system_clear
          jr200_system_rom_ptr jr200_system_rom_capacity
          jr200_system_font_ptr jr200_system_font_capacity
          jr200_system_boot jr200_system_reset jr200_system_run
@@ -37,6 +39,7 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_system_glyph_ready jr200_system_glyph_row
          jr200_system_glyph_generation jr200_system_write
          jr200_system_poke jr200_system_tick jr200_system_set_key
+         jr200_system_set_joystick
          jr200_system_set_cassette_input jr200_system_field
          jr200_system_trace_field jr200_system_render
          jr200_system_framebuffer_ptr jr200_system_pcm_pop
@@ -47,6 +50,7 @@ exports=(jr200_codec_api_version jr200_input_ptr jr200_output_ptr jr200_capacity
          jr200_system_tape_input_ptr jr200_system_tape_capacity
          jr200_system_tape_mount jr200_system_tape_eject
          jr200_system_tape_rewind jr200_system_tape_arm_record
+         jr200_system_tape_set_monitor
          jr200_system_tape_output_ptr jr200_system_tape_output_size
          jr200_system_tape_error_message jr200_system_tape_field
          jr200_wav_api_version jr200_wav_input_ptr

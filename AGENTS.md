@@ -2,7 +2,7 @@
 
 Read docs/STATUS.md, docs/SOW.md, docs/UPSTREAM.md and the next open plan item before editing.
 The ordered plan is docs/issues/manifest.json (P00 through P13). These are plan IDs, not assumed GitHub issue numbers. Actual remote numbers and URLs are in docs/ISSUE_INDEX.md.
-The canonical repository is zabaglione/jr200-web-emulator (private). It already exists: do not run the legacy bootstrap --execute to initialize it again.
+The canonical repository is zabaglione/jr200-web-emulator. It already exists: do not run the legacy bootstrap --execute to initialize it again.
 
 1. Never claim repository creation, issue creation, CI execution, emulator boot or hardware success without a real result. A prepared script or local test is not a remote action.
 2. Never commit manufacturer ROM/font files, commercial tapes, user recordings or tokens. Private visibility is not a rights exemption. Stage the explicit source inventory, not the entire working directory.

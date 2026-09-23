@@ -120,7 +120,11 @@ DecodeResult parse_riff(cjr::Bytes input, PcmView& pcm) noexcept
         const uint32_t size = read_u32(chunk + 4U);
         const size_t payload = position + 8U;
         const uint64_t padded = static_cast<uint64_t>(size) + (size & 1U);
-        if (padded > input.size - payload) {
+        const uint64_t remaining = input.size - payload;
+        const bool missing_final_pad =
+            (size & 1U) != 0U && static_cast<uint64_t>(size) == remaining;
+        if (static_cast<uint64_t>(size) > remaining ||
+            (padded > remaining && !missing_final_pad)) {
             return failure(DecodeError::TruncatedChunk, 0U, position, size);
         }
         if (tag_is(chunk, "fmt ")) {
@@ -136,7 +140,9 @@ DecodeResult parse_riff(cjr::Bytes input, PcmView& pcm) noexcept
             data = input.data + payload;
             data_size = size;
         }
-        position = payload + static_cast<size_t>(padded);
+        position = missing_final_pad
+            ? input.size
+            : payload + static_cast<size_t>(padded);
     }
 
     if (format == nullptr) {

@@ -49,7 +49,34 @@ extern "C" {
 
 uint32_t jr200_system_api_version()
 {
-    return 6U;
+    return 9U;
+}
+
+uint32_t jr200_system_configure_memory(
+    uint32_t ram_expansion_1,
+    uint32_t ram_expansion_2,
+    uint32_t ram_init_pattern)
+{
+    if (ram_expansion_1 > 1U || ram_expansion_2 > 1U ||
+        ram_init_pattern > 1U) {
+        return 0U;
+    }
+    return machine.set_memory_config({
+        ram_expansion_1 != 0U,
+        ram_expansion_2 != 0U,
+        static_cast<uint8_t>(ram_init_pattern),
+    }) ? 1U : 0U;
+}
+
+uint32_t jr200_system_memory_config(uint32_t field)
+{
+    const jr200::MemoryConfig config = machine.memory_config();
+    switch (field) {
+    case 0U: return config.ram_expansion_1 ? 1U : 0U;
+    case 1U: return config.ram_expansion_2 ? 1U : 0U;
+    case 2U: return config.ram_init_pattern;
+    default: return 0U;
+    }
 }
 
 void jr200_system_clear()
@@ -410,6 +437,17 @@ void jr200_system_set_key(uint32_t code, uint32_t pressed)
     }
 }
 
+uint32_t jr200_system_set_joystick(uint32_t player, uint32_t active_low_state)
+{
+    if (player >= 2U || active_low_state > 0xffU) {
+        return 0U;
+    }
+    machine.set_joystick(
+        static_cast<uint8_t>(player),
+        static_cast<uint8_t>(active_low_state));
+    return 1U;
+}
+
 void jr200_system_set_cassette_input(uint32_t high)
 {
     machine.set_cassette_input(high != 0U);
@@ -561,6 +599,19 @@ uint32_t jr200_system_tape_arm_record()
     return static_cast<uint32_t>(result);
 }
 
+uint32_t jr200_system_tape_set_monitor(
+    uint32_t enabled,
+    uint32_t volume_percent)
+{
+    if (enabled > 1U || volume_percent > 100U) {
+        return 0U;
+    }
+    machine.cassette().set_monitor(
+        enabled != 0U,
+        static_cast<uint8_t>(volume_percent));
+    return 1U;
+}
+
 const uint8_t* jr200_system_tape_output_ptr()
 {
     return tape_output_buffer;
@@ -597,6 +648,9 @@ uint32_t jr200_system_tape_field(uint32_t field)
     case 14U: return tape.summary().payload_bytes;
     case 15U: return tape.summary().first_address;
     case 16U: return tape.summary().footer_address;
+    case 17U: return tape.monitor_enabled() ? 1U : 0U;
+    case 18U: return tape.monitor_volume();
+    case 19U: return tape.monitor_active() ? 1U : 0U;
     default: return 0U;
     }
 }

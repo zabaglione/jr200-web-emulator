@@ -61,9 +61,10 @@ def make_keyboard_rom() -> bytes:
         fixups.append((len(code) - 1, target))
 
     def pulse(value: int) -> None:
-        emit(0x86, value, 0xb7, 0xc8, 0x03)  # LDAA #value; STAA $C803
-        emit(0x4f, 0xb7, 0xc8, 0x03)         # CLRA; STAA $C803
-        emit(0x86, value, 0xb7, 0xc8, 0x03)
+        control = value | 0x40
+        emit(0x86, control, 0xb7, 0xc8, 0x03)  # preserve PB6 key-sound enable
+        emit(0x86, 0x40, 0xb7, 0xc8, 0x03)
+        emit(0x86, control, 0xb7, 0xc8, 0x03)
 
     def wait_for_keycode() -> None:
         nonlocal wait_sequence
@@ -76,6 +77,7 @@ def make_keyboard_rom() -> bytes:
 
     emit(0x8e, 0x7f, 0xff)              # LDS #$7FFF for the NMI/RTI test
     emit(0x86, 0x01, 0xb7, 0xc8, 0x1e)  # enable key IRQ
+    emit(0x86, 0x43, 0xb7, 0xc8, 0x02)  # PB0/PB1/PB6 are outputs
     emit(0xce, 0xd0, 0x00)              # LDX #$D000
     pulse(0x02)
     wait_for_keycode()
@@ -106,10 +108,11 @@ def make_keyboard_rom() -> bytes:
     emit(0x86, 0x80, 0xb7, 0xd3, 0x08)         # glyph $61 row 0
     label('skip_glyph_change')
     emit(0xb6, 0xc8, 0x1c)
-    for _ in range(2):
+    for offset in range(2):
         pulse(0x01)
         wait_for_keycode()
-        emit(0xb6, 0xc8, 0x01, 0xb6, 0xc8, 0x1c)
+        emit(0xb6, 0xc8, 0x01, 0xb7, 0xc1, 0x02 + offset,
+             0xb6, 0xc8, 0x1c)
     branch(0x20, 'scan')
 
     for offset, target in fixups:
@@ -148,7 +151,15 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
 
 def main() -> None:
     from playwright.sync_api import sync_playwright, expect
-    executable = os.environ.get('CHROMIUM_EXECUTABLE') or shutil.which('chromium')
+    executable_candidates = (
+        os.environ.get('CHROMIUM_EXECUTABLE'),
+        shutil.which('chromium'),
+        shutil.which('chromium-browser'),
+        shutil.which('google-chrome'),
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    )
+    executable = next((candidate for candidate in executable_candidates
+                       if candidate and Path(candidate).is_file()), None)
     site = ROOT / 'build/site'
     if not (site/'jr200_codec.wasm').is_file():
         raise SystemExit('Run make wasm-smoke (or make wasm) before this test.')
@@ -178,22 +189,44 @@ def main() -> None:
                       globalThis.__listenerAdds += 1;
                       return originalAddEventListener.apply(this, args);
                     };
+                    globalThis.__gamepads = [];
+                    Object.defineProperty(Navigator.prototype, 'getGamepads', {
+                      configurable: true,
+                      value: () => globalThis.__gamepads,
+                    });
                     globalThis.__audioContexts = [];
                     class FakeGain {
                       constructor(){ this.gain={value:1,setValueAtTime:value=>{this.gain.value=value;}}; }
                       connect(){}
                     }
                     class FakeSource {
-                      constructor(context){ this.context=context; this.onended=null; }
+                      constructor(context){
+                        this.context=context; this.onended=null; this.endTimer=null;
+                        this.playbackRate={value:1,setValueAtTime:value=>{this.playbackRate.value=value;}};
+                      }
                       connect(){}
                       disconnect(){}
-                      start(time){ this.startTime=time; this.context.sources.push(this); }
-                      stop(){ this.onended?.(); }
+                      start(time){
+                        this.startTime=time; this.context.sources.push(this);
+                        const duration=(this.buffer?.length ?? 0) /
+                          (this.buffer?.sampleRate ?? 44100) / this.playbackRate.value;
+                        this.endTimer=setTimeout(
+                          ()=>this.onended?.(),
+                          Math.max(0,(time+duration-this.context.currentTime)*1000),
+                        );
+                      }
+                      stop(){ clearTimeout(this.endTimer); this.onended?.(); }
                     }
                     class FakeAudioContext {
-                      constructor(){ this.state='suspended'; this.sampleRate=48000; this.currentTime=1; this.destination={}; this.sources=[]; this.listeners=[]; globalThis.__audioContexts.push(this); }
+                      constructor(){
+                        this.state='suspended'; this.sampleRate=48000; this.timeOrigin=performance.now();
+                        this.timeOffset=1; this.destination={}; this.sources=[]; this.listeners=[];
+                        globalThis.__audioContexts.push(this);
+                      }
+                      get currentTime(){ return this.timeOffset+(performance.now()-this.timeOrigin)/1000; }
+                      set currentTime(value){ this.timeOffset=value; this.timeOrigin=performance.now(); }
                       createGain(){ this.gain=new FakeGain(); return this.gain; }
-                      createBuffer(_channels,length,sampleRate){ const data=new Float32Array(length); return {length,sampleRate,getChannelData:()=>data}; }
+                      createBuffer(_channels,length,sampleRate){ const data=new Float32Array(length); return {length,sampleRate,data,getChannelData:()=>data}; }
                       createBufferSource(){ return new FakeSource(this); }
                       addEventListener(name,listener){ if(name==='statechange') this.listeners.push(listener); }
                       async resume(){ this.state='running'; this.listeners.forEach(listener=>listener()); }
@@ -212,14 +245,87 @@ def main() -> None:
                 page.route('**/*',guard)
                 page.goto(base+'/',wait_until='networkidle')
 
+                real_audio_context = browser.new_context(
+                    viewport={'width':1280,'height':720},
+                )
+                try:
+                    real_audio_page = real_audio_context.new_page()
+                    real_audio_page.add_init_script("""
+                        const NativeAudioContext = globalThis.AudioContext ??
+                          globalThis.webkitAudioContext;
+                        globalThis.__nativeAudioContexts = [];
+                        if (NativeAudioContext) {
+                          const TrackedAudioContext = new Proxy(NativeAudioContext, {
+                            construct(target, args) {
+                              const context = Reflect.construct(target, args);
+                              globalThis.__nativeAudioContexts.push(context);
+                              return context;
+                            },
+                          });
+                          globalThis.AudioContext = TrackedAudioContext;
+                          if (globalThis.webkitAudioContext === NativeAudioContext) {
+                            globalThis.webkitAudioContext = TrackedAudioContext;
+                          }
+                        }
+                    """)
+                    real_audio_page.on(
+                        'pageerror', lambda error: errors.append(str(error)))
+                    real_audio_page.route('**/*', guard)
+                    real_audio_page.goto(base+'/', wait_until='networkidle')
+                    expect(real_audio_page.locator('#audio-status')).to_contain_text(
+                        '起動操作待ち')
+                    assert real_audio_page.evaluate(
+                        'globalThis.__nativeAudioContexts.length') == 0
+                    real_audio_page.locator('#rom-combined').set_input_files({
+                        'name':'real-audio.rom',
+                        'mimeType':'application/octet-stream',
+                        'buffer':KEYBOARD_ROM,
+                    })
+                    real_audio_page.locator('#font').set_input_files({
+                        'name':'real-audio.bin',
+                        'mimeType':'application/octet-stream',
+                        'buffer':FONT,
+                    })
+                    real_audio_page.locator('#start').click()
+                    expect(real_audio_page.locator('#audio-status')).to_contain_text(
+                        'context running')
+                    assert real_audio_page.evaluate(
+                        'globalThis.__nativeAudioContexts.length') == 1
+                    assert real_audio_page.evaluate(
+                        'globalThis.__nativeAudioContexts[0].state') == 'running'
+                    audio_panel = real_audio_page.locator(
+                        'details.tool-panel',
+                        has=real_audio_page.locator('#audio-heading'),
+                    )
+                    audio_panel.locator('summary').click()
+                    real_audio_page.locator('#audio-disable').click()
+                    expect(real_audio_page.locator('#audio-status')).to_contain_text(
+                        'Web Audio: 無効 / context suspended')
+                    assert real_audio_page.evaluate(
+                        'globalThis.__nativeAudioContexts[0].state') == 'suspended'
+                    real_audio_page.locator('#audio-enable').click()
+                    expect(real_audio_page.locator('#audio-status')).to_contain_text(
+                        'Web Audio: 有効 / context running')
+                    assert real_audio_page.evaluate(
+                        'globalThis.__nativeAudioContexts.length') == 1
+                    real_audio_page.locator('#audio-disable').click()
+                    expect(real_audio_page.locator('#audio-status')).to_contain_text(
+                        'Web Audio: 無効 / context suspended')
+                finally:
+                    real_audio_context.close()
+
                 def layout_snapshot(target):
                     return target.evaluate("""() => {
                       const root = document.documentElement;
                       const screen = document.querySelector('#screen').getBoundingClientRect();
-                      const keyboard = document.querySelector('#keyboard-deck').getBoundingClientRect();
+                      const keyboardElement = document.querySelector('#keyboard-deck');
+                      const keyboard = keyboardElement.getBoundingClientRect();
+                      const displayElement = document.querySelector('.display-area');
+                      const display = displayElement.getBoundingClientRect();
                       const rail = document.querySelector('.utility-rail');
                       const railRect = rail.getBoundingClientRect();
                       const machine = document.querySelector('.machine-stage').getBoundingClientRect();
+                      const machineElement = document.querySelector('.machine-stage');
                       const keyHeights = [...document.querySelectorAll('.virtual-key')]
                         .map(key => key.getBoundingClientRect().height);
                       return {
@@ -230,11 +336,29 @@ def main() -> None:
                         height: root.scrollHeight,
                         screenWidth: screen.width,
                         screenHeight: screen.height,
+                        screenLeft: screen.left,
+                        screenRight: screen.right,
+                        screenTop: screen.top,
                         screenBottom: screen.bottom,
+                        displayLeft: display.left,
+                        displayRight: display.right,
+                        displayTop: display.top,
+                        displayBottom: display.bottom,
                         imageRendering: getComputedStyle(document.querySelector('#screen')).imageRendering,
+                        keyboardHidden: keyboardElement.hidden,
+                        keyboardWidth: keyboard.width,
                         keyboardHeight: keyboard.height,
+                        keyboardLeft: keyboard.left,
+                        keyboardRight: keyboard.right,
+                        keyboardTop: keyboard.top,
                         keyboardBottom: keyboard.bottom,
-                        minKeyHeight: Math.min(...keyHeights),
+                        minKeyHeight: keyHeights.length ? Math.min(...keyHeights) : 0,
+                        machineLeft: machine.left,
+                        machineRight: machine.right,
+                        machineClientWidth: machineElement.clientWidth,
+                        machineScrollWidth: machineElement.scrollWidth,
+                        machineClientHeight: machineElement.clientHeight,
+                        machineScrollHeight: machineElement.scrollHeight,
                         railWidth: railRect.width,
                         railScrollWidth: rail.scrollWidth,
                         railClientWidth: rail.clientWidth,
@@ -254,12 +378,47 @@ def main() -> None:
                     assert layout['screenHeight'] == 224 * scale, layout
                     assert layout['screenBottom'] <= height, layout
                     assert layout['keyboardBottom'] <= height, layout
-                    assert layout['keyboardHeight'] >= 150, layout
-                    assert layout['minKeyHeight'] >= 44, layout
+                    assert layout['keyboardHidden'], layout
+                    assert layout['keyboardHeight'] == 0, layout
+                    assert layout['minKeyHeight'] == 0, layout
                     assert 320 <= layout['railWidth'] <= 400, layout
                     assert layout['railScrollWidth'] == layout['railClientWidth'], layout
                     assert not layout['overlap'], layout
                     assert layout['imageRendering'] in ('pixelated', 'crisp-edges'), layout
+                    return layout
+
+                def assert_visible_keyboard_layout(
+                    target, width, height, scale, *, side_by_side, min_key_height
+                ):
+                    target.locator('#keyboard-toggle').click()
+                    layout = layout_snapshot(target)
+                    assert layout['innerWidth'] == width, layout
+                    assert layout['innerHeight'] == height, layout
+                    assert layout['width'] == width, layout
+                    assert layout['height'] == height, layout
+                    assert layout['screenWidth'] == 320 * scale, layout
+                    assert layout['screenHeight'] == 224 * scale, layout
+                    assert layout['screenBottom'] <= height, layout
+                    assert layout['screenLeft'] >= layout['displayLeft'], layout
+                    assert layout['screenRight'] <= layout['displayRight'], layout
+                    assert layout['screenTop'] >= layout['displayTop'], layout
+                    assert layout['screenBottom'] <= layout['displayBottom'], layout
+                    assert not layout['keyboardHidden'], layout
+                    assert layout['keyboardBottom'] <= height, layout
+                    assert layout['machineScrollWidth'] == layout['machineClientWidth'], layout
+                    assert layout['machineScrollHeight'] == layout['machineClientHeight'], layout
+                    assert layout['screenLeft'] >= layout['machineLeft'], layout
+                    assert layout['screenRight'] <= layout['machineRight'], layout
+                    assert layout['keyboardLeft'] >= layout['machineLeft'], layout
+                    assert layout['keyboardRight'] <= layout['machineRight'], layout
+                    if side_by_side:
+                        assert 440 <= layout['keyboardWidth'] <= 520, layout
+                        assert layout['keyboardLeft'] >= layout['screenRight'], layout
+                    else:
+                        assert layout['keyboardWidth'] <= 620, layout
+                        assert layout['keyboardTop'] >= layout['screenBottom'], layout
+                    assert layout['minKeyHeight'] >= min_key_height, layout
+                    target.locator('#keyboard-toggle').click()
                     return layout
 
                 palette = page.evaluate("""() => {
@@ -293,15 +452,24 @@ def main() -> None:
                         background,
                         palette,
                     )
-                for width, height, scale in (
-                    (1920, 960, 2),
-                    (1920, 1080, 2),
-                    (1536, 768, 1),
-                    (1280, 720, 1),
+                for width, height, hidden_scale, visible_scale, side_by_side, min_key_height in (
+                    (1920, 960, 3, 3, True, 29),
+                    (1920, 1080, 3, 3, True, 29),
+                    (1700, 840, 3, 2, False, 25),
+                    (1536, 768, 2, 2, False, 25),
+                    (1280, 720, 2, 2, False, 23),
                 ):
                     page.set_viewport_size({'width':width, 'height':height})
-                    viewport_layout = assert_layout(page, width, height, scale)
+                    viewport_layout = assert_layout(page, width, height, hidden_scale)
                     assert viewport_layout['dpr'] == 1, viewport_layout
+                    assert_visible_keyboard_layout(
+                        page,
+                        width,
+                        height,
+                        visible_scale,
+                        side_by_side=side_by_side,
+                        min_key_height=min_key_height,
+                    )
                 page.set_viewport_size({'width':1920, 'height':960})
 
                 dpr_context = browser.new_context(
@@ -313,10 +481,159 @@ def main() -> None:
                     dpr_page.on('pageerror', lambda error: errors.append(str(error)))
                     dpr_page.route('**/*', guard)
                     dpr_page.goto(base+'/', wait_until='networkidle')
-                    dpr_layout = assert_layout(dpr_page, 1920, 1080, 2)
+                    dpr_layout = assert_layout(dpr_page, 1920, 1080, 3)
                     assert dpr_layout['dpr'] == 2, dpr_layout
+                    assert_visible_keyboard_layout(
+                        dpr_page,
+                        1920,
+                        1080,
+                        3,
+                        side_by_side=True,
+                        min_key_height=29,
+                    )
                 finally:
                     dpr_context.close()
+
+                with tempfile.TemporaryDirectory() as profile:
+                    persistent_options = {
+                        'headless':True,
+                        'viewport':{'width':1280,'height':720},
+                    }
+                    if executable:
+                        persistent_options['executable_path'] = executable
+
+                    persistence_context = playwright.chromium.launch_persistent_context(
+                        profile, **persistent_options
+                    )
+                    try:
+                        persistence_page = persistence_context.pages[0]
+                        persistence_page.on('pageerror', lambda error: errors.append(str(error)))
+                        persistence_page.route('**/*', guard)
+                        persistence_page.goto(base+'/', wait_until='networkidle')
+                        persistence_page.locator('#rom-combined').set_input_files({
+                            'name':'remembered.rom',
+                            'mimeType':'application/octet-stream',
+                            'buffer':KEYBOARD_ROM,
+                        })
+                        persistence_page.locator('#font').set_input_files({
+                            'name':'remembered.bin',
+                            'mimeType':'application/octet-stream',
+                            'buffer':FONT,
+                        })
+                        expect(persistence_page.locator('#start')).to_be_enabled()
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#behavior-heading'),
+                        ).locator('summary').click()
+                        expect(persistence_page.locator('#pause-on-focus-loss')).not_to_be_checked()
+                        persistence_page.locator('#pause-on-focus-loss').check()
+                        persistence_page.locator('#remember-assets').check()
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            '次回は自動復元します'
+                        )
+                    finally:
+                        persistence_context.close()
+
+                    persistence_context = playwright.chromium.launch_persistent_context(
+                        profile, **persistent_options
+                    )
+                    try:
+                        persistence_page = persistence_context.pages[0]
+                        persistence_page.on('pageerror', lambda error: errors.append(str(error)))
+                        persistence_page.route('**/*', guard)
+                        persistence_page.goto(base+'/', wait_until='networkidle')
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            '自動復元しました'
+                        )
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            'remembered.rom（保存済み）'
+                        )
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            'remembered.bin（保存済み）'
+                        )
+                        expect(persistence_page.locator('#remember-assets')).to_be_checked()
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#behavior-heading'),
+                        ).locator('summary').click()
+                        expect(persistence_page.locator('#pause-on-focus-loss')).to_be_checked()
+                        expect(persistence_page.locator('#start')).to_be_enabled()
+                        expect(persistence_page.locator('#rom-combined')).to_have_value('')
+                        expect(persistence_page.locator('#font')).to_have_value('')
+                        expect(persistence_page.locator('#machine-status')).to_contain_text(
+                            'CPUは実行していません'
+                        )
+                        persistence_page.locator('#start').click()
+                        expect(persistence_page.locator('#machine-status')).to_contain_text(
+                            'font 初期化済み', timeout=10000
+                        )
+                        persistence_page.locator('#remember-assets').uncheck()
+                        persistence_page.locator('#pause-on-focus-loss').uncheck()
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            '保存許可を解除し'
+                        )
+                    finally:
+                        persistence_context.close()
+
+                    persistence_context = playwright.chromium.launch_persistent_context(
+                        profile, **persistent_options
+                    )
+                    try:
+                        persistence_page = persistence_context.pages[0]
+                        persistence_page.on('pageerror', lambda error: errors.append(str(error)))
+                        persistence_page.route('**/*', guard)
+                        persistence_page.goto(base+'/', wait_until='networkidle')
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            '結合ROM: 未選択'
+                        )
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#behavior-heading'),
+                        ).locator('summary').click()
+                        expect(persistence_page.locator('#remember-assets')).not_to_be_checked()
+                        expect(persistence_page.locator('#pause-on-focus-loss')).not_to_be_checked()
+                        expect(persistence_page.locator('#start')).to_be_disabled()
+                        persistence_page.evaluate("""async ([rom, font]) => {
+                          const database = await new Promise((resolve, reject) => {
+                            const request = indexedDB.open('jr200-web-local-assets', 1);
+                            request.onsuccess = () => resolve(request.result);
+                            request.onerror = () => reject(request.error);
+                          });
+                          await new Promise((resolve, reject) => {
+                            const transaction = database.transaction('assets', 'readwrite');
+                            transaction.objectStore('assets').put({
+                              rom: Uint8Array.from(rom).buffer,
+                              font: Uint8Array.from(font).buffer,
+                            }, 'jr200');
+                            transaction.oncomplete = resolve;
+                            transaction.onerror = () => reject(transaction.error);
+                          });
+                          database.close();
+                        }""", [list(KEYBOARD_ROM), list(FONT)])
+                    finally:
+                        persistence_context.close()
+
+                    persistence_context = playwright.chromium.launch_persistent_context(
+                        profile, **persistent_options
+                    )
+                    try:
+                        persistence_page = persistence_context.pages[0]
+                        persistence_page.on('pageerror', lambda error: errors.append(str(error)))
+                        persistence_page.route('**/*', guard)
+                        persistence_page.goto(base+'/', wait_until='networkidle')
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            '旧保存形式・ファイル名不明（保存済み）'
+                        )
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            '旧保存形式にはファイル名がない'
+                        )
+                        expect(persistence_page.locator('#start')).to_be_enabled()
+                        persistence_page.locator('#forget-assets').click()
+                        expect(persistence_page.locator('#asset-status')).to_contain_text(
+                            '保存済みファイルを削除しました'
+                        )
+                    finally:
+                        persistence_context.close()
 
                 def open_panel(heading_id: str) -> None:
                     panel = page.locator(
@@ -329,7 +646,8 @@ def main() -> None:
                 expect(page.locator('#status')).to_contain_text('WASM起動済み')
                 expect(page.locator('#emulator-notice')).to_contain_text('未起動')
                 expect(page.locator('#machine-status')).to_contain_text('CPUは実行していません')
-                expect(page.locator('#audio-status')).to_contain_text('自動再生なし')
+                expect(page.locator('#audio-status')).to_contain_text('Web Audio: 有効')
+                expect(page.locator('#audio-status')).to_contain_text('起動操作待ち')
                 assert page.evaluate('globalThis.__audioContexts.length') == 0
                 expect(page.locator('#virtual-keyboard')).to_have_attribute('aria-disabled', 'true')
                 expect(page.locator('.virtual-key[data-key-id="KeyA"]')).to_be_disabled()
@@ -356,9 +674,219 @@ def main() -> None:
                 page.locator('#start').click()
                 expect(page.locator('#emulator-notice')).to_contain_text('CPUを起動')
                 expect(page.locator('#machine-status')).to_contain_text('実行中')
+                expect(page.locator('#audio-status')).to_contain_text('context running')
+                assert page.evaluate('globalThis.__audioContexts.length') == 1
                 expect(page.locator('#machine-status')).to_contain_text('font 初期化済み', timeout=10000)
+                expect(page.locator('#machine-status')).to_contain_text(
+                    re.compile(r'FPS \d+\.\d')
+                )
                 expect(page.locator('#glyph-status')).to_contain_text('標準文字RAM', timeout=10000)
 
+                open_panel('behavior-heading')
+                expect(page.locator('#gamepad-status')).to_contain_text('1P: 未接続')
+                expect(page.locator('#gamepad-status')).to_contain_text('2P: 未接続')
+                expect(page.locator('#fullscreen')).to_be_enabled()
+                page.set_viewport_size({'width':1700, 'height':840})
+                page.locator('#screen-scale').select_option('1')
+                page.locator('#keyboard-toggle').click()
+                manual_scale_screen = page.locator('#screen').bounding_box()
+                assert manual_scale_screen is not None
+                assert manual_scale_screen['width'] == 320, manual_scale_screen
+                assert manual_scale_screen['height'] == 224, manual_scale_screen
+                page.locator('#keyboard-toggle').click()
+                page.locator('#screen-scale').select_option('auto')
+                page.set_viewport_size({'width':1920, 'height':960})
+                page.locator('#screen-scale').select_option('1')
+                page.locator('#screen-aspect').select_option('video')
+                page.locator('#screen-rotation').select_option('90')
+                page.locator('#screen-smoothing').check()
+                transformed_screen = page.locator('#screen').evaluate("""canvas => {
+                  const rect = canvas.getBoundingClientRect();
+                  return {
+                    width: canvas.width,
+                    height: canvas.height,
+                    cssWidth: rect.width,
+                    cssHeight: rect.height,
+                    imageRendering: getComputedStyle(canvas).imageRendering,
+                  };
+                }""")
+                assert transformed_screen['width'] == 224, transformed_screen
+                assert transformed_screen['height'] == 320, transformed_screen
+                assert abs(transformed_screen['cssWidth'] - 224) < 0.1, transformed_screen
+                assert abs(transformed_screen['cssHeight'] - 272) < 0.1, transformed_screen
+                assert transformed_screen['imageRendering'] == 'auto', transformed_screen
+                page.locator('#screen-smoothing').uncheck()
+                page.locator('#screen-rotation').select_option('0')
+                page.locator('#screen-aspect').select_option('square')
+                page.locator('#screen-scale').select_option('auto')
+                restored_screen = page.locator('#screen').bounding_box()
+                assert restored_screen is not None
+                assert restored_screen['width'] == 960
+                assert restored_screen['height'] == 672
+                page.locator('#fullscreen').click()
+                expect(page.locator('#fullscreen')).to_have_text('全画面を終了')
+                assert page.evaluate(
+                    "document.fullscreenElement === document.querySelector('#screen-shell')"
+                )
+                page.locator('#screen').press('Alt+Enter')
+                expect(page.locator('#fullscreen')).to_have_text('全画面')
+                assert page.evaluate('document.fullscreenElement === null')
+                page.locator('#cpu-speed').evaluate("""input => {
+                  input.value = '150';
+                  input.dispatchEvent(new Event('input', {bubbles:true}));
+                }""")
+                expect(page.locator('#cpu-speed-value')).to_have_text('150%')
+                expect(page.locator('#machine-status')).to_contain_text('CPU 150%')
+                page.locator('#cpu-speed').evaluate("""input => {
+                  input.value = '1000';
+                  input.dispatchEvent(new Event('input', {bubbles:true}));
+                }""")
+                expect(page.locator('#machine-status')).to_contain_text('CPU 1000%')
+                page.wait_for_timeout(1200)
+                audio_timing = page.locator('#audio-status').text_content() or ''
+                ahead_match = re.search(r'先行 (\d+) ms', audio_timing)
+                active_match = re.search(r'active (\d+)', audio_timing)
+                assert ahead_match and int(ahead_match.group(1)) <= 300, audio_timing
+                assert active_match and int(active_match.group(1)) < 30, audio_timing
+                page.locator('#cpu-speed').evaluate("""input => {
+                  input.value = '100';
+                  input.dispatchEvent(new Event('input', {bubbles:true}));
+                }""")
+                page.locator('#ram-expansion-1').check()
+                page.locator('#ram-init-pattern').select_option('1')
+                expect(page.locator('#memory-config-status')).to_contain_text(
+                    '次の起動またはリセットで反映'
+                )
+                page.locator('#ram-expansion-1').uncheck()
+                page.locator('#ram-init-pattern').select_option('0')
+                page.evaluate("""() => {
+                  const makeButtons = pressed => Array.from({length:16}, (_, index) => ({
+                    pressed: pressed.includes(index),
+                    value: pressed.includes(index) ? 1 : 0,
+                  }));
+                  globalThis.__gamepads = [
+                    {index:0, id:'Synthetic Standard Pad 1', connected:true,
+                     mapping:'standard', axes:[-1,-1], buttons:makeButtons([0])},
+                    {index:1, id:'Synthetic Standard Pad 2', connected:true,
+                     mapping:'standard', axes:[0,0], buttons:makeButtons([1,13,15])},
+                  ];
+                  window.dispatchEvent(new Event('gamepadconnected'));
+                }""")
+                expect(page.locator('#gamepad-status')).to_contain_text(
+                    '1P: Synthetic Standard Pad 1 / 標準マッピング / ↑ ← A'
+                )
+                expect(page.locator('#gamepad-status')).to_contain_text(
+                    '2P: Synthetic Standard Pad 2 / 標準マッピング / ↓ → B'
+                )
+                open_panel('debugger-heading')
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-address').fill('C102')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: EA D5')
+                page.evaluate("""() => {
+                  globalThis.__gamepads = [globalThis.__gamepads[0], null];
+                  window.dispatchEvent(new Event('gamepaddisconnected'));
+                }""")
+                expect(page.locator('#gamepad-status')).to_contain_text('2P: 未接続')
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: EA FF')
+                page.evaluate("""() => {
+                  const buttons = Array.from({length:16}, (_, index) => ({
+                    pressed: [1,13,15].includes(index),
+                    value: [1,13,15].includes(index) ? 1 : 0,
+                  }));
+                  globalThis.__gamepads[1] = {
+                    index:1, id:'Synthetic Standard Pad 2', connected:true,
+                    mapping:'standard', axes:[0,0], buttons,
+                  };
+                  window.dispatchEvent(new Event('gamepadconnected'));
+                }""")
+                expect(page.locator('#gamepad-status')).to_contain_text('2P: Synthetic Standard Pad 2')
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: EA D5')
+                page.evaluate("""() => {
+                  globalThis.__gamepads = [null, globalThis.__gamepads[1]];
+                  window.dispatchEvent(new Event('gamepaddisconnected'));
+                }""")
+                expect(page.locator('#gamepad-status')).to_contain_text('1P: Synthetic Standard Pad 2')
+                expect(page.locator('#gamepad-status')).to_contain_text('2P: 未接続')
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: D5 FF')
+                page.evaluate("""() => {
+                  globalThis.__gamepads = [];
+                  window.dispatchEvent(new Event('gamepaddisconnected'));
+                }""")
+                expect(page.locator('#gamepad-status')).to_contain_text('1P: 未接続')
+                expect(page.locator('#gamepad-status')).to_contain_text('2P: 未接続')
+                page.evaluate("""() => {
+                  const makeButtons = pressed => Array.from({length:16}, (_, index) => ({
+                    pressed: pressed.includes(index),
+                    value: pressed.includes(index) ? 1 : 0,
+                  }));
+                  globalThis.__gamepads = [
+                    {index:0, id:'Synthetic Standard Pad 1', connected:true,
+                     mapping:'standard', axes:[-1,-1], buttons:makeButtons([0])},
+                    {index:1, id:'Synthetic Standard Pad 2', connected:true,
+                     mapping:'standard', axes:[0,0], buttons:makeButtons([1,13,15])},
+                  ];
+                  window.dispatchEvent(new Event('gamepadconnected'));
+                }""")
+                expect(page.locator('#gamepad-status')).to_contain_text('1P: Synthetic Standard Pad 1')
+                expect(page.locator('#gamepad-status')).to_contain_text('2P: Synthetic Standard Pad 2')
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: EA D5')
+                page.locator('#gamepad-one-button').check()
+                page.evaluate("""() => {
+                  const makeButtons = pressed => Array.from({length:16}, (_, index) => ({
+                    pressed: pressed.includes(index),
+                    value: pressed.includes(index) ? 1 : 0,
+                  }));
+                  globalThis.__gamepads[1].buttons = makeButtons([2,13,15]);
+                }""")
+                expect(page.locator('#gamepad-status')).to_contain_text(
+                    '2P: Synthetic Standard Pad 2 / 標準マッピング / ↓ → A'
+                )
+                page.evaluate("""() => {
+                  const makeButtons = pressed => Array.from({length:16}, (_, index) => ({
+                    pressed: pressed.includes(index),
+                    value: pressed.includes(index) ? 1 : 0,
+                  }));
+                  globalThis.__gamepads[1].buttons = makeButtons([1,13,15]);
+                }""")
+                page.locator('#gamepad-one-button').uncheck()
+                expect(page.locator('#gamepad-status')).to_contain_text(
+                    '2P: Synthetic Standard Pad 2 / 標準マッピング / ↓ → B'
+                )
+                page.locator('#forced-joystick').check()
+                expect(page.locator('#gamepad-status')).to_contain_text(
+                    '1P: 強制ジョイスティックモード'
+                )
+                page.wait_for_timeout(200)
+                page.locator('#debug-memory-address').fill('C100')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 1E')
+                page.locator('#debug-memory-address').fill('C102')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: FF D5')
+                page.locator('#forced-joystick').uncheck()
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: EA D5')
+                page.locator('#reset').click()
+                expect(page.locator('#machine-status')).to_contain_text(
+                    'font 初期化済み', timeout=10000
+                )
+                page.locator('#debug-memory-address').fill('C100')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 61')
+
+                expect(page.locator('#keyboard-deck')).to_be_hidden()
+                page.locator('#keyboard-toggle').click()
+                expect(page.locator('#keyboard-deck')).to_be_visible()
                 key_a = page.locator('.virtual-key[data-key-id="KeyA"]')
                 expect(key_a).to_be_enabled()
                 assert key_a.get_attribute('data-code') == '61'
@@ -372,6 +900,10 @@ def main() -> None:
                   return {left: data[0], column4: data[4 * 4]};
                 }""")
                 assert initial_screen_glyph == {'left':0, 'column4':255}, initial_screen_glyph
+                border_pixel = page.locator('#screen').evaluate("""canvas =>
+                  Array.from(canvas.getContext('2d').getImageData(0, 0, 1, 1).data)
+                """)
+                assert border_pixel == [255, 0, 0, 255], border_pixel
                 accessibility = key_a.evaluate("""key => {
                   return {
                     tag: key.tagName,
@@ -381,7 +913,46 @@ def main() -> None:
                   };
                 }""")
                 assert accessibility['tag'] == 'BUTTON' and accessibility['label'] == 'Aキー', accessibility
-                assert accessibility['pressed'] == 'false' and accessibility['height'] >= 44, accessibility
+                assert accessibility['pressed'] == 'false' and accessibility['height'] >= 29, accessibility
+                keyboard_rows = page.locator('.keyboard-row').evaluate_all("""rows => rows.map(row =>
+                  [...row.querySelectorAll('.virtual-key')].map(key => key.dataset.keyId)
+                )""")
+                assert keyboard_rows[0][:4] == ['Digit1', 'Digit2', 'Digit3', 'Digit4'], keyboard_rows
+                assert keyboard_rows[0][-1] == 'Rubout', keyboard_rows
+                assert keyboard_rows[1][-1] == 'Return', keyboard_rows
+                assert keyboard_rows[2][-1] == 'RightBracket', keyboard_rows
+                assert keyboard_rows[3].count('ModifierShift') == 2, keyboard_rows
+                assert keyboard_rows[3][-1] == 'ModifierShift', keyboard_rows
+                assert keyboard_rows[4] == ['ModeAnk', 'ModeGraph', 'Space', 'ModeKana'], keyboard_rows
+                control_layout = page.locator('#keyboard-control-cluster').evaluate("""cluster => {
+                  const box = id => {
+                    const rect = cluster.querySelector(`[data-key-id="${id}"]`).getBoundingClientRect();
+                    return {left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
+                            width: rect.width, height: rect.height, center: rect.left + rect.width / 2};
+                  };
+                  return {
+                    ids: [...cluster.querySelectorAll('.virtual-key')].map(key => key.dataset.keyId),
+                    breakKey: box('Break'), insert: box('Insert'), deleteKey: box('Delete'),
+                    up: box('ArrowUp'), left: box('ArrowLeft'), right: box('ArrowRight'),
+                    down: box('ArrowDown'),
+                  };
+                }""")
+                assert control_layout['ids'] == [
+                    'Break', 'Insert', 'Delete', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown'
+                ], control_layout
+                for key in ['breakKey', 'insert', 'deleteKey', 'up', 'left', 'right', 'down']:
+                    assert control_layout[key]['width'] == 34, control_layout
+                    assert control_layout[key]['height'] >= 29, control_layout
+                assert control_layout['deleteKey']['left'] - control_layout['insert']['right'] >= 7, control_layout
+                assert control_layout['right']['left'] - control_layout['left']['right'] >= 7, control_layout
+                assert abs(control_layout['breakKey']['right'] - control_layout['deleteKey']['right']) < 0.5, control_layout
+                for centered in ['up', 'down']:
+                    pair_center = (control_layout['left']['left'] + control_layout['right']['right']) / 2
+                    assert abs(control_layout[centered]['center'] - pair_center) < 0.5, control_layout
+                assert control_layout['insert']['top'] - control_layout['breakKey']['bottom'] >= 4, control_layout
+                assert control_layout['up']['top'] - control_layout['insert']['bottom'] >= 4, control_layout
+                assert control_layout['left']['top'] - control_layout['up']['bottom'] >= 4, control_layout
+                assert control_layout['down']['top'] - control_layout['left']['bottom'] >= 4, control_layout
                 key_a.focus()
                 page.keyboard.press('Shift+Tab')
                 page.keyboard.press('Tab')
@@ -424,12 +995,18 @@ def main() -> None:
                 }, (stable_before, stable_after)
                 assert 0 < stable_after['cacheSize'] <= stable_after['nodes'], stable_after
 
-                open_panel('debugger-heading')
                 page.locator('#debug-memory-address').fill('C100')
+                audio_sources_before_key = page.evaluate(
+                    'globalThis.__audioContexts[0].sources.length')
                 key_a.click()
                 page.wait_for_timeout(100)
                 page.locator('#debug-memory-read').click()
                 expect(page.locator('#debug-memory')).to_contain_text('C100: 61')
+                page.wait_for_function("""start =>
+                  globalThis.__audioContexts[0].sources.slice(start).some(
+                    source => source.buffer?.data.some(sample => sample !== 0)
+                  )
+                """, arg=audio_sources_before_key, timeout=3000)
                 page.wait_for_function("""() => {
                   const canvas = document.querySelector('.virtual-key[data-key-id="KeyA"] canvas');
                   const data = canvas.getContext('2d').getImageData(0, 0, 8, 8).data;
@@ -443,7 +1020,9 @@ def main() -> None:
 
                 page.locator('.virtual-key[data-key-id="ModeKana"]').click()
                 expect(page.locator('#input-mode-status')).to_contain_text('カナ')
-                shift_key = page.locator('.virtual-key[data-key-id="ModifierShift"]')
+                shift_keys = page.locator('.virtual-key[data-key-id="ModifierShift"]')
+                expect(shift_keys).to_have_count(2)
+                shift_key = shift_keys.first
                 shift_key.click()
                 expect(page.locator('#input-mode-status')).to_contain_text('SHIFT保持')
                 key_z = page.locator('.virtual-key[data-key-id="KeyZ"]')
@@ -488,7 +1067,7 @@ def main() -> None:
                 ctrl_key = page.locator('.virtual-key[data-key-id="ModifierControl"]')
                 ctrl_key.click()
                 expect(ctrl_key).to_have_attribute('aria-pressed', 'true')
-                expect(page.locator('#input-mode-status')).to_contain_text('CTRL保持')
+                expect(page.locator('#input-mode-status')).to_contain_text('CTRL待機')
                 key_c = page.locator('.virtual-key[data-key-id="KeyC"]')
                 assert key_c.get_attribute('data-code') == '03'
                 key_c.focus()
@@ -497,16 +1076,85 @@ def main() -> None:
                 page.locator('#debug-memory-read').click()
                 expect(page.locator('#debug-memory')).to_contain_text('C100: 03')
                 page.keyboard.up('c')
-                ctrl_key.click()
+                expect(ctrl_key).to_have_attribute('aria-pressed', 'false')
+                expect(page.locator('#input-mode-status')).not_to_contain_text('CTRL待機')
+
+                page.locator('#screen').focus()
+                page.keyboard.down('Control')
+                page.keyboard.down('c')
+                page.wait_for_timeout(100)
+                page.keyboard.up('c')
+                page.keyboard.up('Control')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 03')
 
                 page.locator('.virtual-key[data-key-id="ModeAnk"]').click()
                 expect(page.locator('#input-mode-status')).to_contain_text('英数')
+                page.locator('#screen').focus()
+                page.keyboard.down('Control')
+                page.keyboard.down('a')
+                page.keyboard.up('a')
+                page.keyboard.up('Control')
+                page.wait_for_timeout(400)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 20')
+
+                expect(ctrl_key).to_have_attribute('aria-pressed', 'false')
+                page.wait_for_timeout(600)
+                page.locator('#screen').focus()
+                page.keyboard.down('x')
+                page.wait_for_timeout(100)
+                page.keyboard.up('x')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 78')
+                page.locator('#screen').focus()
+                page.keyboard.down('Control')
+                ctrl_three = page.locator('#screen').evaluate("""canvas => {
+                  const down = new KeyboardEvent('keydown', {
+                    bubbles:true, cancelable:true, code:'Digit3', key:'3',
+                    ctrlKey:true, isComposing:true,
+                  });
+                  canvas.dispatchEvent(down);
+                  canvas.dispatchEvent(new KeyboardEvent('keyup', {
+                    bubbles:true, code:'Digit3', key:'3', ctrlKey:true,
+                    isComposing:true,
+                  }));
+                  return {
+                    isComposing: down.isComposing,
+                    defaultPrevented: down.defaultPrevented,
+                  };
+                }""")
+                page.keyboard.up('Control')
+                assert ctrl_three == {
+                    'isComposing': True,
+                    'defaultPrevented': True,
+                }, ctrl_three
+                page.wait_for_timeout(400)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 20')
+
+                page.locator('.virtual-key[data-key-id="ModeAnk"]').click()
+                expect(page.locator('#input-mode-status')).to_contain_text('英数')
+                right_bracket = page.locator('.virtual-key[data-key-id="RightBracket"]')
+                yen_key = page.locator('.virtual-key[data-key-id="Yen"]')
+                page.locator('#screen').evaluate("""canvas => canvas.dispatchEvent(
+                  new KeyboardEvent('keydown', {bubbles:true, code:'Backslash', key:']'})
+                )""")
+                expect(right_bracket).to_have_attribute('aria-pressed', 'true')
+                expect(yen_key).to_have_attribute('aria-pressed', 'false')
+                page.wait_for_timeout(100)
+                page.locator('#screen').evaluate("""canvas => canvas.dispatchEvent(
+                  new KeyboardEvent('keyup', {bubbles:true, code:'Backslash', key:']'})
+                )""")
+                page.wait_for_timeout(100)
+                expect(right_bracket).to_have_attribute('aria-pressed', 'false')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 5D')
                 for key_id, expected_code in (
                     ('ArrowLeft', '1D'),
                     ('ArrowRight', '1C'),
                     ('Insert', '13'),
                     ('Delete', '7F'),
-                    ('Home', '0B'),
                 ):
                     page.locator(f'.virtual-key[data-key-id="{key_id}"]').click()
                     page.wait_for_timeout(100)
@@ -514,7 +1162,6 @@ def main() -> None:
                     expect(page.locator('#debug-memory')).to_contain_text(
                         f'C100: {expected_code}'
                     )
-
                 key_a.focus()
                 page.keyboard.press('PageUp')
                 expect(page.locator('#input-mode-status')).to_contain_text('GRAPH')
@@ -522,6 +1169,65 @@ def main() -> None:
                 expect(page.locator('#input-mode-status')).to_contain_text('英数')
                 page.keyboard.press('End')
                 expect(page.locator('#input-mode-status')).to_contain_text('カナ')
+                page.locator('.virtual-key[data-key-id="ModeAnk"]').click()
+
+                open_panel('input-assist-heading')
+                page.locator('#quick-type-text').fill('AB')
+                page.locator('#quick-type-start').click()
+                expect(page.locator('#quick-type-status')).to_contain_text(
+                    '入力が完了しました', timeout=5000
+                )
+                page.locator('#debug-memory-address').fill('C100')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 42')
+                page.locator('#quick-type-interval').evaluate("""input => {
+                  input.value = '100';
+                  input.dispatchEvent(new Event('input', {bubbles:true}));
+                }""")
+                page.locator('#quick-type-text').fill('A' * 30)
+                page.locator('#quick-type-start').click()
+                page.locator('#screen').press('Escape')
+                expect(page.locator('#quick-type-status')).to_contain_text('入力を停止しました')
+                page.locator('#quick-type-interval').evaluate("""input => {
+                  input.value = '30';
+                  input.dispatchEvent(new Event('input', {bubbles:true}));
+                }""")
+                page.locator('#macro-text').fill('Z\\r')
+                page.locator('#macro-save').click()
+                expect(page.locator('#macro-status')).to_contain_text('マクロを保存')
+                assert page.evaluate("""() => JSON.parse(
+                  localStorage.getItem('jr200-web-preferences-v1')).macros[0]
+                """) == 'Z\\r'
+                page.locator('#macro-run').click()
+                expect(page.locator('#quick-type-status')).to_contain_text(
+                    '入力が完了しました', timeout=5000
+                )
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 0D')
+
+                page.locator('.virtual-key[data-key-id="ModeKana"]').click()
+                page.locator('#romaji-kana').check()
+                page.locator('#screen').focus()
+                page.keyboard.press('k')
+                expect(page.locator('#input-mode-status')).to_contain_text('ローマ字 K')
+                page.keyboard.press('a')
+                page.wait_for_timeout(300)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: B6')
+                page.locator('#screen').focus()
+                page.keyboard.press('k')
+                expect(page.locator('#input-mode-status')).to_contain_text('ローマ字 K')
+                page.keyboard.press('k')
+                page.wait_for_timeout(300)
+                expect(page.locator('#input-mode-status')).to_contain_text('ローマ字 K')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: AF')
+                page.locator('#screen').focus()
+                page.keyboard.press('a')
+                page.wait_for_timeout(300)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: B6')
+                page.locator('#romaji-kana').uncheck()
                 page.locator('.virtual-key[data-key-id="ModeAnk"]').click()
 
                 page.locator('#debug-memory-address').fill('C101')
@@ -578,7 +1284,7 @@ def main() -> None:
                 expect(page.locator('#keyboard-deck')).to_be_visible()
                 visible_screen = page.locator('#screen').bounding_box()
                 assert visible_screen is not None
-                assert visible_screen['width'] == 640 and visible_screen['height'] == 448, visible_screen
+                assert visible_screen['width'] == 960 and visible_screen['height'] == 672, visible_screen
 
                 page.locator('#keyboard-toggle').focus()
                 page.keyboard.press('Enter')
@@ -596,12 +1302,35 @@ def main() -> None:
                 # Headless Chrome does not emit a window blur when switching its
                 # synthetic tabs, so exercise the same registered browser event.
                 page.evaluate("window.dispatchEvent(new Event('blur'))")
+                expect(page.locator('#machine-status')).to_contain_text('実行中')
+                expect(page.locator('#input-mode-status')).not_to_contain_text('SHIFT保持')
+                expect(page.locator('#gamepad-status')).to_contain_text('入力をニュートラル')
+                assert 'is-pressed' not in (key_z.get_attribute('class') or '')
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-address').fill('C102')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: FF FF')
+                page.evaluate("window.dispatchEvent(new Event('focus'))")
+                expect(page.locator('#gamepad-status')).not_to_contain_text('入力をニュートラル')
+                page.wait_for_timeout(150)
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C102: EA D5')
+                page.locator('#debug-memory-address').fill('C100')
+                other_page.close()
+
+                open_panel('behavior-heading')
+                expect(page.locator('#pause-on-focus-loss')).not_to_be_checked()
+                page.locator('#pause-on-focus-loss').check()
+                shift_key.click()
+                key_z.dispatch_event('pointerdown', {'pointerId':15, 'pointerType':'touch', 'button':0, 'isPrimary':True})
+                page.evaluate("window.dispatchEvent(new Event('blur'))")
                 expect(page.locator('#machine-status')).to_contain_text('一時停止')
                 expect(page.locator('#input-mode-status')).not_to_contain_text('SHIFT保持')
                 assert 'is-pressed' not in (key_z.get_attribute('class') or '')
-                other_page.close()
+                page.evaluate("window.dispatchEvent(new Event('focus'))")
                 page.locator('#pause').click()
                 expect(page.locator('#machine-status')).to_contain_text('実行中')
+                page.locator('#pause-on-focus-loss').uncheck()
 
                 shift_key.click()
                 key_z.dispatch_event('pointerdown', {'pointerId':14, 'pointerType':'touch', 'button':0, 'isPrimary':True})
@@ -667,7 +1396,6 @@ def main() -> None:
                 page.locator('#start').click()
                 expect(page.locator('#emulator-notice')).to_contain_text('CPUを起動')
                 expect(page.locator('#machine-status')).to_contain_text('実行中')
-                page.locator('#audio-enable').click()
                 expect(page.locator('#audio-status')).to_contain_text('context running')
                 expect(page.locator('#audio-status')).to_contain_text('core 44100 Hz / output 48000 Hz')
                 expect(page.locator('#audio-status')).to_contain_text('予約済み:')
@@ -718,6 +1446,10 @@ def main() -> None:
                 assert page.evaluate('globalThis.__audioContexts[0].gain.gain.value') == 0
                 page.locator('#audio-mute').uncheck()
                 page.evaluate("window.dispatchEvent(new Event('blur'))")
+                expect(page.locator('#machine-status')).to_contain_text('実行中')
+                expect(page.locator('#audio-status')).to_contain_text('context running')
+                page.evaluate("window.dispatchEvent(new Event('focus'))")
+                page.locator('#pause').click()
                 expect(page.locator('#machine-status')).to_contain_text('一時停止')
                 expect(page.locator('#audio-status')).to_contain_text('context suspended')
                 page.locator('#pause').click()
@@ -758,6 +1490,15 @@ def main() -> None:
                 page.locator('#debug-clear-watchpoints').click()
                 page.locator('#reset').click()
                 expect(page.locator('#machine-status')).to_contain_text('実行中')
+                with page.expect_download() as dump_event:
+                    page.locator('#debug-memory-save').click()
+                dump_download = dump_event.value
+                assert dump_download.suggested_filename == 'dump.bin'
+                with tempfile.TemporaryDirectory() as directory:
+                    dump_output = Path(directory) / 'dump.bin'
+                    dump_download.save_as(dump_output)
+                    assert dump_output.stat().st_size == 65536
+                expect(page.locator('#debug-memory')).to_contain_text('65536バイト')
                 page.locator('#audio-disable').click()
                 expect(page.locator('#audio-status')).to_contain_text('Web Audio: 無効')
                 expect(page.locator('#audio-status')).to_contain_text('context suspended')
@@ -809,17 +1550,53 @@ def main() -> None:
                 expect(page.locator('#wav-decode-status')).to_contain_text('"errorCode": 17')
                 expect(page.locator('#wav-decode-save')).to_be_disabled()
                 open_panel('tape-heading')
+                expect(page.locator('#tape-monitor-enabled')).to_be_checked()
+                expect(page.locator('#tape-monitor-volume-value')).to_have_text('25%')
+                expect(page.locator('#tape-status')).to_contain_text('ロードモニター: ON / 25%')
                 page.locator('#tape-cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
+                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
+                expect(page.locator('#tape-mount-state')).to_contain_text('golden.cjr（未マウント）')
+                expect(page.locator('#tape-mount')).to_have_class(re.compile(r'\bis-pending\b'))
+                expect(page.locator('#tape-status')).to_contain_text('選択検査: マシン語')
+                assert page.locator('#tape-run-address').count() == 0
+                assert page.locator('#tape-auto-run').count() == 0
+                expect(page.locator('#tape-quick-load')).to_be_enabled()
+                page.locator('#tape-quick-load').click()
+                expect(page.locator('#tape-status')).to_contain_text('高速ロードしました')
+                expect(page.locator('#tape-status')).to_contain_text('カセット信号経路を通らない')
+                page.locator('#debug-memory-address').fill('7000')
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('7000: AB')
                 page.locator('#tape-mount').click()
+                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'mounted')
+                expect(page.locator('#tape-mount-state')).to_contain_text('golden.cjr / マウント済み')
                 expect(page.locator('#tape-status')).to_contain_text('状態: 停止')
                 expect(page.locator('#tape-status')).to_contain_text('payload 1 bytes')
                 expect(page.locator('#tape-status')).to_contain_text('通常のカセット入力信号')
+                page.locator('#tape-cjr').set_input_files({'name':'replacement.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
+                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
+                expect(page.locator('#tape-mount-state')).to_contain_text('replacement.cjr（未マウント）')
+                expect(page.locator('#tape-mount-state')).to_contain_text('現在のマウント: golden.cjr')
+                page.locator('#tape-mount').click()
+                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'mounted')
+                expect(page.locator('#tape-mount-state')).to_contain_text('replacement.cjr / マウント済み')
+                page.locator('#tape-monitor-enabled').uncheck()
+                expect(page.locator('#tape-status')).to_contain_text('ロードモニター: OFF / 25%')
+                page.locator('#tape-monitor-volume').evaluate("""input => {
+                  input.value = '40';
+                  input.dispatchEvent(new Event('input', {bubbles:true}));
+                }""")
+                page.locator('#tape-monitor-enabled').check()
+                expect(page.locator('#tape-monitor-volume-value')).to_have_text('40%')
+                expect(page.locator('#tape-status')).to_contain_text('ロードモニター: ON / 40%')
                 page.locator('#tape-rewind').click()
                 expect(page.locator('#tape-status')).to_contain_text('信号位置: 0 /')
                 expect(page.locator('#tape-status')).not_to_contain_text('巻戻しできません')
                 page.locator('#tape-eject').click()
                 expect(page.locator('#tape-status')).to_contain_text('状態: 取出し済み')
+                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
                 page.locator('#tape-cjr').set_input_files({'name':'special.cjr','mimeType':'application/octet-stream','buffer':bytes(SPECIAL)})
+                expect(page.locator('#tape-status')).to_contain_text('対応しないCJR')
                 page.locator('#tape-mount').click()
                 expect(page.locator('#tape-status')).to_contain_text('状態: エラー')
                 expect(page.locator('#tape-status')).to_contain_text('only standard BASIC and machine-code CJR')
@@ -862,7 +1639,7 @@ def main() -> None:
                 assert not final_layout['overlap'], final_layout
                 assert not errors, errors
                 assert not external, external
-                print('PASS Chromium: Full HD/DPR layout, glyph keyboard/input recovery, Web Audio, cassette, debugger, CJR/WAV tools, no external requests')
+                print('PASS Chromium: Full HD/DPR and Windows-parity display settings, quick type, macros, romaji-kana, gamepad mapping/forced mode, native AudioContext lifecycle, cassette controls/quick load, memory dump, debugger, CJR/WAV tools, no external requests')
                 print('Browser:',browser.version)
                 print('Performance:', json.dumps(performance, sort_keys=True))
             finally:

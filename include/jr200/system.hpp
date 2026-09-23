@@ -51,6 +51,7 @@ private:
 struct MemoryConfig {
     bool ram_expansion_1{};
     bool ram_expansion_2{};
+    uint8_t ram_init_pattern{};
 };
 
 enum class GlyphBank : uint8_t {
@@ -63,6 +64,8 @@ class JR200Machine final : public M6800Bus {
 public:
     explicit JR200Machine(MemoryConfig config = {}) noexcept;
 
+    [[nodiscard]] bool set_memory_config(MemoryConfig config) noexcept;
+    [[nodiscard]] MemoryConfig memory_config() const noexcept;
     void initialize_memory() noexcept;
     void reset_peripherals() noexcept;
     [[nodiscard]] bool load_rom(

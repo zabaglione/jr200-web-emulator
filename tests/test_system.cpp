@@ -88,6 +88,22 @@ void test_memory_map_waits_and_trace()
               expanded.read(0xa000U, M6800BusAccess::Data).wait_states == 1U,
           "expansion RAM has the upstream DRAM wait");
 
+    check(expanded.set_memory_config({true, false, 1U}),
+          "Windows-compatible RAM initialization pattern is accepted");
+    expanded.initialize_memory();
+    const MemoryConfig configured = expanded.memory_config();
+    check(configured.ram_expansion_1 && !configured.ram_expansion_2 &&
+              configured.ram_init_pattern == 1U,
+          "memory configuration can be inspected after update");
+    check(expanded.peek_byte(0x0000U) == 0x00U &&
+              expanded.peek_byte(0x0001U) == 0xffU &&
+              expanded.peek_byte(0x0080U) == 0xffU &&
+              expanded.peek_byte(0x0081U) == 0x00U,
+          "RAM pattern one alternates 00/FF in 128-byte phases");
+    check(!expanded.set_memory_config({false, false, 2U}) &&
+              expanded.memory_config().ram_init_pattern == 1U,
+          "invalid RAM initialization pattern is rejected without mutation");
+
     std::array<uint8_t, 16384> rom{};
     rom[0] = 0x12U;
     rom[8191] = 0x34U;
@@ -275,6 +291,10 @@ void test_cassette_audio_and_framebuffer()
 {
     check(mix_pcm_mono(PcmFrame{{10000, -2000, 3000}}) == 11000,
           "three PCM channels mix deterministically to mono");
+    check(mix_pcm_mono(PcmFrame{{1000, -500, 250}, 1750}) == 2500,
+          "cassette monitor joins the deterministic mono mix");
+    check(mix_pcm_mono(PcmFrame{{1000, -500, 250}, 1750, 3500}) == 6000,
+          "key click joins the deterministic mono mix");
     check(mix_pcm_mono(PcmFrame{{30000, 30000, 30000}}) == 32767 &&
               mix_pcm_mono(PcmFrame{{-30000, -30000, -30000}}) == -32768,
           "PCM mono mix clips to signed 16-bit bounds");
@@ -304,6 +324,94 @@ void test_cassette_audio_and_framebuffer()
           "cassette write activity is edge-consumed by the host");
     machine.write_byte(0xc807U, 0U);
     check(!machine.mn1271().cassette_remote(), "cassette REMOTE turns off");
+
+    constexpr std::array<uint8_t, 47> monitor_cjr{
+        2, 42, 0, 26, 255, 255, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 1, 0, 255, 255, 255, 255, 255, 255, 255, 255,
+        149, 2, 42, 1, 1, 112, 0, 171, 73, 2, 42, 255, 255, 112, 1,
+    };
+    JR200Machine monitor;
+    check(monitor.cassette().mount(monitor_cjr.data(), monitor_cjr.size()) ==
+              jr200::CassetteError::None,
+          "cassette monitor fixture mounts through the shared deck");
+    check(monitor.cassette().monitor_enabled() &&
+              monitor.cassette().monitor_volume() == 25U,
+          "cassette load monitor defaults to enabled at 25 percent");
+    monitor.write_byte(0xc806U, 0x40U);
+    monitor.write_byte(0xc807U, 0x40U);
+    (void)monitor.read_byte(0xc807U);
+    check(monitor.cassette().monitor_active(),
+          "cassette monitor becomes active only after a playback read");
+    monitor.advance_cycles(304U);
+    PcmFrame monitor_frame{};
+    check(monitor.pcm().pop(monitor_frame) &&
+              (mix_pcm_mono(monitor_frame) == 1750 ||
+               mix_pcm_mono(monitor_frame) == -1750),
+          "active cassette level is mixed at the configured amplitude");
+    (void)monitor.pcm().discard_pending();
+    monitor.cassette().set_monitor(false, 25U);
+    monitor.advance_cycles(304U);
+    check(monitor.pcm().pop(monitor_frame) &&
+              mix_pcm_mono(monitor_frame) == 0,
+          "cassette monitor can be disabled during playback");
+    (void)monitor.pcm().discard_pending();
+    monitor.cassette().set_monitor(true, 50U);
+    monitor.advance_cycles(304U);
+    check(monitor.pcm().pop(monitor_frame) &&
+              (mix_pcm_mono(monitor_frame) == 3500 ||
+               mix_pcm_mono(monitor_frame) == -3500),
+          "cassette monitor volume changes during playback");
+
+    JR200Machine key_click;
+    key_click.write_byte(0xc802U, 0x41U);
+    key_click.set_key_state(0x41U, true);
+    key_click.write_byte(0xc803U, 0x40U);
+    key_click.write_byte(0xc803U, 0x41U);
+    key_click.advance_cycles(304U);
+    PcmFrame key_click_frame{};
+    check(key_click.pcm().pop(key_click_frame) &&
+              key_click_frame.key_click == 7000 &&
+              mix_pcm_mono(key_click_frame) == 7000,
+          "PB6-enabled key acknowledgement emits an audible click burst");
+    (void)key_click.pcm().discard_pending();
+    key_click.set_key_state(0x42U, true);
+    key_click.write_byte(0xc803U, 0x40U);
+    key_click.write_byte(0xc803U, 0x41U);
+    key_click.advance_cycles(304U);
+    check(key_click.pcm().pop(key_click_frame) &&
+              key_click_frame.key_click != 0,
+          "a new overlapping key code emits its own click");
+    (void)key_click.pcm().discard_pending();
+    key_click.write_byte(0xc803U, 0x00U);
+    key_click.write_byte(0xc803U, 0x40U);
+    key_click.set_key_state(0x42U, true);
+    key_click.write_byte(0xc803U, 0x41U);
+    key_click.advance_cycles(304U);
+    check(key_click.pcm().pop(key_click_frame) &&
+              key_click_frame.key_click == 0,
+          "repeating the same held key does not retrigger a click");
+
+    JR200Machine disabled_key_click;
+    disabled_key_click.write_byte(0xc802U, 0x41U);
+    disabled_key_click.set_key_state(0x41U, true);
+    disabled_key_click.write_byte(0xc803U, 0x00U);
+    disabled_key_click.write_byte(0xc803U, 0x01U);
+    disabled_key_click.advance_cycles(304U);
+    check(disabled_key_click.pcm().pop(key_click_frame) &&
+              key_click_frame.key_click == 0 &&
+              mix_pcm_mono(key_click_frame) == 0,
+          "PB6-disabled key acknowledgement remains silent");
+
+    JR200Machine stopped_key_click;
+    stopped_key_click.write_byte(0xc802U, 0x41U);
+    stopped_key_click.set_key_state(0x41U, true);
+    stopped_key_click.write_byte(0xc803U, 0x40U);
+    stopped_key_click.write_byte(0xc803U, 0x41U);
+    stopped_key_click.write_byte(0xc803U, 0x00U);
+    stopped_key_click.advance_cycles(304U);
+    check(stopped_key_click.pcm().pop(key_click_frame) &&
+              key_click_frame.key_click == 0,
+          "lowering PB6 stops an in-progress key click");
 
     machine.write_byte(0xc813U, 0x80U);
     machine.write_byte(0xc812U, 0x06U);

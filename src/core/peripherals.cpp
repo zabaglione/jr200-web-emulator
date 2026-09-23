@@ -11,6 +11,13 @@ namespace {
 constexpr uint8_t kBorrow = 0x20U;
 constexpr uint8_t kIrq = 0x40U;
 constexpr uint8_t kStatusAny = 0x80U;
+constexpr uint8_t kKeyAck = 0x01U;
+constexpr uint8_t kKeySound = 0x40U;
+// The service manual documents the PB6 gate but not the sub-CPU waveform.
+// Keep the audible approximation short, deterministic, and at one voice level.
+constexpr uint32_t kKeyClickFrequencyHz = 2400U;
+constexpr uint32_t kKeyClickDurationFrames = kPcmSampleRate * 6U / 1000U;
+constexpr int16_t kSoundAmplitude = 7000;
 constexpr uint32_t kColors[8]{
     0xff000000U,
     0xff0000ffU,
@@ -26,7 +33,7 @@ constexpr uint32_t kColors[8]{
 
 int16_t mix_pcm_mono(const PcmFrame& frame) noexcept
 {
-    int32_t mixed = 0;
+    int32_t mixed = static_cast<int32_t>(frame.monitor) + frame.key_click;
     for (size_t channel = 0U; channel < 3U; ++channel) {
         mixed += frame.channel[channel];
     }
@@ -105,6 +112,10 @@ void Mn1271::reset() noexcept
         phase_[i] = 0U;
     }
     audio_numerator_ = 0U;
+    key_detection_code_ = 0U;
+    key_click_pending_ = false;
+    key_click_frames_remaining_ = 0U;
+    key_click_phase_ = 0U;
     cassette_input_ = false;
     cassette_remote_ = false;
     read_activity_ = false;
@@ -207,8 +218,22 @@ void Mn1271::write(uint8_t reg, uint8_t value) noexcept
         reg_[reg] = value;
         break;
     case 0x03U:
+    {
+        const uint8_t previous = reg_[reg];
         reg_[reg] = static_cast<uint8_t>(value & reg_[0x02U]);
+        if ((reg_[reg] & kKeySound) == 0U) {
+            key_click_frames_remaining_ = 0U;
+        }
+        if ((previous & kKeyAck) == 0U &&
+            (reg_[reg] & kKeyAck) != 0U &&
+            key_click_pending_) {
+            if ((reg_[reg] & kKeySound) != 0U) {
+                trigger_key_click();
+            }
+            key_click_pending_ = false;
+        }
         break;
+    }
     case 0x04U:
         reg_[reg] = value;
         break;
@@ -430,7 +455,10 @@ void Mn1271::assert_irq(Mn1271Irq source) noexcept
     refresh_irq_flag();
 }
 
-void Mn1271::tick(uint32_t cycles, PcmQueue& pcm) noexcept
+void Mn1271::tick(
+    uint32_t cycles,
+    PcmQueue& pcm,
+    int16_t monitor_sample) noexcept
 {
     tick_timer(0U, 0x0eU, 0x0fU, 0x18U, 0x01U,
                Mn1271Irq::TimerA, cycles);
@@ -449,7 +477,7 @@ void Mn1271::tick(uint32_t cycles, PcmQueue& pcm) noexcept
     uint64_t frames = audio_numerator_ / kCpuClockHz;
     audio_numerator_ %= kCpuClockHz;
     while (frames != 0U) {
-        pcm.push(next_pcm_frame());
+        pcm.push(next_pcm_frame(monitor_sample));
         --frames;
     }
 }
@@ -457,6 +485,16 @@ void Mn1271::tick(uint32_t cycles, PcmQueue& pcm) noexcept
 void Mn1271::set_cassette_input(bool high) noexcept
 {
     cassette_input_ = high;
+}
+
+void Mn1271::set_key_detection(uint8_t code) noexcept
+{
+    if (code != 0U && code != key_detection_code_) {
+        key_click_pending_ = true;
+    } else if (code == 0U) {
+        key_click_pending_ = false;
+    }
+    key_detection_code_ = code;
 }
 
 bool Mn1271::cassette_remote() const noexcept
@@ -649,18 +687,37 @@ void Mn1271::push_cassette_output(uint8_t value) noexcept
     ++cassette_size_;
 }
 
-PcmFrame Mn1271::next_pcm_frame() noexcept
+void Mn1271::trigger_key_click() noexcept
+{
+    key_click_frames_remaining_ = kKeyClickDurationFrames;
+    key_click_phase_ = 0U;
+}
+
+PcmFrame Mn1271::next_pcm_frame(int16_t monitor_sample) noexcept
 {
     PcmFrame frame{};
+    frame.monitor = monitor_sample;
     for (uint8_t channel = 0U; channel < 3U; ++channel) {
         if (playing_[channel] && frequency_[channel] != 0U) {
             frame.channel[channel] = phase_[channel] < (kPcmSampleRate / 2U)
-                ? static_cast<int16_t>(7000)
-                : static_cast<int16_t>(-7000);
+                ? kSoundAmplitude
+                : static_cast<int16_t>(-kSoundAmplitude);
             phase_[channel] = static_cast<uint32_t>(
                 (static_cast<uint64_t>(phase_[channel]) + frequency_[channel]) %
                 kPcmSampleRate);
         }
+    }
+    if (key_click_frames_remaining_ != 0U &&
+        (reg_[0x03U] & kKeySound) != 0U) {
+        frame.key_click = key_click_phase_ < (kPcmSampleRate / 2U)
+            ? kSoundAmplitude
+            : static_cast<int16_t>(-kSoundAmplitude);
+        key_click_phase_ = static_cast<uint32_t>(
+            (static_cast<uint64_t>(key_click_phase_) + kKeyClickFrequencyHz) %
+            kPcmSampleRate);
+        --key_click_frames_remaining_;
+    } else if ((reg_[0x03U] & kKeySound) == 0U) {
+        key_click_frames_remaining_ = 0U;
     }
     return frame;
 }

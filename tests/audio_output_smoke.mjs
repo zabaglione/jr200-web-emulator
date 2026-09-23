@@ -30,6 +30,10 @@ class FakeSource {
     this.buffer = null;
     this.onended = null;
     this.stopped = false;
+    this.playbackRate = {
+      value: 1,
+      setValueAtTime: value => { this.playbackRate.value = value; },
+    };
   }
   connect() {}
   disconnect() {}
@@ -74,6 +78,18 @@ class FakeAudioContext {
   async suspend() {
     this.state = 'suspended';
     for (const listener of this.listeners) listener();
+  }
+}
+
+class DeferredResumeAudioContext extends FakeAudioContext {
+  async resume() {
+    await new Promise(resolve => {
+      this.finishResume = () => {
+        this.state = 'running';
+        for (const listener of this.listeners) listener();
+        resolve();
+      };
+    });
   }
 }
 
@@ -126,16 +142,23 @@ assert.equal(output.pump(), 3);
 assert.equal(output.context.sources.length, 1);
 assert.equal(output.context.sources[0].startTime, 1.04);
 assert.equal(output.context.sources[0].buffer.sampleRate, 44100);
+assert.equal(output.context.sources[0].playbackRate.value, 1);
 assert.ok(Math.abs(output.context.sources[0].buffer.data[0] - 32767 / 32768) < 1e-7);
 assert.equal(output.context.sources[0].buffer.data[1], -1);
 assert.equal(output.state().nonzeroFrames, 3);
 assert.equal(output.state().peakSample, 32768);
 
+output.context.currentTime = 1.03;
+machine.samples.push(1000, 2000);
+assert.equal(output.pump(10), 2);
+assert.equal(output.context.sources[1].playbackRate.value, 10);
+assert.ok(output.state().scheduledAheadSeconds < 0.011);
+
 output.context.currentTime = 2;
 machine.samples.push(1000);
 assert.equal(output.pump(), 1);
 assert.equal(output.state().underruns, 1);
-assert.equal(output.context.sources[1].startTime, 2.04);
+assert.equal(output.context.sources[2].startTime, 2.04);
 
 output.setMuted(true);
 machine.samples.push(4, 5);
@@ -146,6 +169,7 @@ output.setVolume(0.1);
 output.setMuted(false);
 assert.equal(output.context.gain.gain.value, 0.1);
 assert.throws(() => output.setVolume(0.51), /between 0 and 0.5/);
+assert.throws(() => output.pump(0), /positive/);
 
 machine.samples.push(6, 7);
 await output.suspend();
@@ -161,4 +185,48 @@ assert.equal(output.state().enabled, false);
 assert.equal(output.state().contextState, 'suspended');
 assert.equal(output.context.gain.gain.value, 0);
 
-console.log('PASS Web Audio scheduler: explicit start, 44.1 kHz buffers, resampling context, underrun, mute, pause and queue flush');
+const armedMachine = new FakeMachineAudio();
+const armed = new WebAudioOutput(armedMachine, {
+  AudioContextClass: FakeAudioContext,
+  initialEnabled: true,
+});
+assert.equal(armed.state().enabled, true);
+assert.equal(armed.state().contextState, 'not-created');
+assert.equal(FakeAudioContext.created, 1, 'armed output must wait for a user gesture');
+await armed.enable();
+assert.equal(FakeAudioContext.created, 2);
+assert.equal(armed.state().contextState, 'running');
+assert.throws(() => new WebAudioOutput(new FakeMachineAudio(), {
+  AudioContextClass: FakeAudioContext,
+  initialEnabled: 'yes',
+}), /must be boolean/);
+
+const racing = new WebAudioOutput(new FakeMachineAudio(), {
+  AudioContextClass: DeferredResumeAudioContext,
+  initialEnabled: true,
+});
+const enabling = racing.enable();
+assert.equal(typeof racing.context.finishResume, 'function');
+const disabling = racing.disable();
+racing.context.finishResume();
+await Promise.all([enabling, disabling]);
+assert.equal(racing.state().enabled, false);
+assert.equal(racing.state().contextState, 'suspended');
+
+const boundedMachine = new FakeMachineAudio();
+const bounded = new WebAudioOutput(boundedMachine, {
+  AudioContextClass: FakeAudioContext,
+  initialEnabled: true,
+  leadSeconds: 0.04,
+  maxAheadSeconds: 0.1,
+});
+await bounded.enable();
+for (let index = 0; index < 100; ++index) {
+  boundedMachine.samples.push(...new Int16Array(4096).fill(index + 1));
+  bounded.pump(10);
+}
+assert.ok(bounded.state().scheduledAheadSeconds <= 0.100001);
+assert.ok(bounded.state().activeSources < 10);
+assert.ok(bounded.state().aheadDroppedFrames > 0);
+
+console.log('PASS Web Audio scheduler: armed default, explicit start, rate tracking, bounded look-ahead, 44.1 kHz buffers, resampling context, underrun, mute, pause and queue flush');

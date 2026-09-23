@@ -19,6 +19,8 @@ inline constexpr size_t kFramebufferPixels =
 
 struct PcmFrame {
     int16_t channel[3]{};
+    int16_t monitor{};
+    int16_t key_click{};
 };
 
 [[nodiscard]] int16_t mix_pcm_mono(const PcmFrame& frame) noexcept;
@@ -65,8 +67,12 @@ public:
     [[nodiscard]] uint8_t io_read(uint8_t reg) const noexcept;
     void io_write(uint8_t reg, uint8_t value) noexcept;
     void assert_irq(Mn1271Irq source) noexcept;
-    void tick(uint32_t cycles, PcmQueue& pcm) noexcept;
+    void tick(
+        uint32_t cycles,
+        PcmQueue& pcm,
+        int16_t monitor_sample = 0) noexcept;
 
+    void set_key_detection(uint8_t code) noexcept;
     void set_cassette_input(bool high) noexcept;
     [[nodiscard]] bool cassette_remote() const noexcept;
     [[nodiscard]] bool take_cassette_output(uint8_t& value) noexcept;
@@ -88,6 +94,10 @@ private:
     uint32_t frequency_[3]{};
     uint32_t phase_[3]{};
     uint64_t audio_numerator_{};
+    uint8_t key_detection_code_{};
+    bool key_click_pending_{};
+    uint32_t key_click_frames_remaining_{};
+    uint32_t key_click_phase_{};
     bool cassette_input_{};
     bool cassette_remote_{};
     bool read_activity_{};
@@ -114,7 +124,8 @@ private:
         Mn1271Irq irq,
         uint32_t cycles) noexcept;
     void push_cassette_output(uint8_t value) noexcept;
-    [[nodiscard]] PcmFrame next_pcm_frame() noexcept;
+    void trigger_key_click() noexcept;
+    [[nodiscard]] PcmFrame next_pcm_frame(int16_t monitor_sample) noexcept;
 };
 
 class Mn1544 {

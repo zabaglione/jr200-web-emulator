@@ -194,6 +194,21 @@ std::vector<uint8_t> pcm8(const std::vector<uint8_t>& input)
     return output;
 }
 
+std::vector<uint8_t> omit_final_data_padding(const std::vector<uint8_t>& input)
+{
+    std::vector<uint8_t> output = pcm8(input);
+    uint32_t data_size = read_u32(output.data() + 40U);
+    if ((data_size & 1U) != 0U) {
+        output.pop_back();
+    } else {
+        output.push_back(output.back());
+        ++data_size;
+        put_u32(output.data(), 40U, data_size);
+    }
+    put_u32(output.data(), 4U, static_cast<uint32_t>(output.size() - 8U));
+    return output;
+}
+
 std::vector<uint8_t> half_rate(const std::vector<uint8_t>& input)
 {
     const uint32_t source_frames = read_u32(input.data() + 40U) / 2U;
@@ -255,6 +270,10 @@ void test_profiles_and_diagnostics()
         "2400 header flag with explicit 600 baud waveform");
     check_matches(add_odd_junk(fast48), fast, "odd-sized RIFF chunk");
     check_matches(pcm8(fast44), fast, "8-bit PCM");
+    check_matches(
+        omit_final_data_padding(fast44),
+        fast,
+        "8-bit PCM with an omitted final RIFF pad byte");
     check_matches(half_rate(fast44), fast, "22.05 kHz PCM");
     check_matches(stretch(fast44), fast, "2 percent slow transport");
 

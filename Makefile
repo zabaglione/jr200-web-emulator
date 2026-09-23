@@ -1,4 +1,6 @@
-.PHONY: test sanitize wasm wasm-smoke serve sbom check
+.PHONY: test sanitize wasm wasm-smoke browser-setup browser-smoke serve sbom check
+
+BROWSER_VENV ?= .venv
 # `make` remains the entry point; CMake builds the same native/WASM C++ core.
 test:
 	cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Debug
@@ -16,6 +18,13 @@ wasm:
 	python3 scripts/stage_web.py --backend emscripten
 wasm-smoke:
 	bash scripts/build_wasm_smoke.sh
+$(BROWSER_VENV)/.playwright-ready: requirements-ci.txt
+	python3 -m venv $(BROWSER_VENV)
+	$(BROWSER_VENV)/bin/python -m pip install --disable-pip-version-check -r requirements-ci.txt
+	touch $(BROWSER_VENV)/.playwright-ready
+browser-setup: $(BROWSER_VENV)/.playwright-ready
+browser-smoke: browser-setup
+	$(BROWSER_VENV)/bin/python tests/browser_smoke.py
 serve:
 	python3 -m http.server --bind 127.0.0.1 --directory build/site 8000
 sbom:

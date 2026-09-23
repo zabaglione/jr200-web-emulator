@@ -8,7 +8,7 @@ const module = await createJR200Codec();
 
 assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
-assert.equal(module._jr200_system_api_version(), 6);
+assert.equal(module._jr200_system_api_version(), 9);
 assert.equal(module._jr200_wav_api_version(), 1);
 assert.equal(module._jr200_wav_decode_api_version(), 1);
 
@@ -40,8 +40,15 @@ assert.deepEqual(module.HEAPU8.slice(
   module._jr200_wav_decode_output_ptr() + golden.length), golden);
 
 module._jr200_system_clear();
+assert.equal(module._jr200_system_tape_set_monitor(1, 25), 1);
+assert.equal(module._jr200_system_tape_field(17), 1);
+assert.equal(module._jr200_system_tape_field(18), 25);
 assert.equal(module._jr200_system_rom_capacity(), 16384);
 assert.equal(module._jr200_system_font_capacity(), 2048);
+assert.equal(module._jr200_system_set_joystick(0, 0xea), 1);
+assert.equal(module._jr200_system_set_joystick(1, 0xd5), 1);
+assert.equal(module._jr200_system_set_joystick(2, 0xff), 0);
+assert.equal(module._jr200_system_set_joystick(0, 0x100), 0);
 const rom = new Uint8Array(module.HEAPU8.buffer, module._jr200_system_rom_ptr(), 16384);
 const font = new Uint8Array(module.HEAPU8.buffer, module._jr200_system_font_ptr(), 2048);
 rom.fill(0);
@@ -86,4 +93,4 @@ assert.equal(module._jr200_system_peek(0xc80e), 0x61);
 assert.equal(module._jr200_system_read(0xc80e), 0x61);
 assert.equal(module._jr200_system_field(0), 0);
 
-console.log('PASS Emscripten module: codec, CPU and system ABIs initialize; debugger, timer IRQ and peek semantics match');
+console.log('PASS Emscripten module: codec, CPU and system ABIs initialize; debugger, joystick, timer IRQ and peek semantics match');
