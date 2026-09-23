@@ -48,6 +48,8 @@ jobs:
         run: |
           set -euo pipefail
           source build/emsdk/emsdk_env.sh
+          export PATH="$(dirname "$EMSDK_NODE"):$PATH"
+          node --version
           make wasm
           make check
       - name: Upload only the staged site
