@@ -21,7 +21,7 @@ make serve
 
 まずAGENTS.mdとSTATUS.mdを読み、P00〜P13の依存順に着手する。初期実装の存在だけでIssueをcloseしない。受入条件に対応するテスト・commit・観測結果を記録する。必要な変更は作業ブランチからPull Requestにまとめる。
 
-ソース追加・削除時は `python3 scripts/update_manifest.py` と `make check`。ROM、メーカー由来フォント、録音、商用テープ、秘密情報はコミットしない。リポジトリの可視性は利用者が別途管理し、Pagesや公開サイトへの自動デプロイは行わない。
+ソース追加・削除時は `python3 scripts/update_manifest.py` と `make check`。ROM、メーカー由来フォント、録音、商用テープ、秘密情報はコミットしない。Pages公開は[専用手順](PAGES_DEPLOYMENT.md)に従い、`build/site`だけを配信する。リポジトリの可視性とPagesの状態は別々に確認する。
 
 ## 旧bootstrapスクリプト
 

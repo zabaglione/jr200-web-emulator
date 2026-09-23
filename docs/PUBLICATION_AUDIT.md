@@ -1,6 +1,6 @@
 # 公開前検査記録
 
-検査日: 2026-09-23。対象は既存の`zabaglione/jr200-web-emulator`をprivateからpublicへ変更する場合に公開される範囲である。可視性の変更は利用者が行う。この記録はGitHub Pagesの公開や物理JR-200での互換性を認定しない。
+初回検査日: 2026-09-23。対象は既存の`zabaglione/jr200-web-emulator`をprivateからpublicへ変更する場合に公開される範囲である。可視性の変更は別途明示された許可のもとで行う。この初回記録はGitHub Pagesの公開や物理JR-200での互換性を認定しない。
 
 ## 検査時点の判定
 
@@ -25,6 +25,6 @@
 1. 追加・変更したソースと文書だけを明示的にGitへ登録し、ROM、フォント、CJR、WAV、録音、ビルド出力を含めない。`source-manifest.json`と登録済みファイルの一致を確認する。
 2. 候補SHAで`make test`、`make sanitize`、`make wasm-smoke`、正式Emscriptenの`make wasm`、`make browser-smoke`、`make check`を確認する。ローカルの成功をremote CIの成功と混同しない。
 3. 候補をremote `main`へ反映した後、そのSHAのActions全ジョブと公開対象のsource/配布物を再確認する。公開前の対象SHAが変わった場合は差分を再監査する。
-4. 最後に利用者がGitHubの可視性を変更する。これはGitHub Pagesの設定変更やROM・録音の配布を意味しない。
+4. 最後に明示許可を確認してGitHubの可視性を変更する。これはGitHub Pagesの設定変更やROM・録音の配布を意味しない。
 
 P12の物理JR-200とWAVの往復検証は未完了のまま明示し、CJR検査やブラウザ内でのMLOAD試験をその代用にしない。

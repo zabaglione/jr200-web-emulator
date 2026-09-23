@@ -49,6 +49,30 @@
       "supplier": "Organization: MAME"
     },
     {
+      "name": "Emscripten JavaScript runtime",
+      "SPDXID": "SPDXRef-Package-Emscripten-Runtime",
+      "versionInfo": "6.0.9",
+      "downloadLocation": "https://github.com/emscripten-core/emscripten/tree/6.0.9",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "Copyright 2010 The Emscripten Authors",
+      "supplier": "Organization: Emscripten Authors",
+      "primaryPackagePurpose": "LIBRARY"
+    },
+    {
+      "name": "LLVM libc++abi linked runtime",
+      "SPDXID": "SPDXRef-Package-LLVM-libcxxabi",
+      "versionInfo": "Emscripten 6.0.9 bundled revision",
+      "downloadLocation": "https://github.com/emscripten-core/emscripten/tree/6.0.9/system/lib/libcxxabi",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0 WITH LLVM-exception",
+      "licenseDeclared": "Apache-2.0 WITH LLVM-exception",
+      "copyrightText": "Copyright (c) 2009-2019 libc++abi contributors",
+      "supplier": "Organization: LLVM Project",
+      "primaryPackagePurpose": "LIBRARY"
+    },
+    {
       "name": "playwright",
       "SPDXID": "SPDXRef-Package-Playwright-Python",
       "versionInfo": "1.63.0",
@@ -108,6 +132,18 @@
       "comment": "Only the adapted MC6800 portions listed in THIRD_PARTY_NOTICES.md are included."
     },
     {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Emscripten-Runtime",
+      "comment": "Generated JavaScript runtime in jr200_codec.mjs is distributed; the compiler toolchain is not."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-LLVM-libcxxabi",
+      "comment": "Linked libc++abi type information is included in jr200_codec.wasm."
+    },
+    {
       "spdxElementId": "SPDXRef-Package-Playwright-Python",
       "relationshipType": "TEST_DEPENDENCY_OF",
       "relatedSpdxElement": "SPDXRef-Package-jr200-web-emulator",
@@ -144,7 +180,7 @@
       "annotationDate": "2026-09-22T00:00:00Z",
       "annotationType": "OTHER",
       "annotator": "Tool: scripts/generate_sbom.py",
-      "comment": "Package-level SBOM for source and staged Web distribution. Manufacturer ROM/font data, tapes, recordings, JR2Rescue, and build toolchains are not distributed components."
+      "comment": "Package-level SBOM for source and staged Web distribution. Manufacturer ROM/font data, tapes, recordings, JR2Rescue, and build toolchains are not distributed components. Emscripten-generated JavaScript and linked libc++abi runtime are distributed."
     }
   ]
 }

@@ -13,6 +13,7 @@ OUTPUT = ROOT / "SBOM.spdx.json"
 VERSION = "0.0.1"
 VJR_COMMIT = "dd748995bede57da5baebc1225c7a33433aa6934"
 MAME_COMMIT = "9940645188b6749e170b62c0ea86af0f440148da"
+EMSCRIPTEN_VERSION = "6.0.9"
 PLAYWRIGHT_VERSION = "1.63.0"
 PYEE_VERSION = "13.0.1"
 GREENLET_VERSION = "3.5.6"
@@ -74,6 +75,36 @@ def document() -> dict[str, object]:
                 "licenseDeclared": "BSD-3-Clause",
                 "copyrightText": "Copyright Aaron Giles and MAME contributors",
                 "supplier": "Organization: MAME",
+            },
+            {
+                "name": "Emscripten JavaScript runtime",
+                "SPDXID": "SPDXRef-Package-Emscripten-Runtime",
+                "versionInfo": EMSCRIPTEN_VERSION,
+                "downloadLocation": (
+                    "https://github.com/emscripten-core/emscripten/"
+                    f"tree/{EMSCRIPTEN_VERSION}"
+                ),
+                "filesAnalyzed": False,
+                "licenseConcluded": "MIT",
+                "licenseDeclared": "MIT",
+                "copyrightText": "Copyright 2010 The Emscripten Authors",
+                "supplier": "Organization: Emscripten Authors",
+                "primaryPackagePurpose": "LIBRARY",
+            },
+            {
+                "name": "LLVM libc++abi linked runtime",
+                "SPDXID": "SPDXRef-Package-LLVM-libcxxabi",
+                "versionInfo": "Emscripten 6.0.9 bundled revision",
+                "downloadLocation": (
+                    "https://github.com/emscripten-core/emscripten/"
+                    "tree/6.0.9/system/lib/libcxxabi"
+                ),
+                "filesAnalyzed": False,
+                "licenseConcluded": "Apache-2.0 WITH LLVM-exception",
+                "licenseDeclared": "Apache-2.0 WITH LLVM-exception",
+                "copyrightText": "Copyright (c) 2009-2019 libc++abi contributors",
+                "supplier": "Organization: LLVM Project",
+                "primaryPackagePurpose": "LIBRARY",
             },
             {
                 "name": "playwright",
@@ -145,6 +176,18 @@ def document() -> dict[str, object]:
                 "comment": "Only the adapted MC6800 portions listed in THIRD_PARTY_NOTICES.md are included.",
             },
             {
+                "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+                "relationshipType": "CONTAINS",
+                "relatedSpdxElement": "SPDXRef-Package-Emscripten-Runtime",
+                "comment": "Generated JavaScript runtime in jr200_codec.mjs is distributed; the compiler toolchain is not.",
+            },
+            {
+                "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+                "relationshipType": "CONTAINS",
+                "relatedSpdxElement": "SPDXRef-Package-LLVM-libcxxabi",
+                "comment": "Linked libc++abi type information is included in jr200_codec.wasm.",
+            },
+            {
                 "spdxElementId": "SPDXRef-Package-Playwright-Python",
                 "relationshipType": "TEST_DEPENDENCY_OF",
                 "relatedSpdxElement": "SPDXRef-Package-jr200-web-emulator",
@@ -185,7 +228,9 @@ def document() -> dict[str, object]:
                 "comment": (
                     "Package-level SBOM for source and staged Web distribution. "
                     "Manufacturer ROM/font data, tapes, recordings, JR2Rescue, "
-                    "and build toolchains are not distributed components."
+                    "and build toolchains are not distributed components. "
+                    "Emscripten-generated JavaScript and linked libc++abi "
+                    "runtime are distributed."
                 ),
             }
         ],

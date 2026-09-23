@@ -51,6 +51,22 @@ UI obtains glyph rows at runtime from the user-provided font and emulated
 character RAM; it does not include manufacturer font bytes or extracted glyph
 images.
 
+The staged Web distribution includes Emscripten 6.0.9-generated JavaScript
+runtime in `jr200_codec.mjs`. Its source includes MIT-licensed Emscripten
+runtime code (including `src/preamble.js`, Copyright 2010 The Emscripten
+Authors). The complete Emscripten 6.0.9 license file, including its MIT and
+University of Illinois/NCSA terms, is preserved in
+[LICENSES/Emscripten-6.0.9.txt](LICENSES/Emscripten-6.0.9.txt) and shipped
+with the staged site. The emsdk compiler/toolchain is used for building; it is
+not itself copied into the site.
+
+The generated `jr200_codec.wasm` also includes linked LLVM libc++abi type
+information code from Emscripten 6.0.9's `libc++abi-noexcept.a`. Its full
+Apache-2.0 WITH LLVM-exception license file is preserved in
+[LICENSES/libcxxabi-6.0.9.txt](LICENSES/libcxxabi-6.0.9.txt) and shipped
+with the staged site. This is distinct from the Emscripten JavaScript runtime
+and from the build-only compiler toolchain.
+
 The port removes DirectSound, Direct2D, Win32 input and file APIs, OpenSL ES,
 cereal, global host timing, printer, and FDD coupling. It exposes an explicit
 cycle clock, fixed PCM queue, ARGB framebuffer, translated key-state input,
