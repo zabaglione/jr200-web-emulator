@@ -1698,10 +1698,16 @@ def main() -> None:
                 assert page.locator('#tape-auto-run').count() == 0
                 expect(page.locator('#tape-quick-load')).to_be_enabled()
                 page.locator('#tape-quick-load').click()
-                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
                 page.locator('#debug-memory-address').fill('7000')
-                page.locator('#debug-memory-read').click()
+                for _ in range(50):
+                    page.locator('#debug-memory-read').click()
+                    if '7000: AB' in page.locator('#debug-memory').inner_text():
+                        break
+                    page.wait_for_timeout(100)
+                else:
+                    raise AssertionError('Quick load did not write the expected byte')
                 expect(page.locator('#debug-memory')).to_contain_text('7000: AB')
+                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
                 page.locator('#tape-mount').click()
                 expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'mounted')
                 expect(page.locator('#tape-mount-state')).to_contain_text('golden.cjr / マウント済み')
