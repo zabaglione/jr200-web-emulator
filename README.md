@@ -77,6 +77,8 @@ ROMとフォントが必要なのはJR-200を起動する場合です。CJRの�
 - 有効化済みのEmscripten 6.0.9（`emcc`と`emcmake`）
 
 `make wasm`はEmscriptenのバージョンを検査し、6.0.9以外では停止します。
+`jr200-dev`向け固定WASM ZIPの作成と配布前検査は
+[runner配布準備](docs/RUNNER_DISTRIBUTION.md)を参照してください。ZIP作成は公開操作ではありません。
 
 ## ブラウザで起動する
 

@@ -1697,18 +1697,37 @@ def main() -> None:
                 assert page.locator('#tape-run-address').count() == 0
                 assert page.locator('#tape-auto-run').count() == 0
                 expect(page.locator('#tape-quick-load')).to_be_enabled()
+                page.evaluate("""() => {
+                  window.__quickLoadOutcome = null;
+                  const status = document.querySelector('#tape-status');
+                  new MutationObserver(records => {
+                    for (const record of records) {
+                      for (const node of record.addedNodes) {
+                        const value = node.textContent || '';
+                        if (value.includes('高速ロードしました')) window.__quickLoadOutcome = 'success';
+                        if (value.includes('高速ロードできません')) window.__quickLoadOutcome = 'failure';
+                      }
+                    }
+                  }).observe(status, {childList: true});
+                }""")
                 page.locator('#tape-quick-load').click()
-                expect(page.locator('#tape-status')).to_contain_text('高速ロードしました')
-                expect(page.locator('#tape-status')).to_contain_text('カセット信号経路を通らない')
+                for _ in range(100):
+                    if page.evaluate('window.__quickLoadOutcome') is not None:
+                        break
+                    page.wait_for_timeout(100)
+                else:
+                    raise AssertionError('Quick load produced no completion status')
+                assert page.evaluate('window.__quickLoadOutcome') == 'success'
                 page.locator('#debug-memory-address').fill('7000')
                 page.locator('#debug-memory-read').click()
                 expect(page.locator('#debug-memory')).to_contain_text('7000: AB')
+                expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
                 page.locator('#tape-mount').click()
                 expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'mounted')
                 expect(page.locator('#tape-mount-state')).to_contain_text('golden.cjr / マウント済み')
                 expect(page.locator('#tape-status')).to_contain_text('状態: 停止')
                 expect(page.locator('#tape-status')).to_contain_text('payload 1 bytes')
-                expect(page.locator('#tape-status')).to_contain_text('通常のカセット入力信号')
+                expect(page.locator('#tape-status')).to_contain_text('信号位置: 0 /')
                 page.locator('#tape-cjr').set_input_files({'name':'replacement.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
                 expect(page.locator('#tape-mount-state')).to_contain_text('replacement.cjr（未マウント）')
