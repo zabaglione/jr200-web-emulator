@@ -22,10 +22,14 @@ jobs:
       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Confirm this is still the main commit
         env:
@@ -33,7 +37,25 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_SHA" = "$SOURCE_SHA"
+      - name: Classify game-only Pages update
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci_change_scope.py --event pages --output "$GITHUB_OUTPUT"
+      - name: Reuse byte-pinned public runner when safe
+        id: reuse
+        shell: bash
+        env:
+          GAME_ONLY: ${{ steps.scope.outputs.game_only }}
+        run: |
+          set -euo pipefail
+          if [ "$GAME_ONLY" = true ] && python3 scripts/stage_public_runner.py; then
+            echo 'reused=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'reused=false' >> "$GITHUB_OUTPUT"
+          fi
       - name: Install Emscripten 6.0.9
+        if: steps.reuse.outputs.reused != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -44,6 +66,7 @@ jobs:
           build/emsdk/emsdk install 6.0.9
           build/emsdk/emsdk activate 6.0.9
       - name: Build and verify the distributable site
+        if: steps.reuse.outputs.reused != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -52,6 +75,9 @@ jobs:
           node --version
           make wasm
           make check
+      - name: Verify the reused site and game distribution
+        if: steps.reuse.outputs.reused == 'true'
+        run: make check
       - name: Upload only the staged site
         if: github.event.repository.visibility == 'public'
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
