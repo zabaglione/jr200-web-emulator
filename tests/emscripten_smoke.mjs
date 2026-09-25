@@ -8,7 +8,7 @@ const module = await createJR200Codec();
 
 assert.equal(module._jr200_codec_api_version(), 1);
 assert.equal(module._jr200_cpu_api_version(), 1);
-assert.equal(module._jr200_system_api_version(), 9);
+assert.equal(module._jr200_system_api_version(), 10);
 assert.equal(module._jr200_wav_api_version(), 1);
 assert.equal(module._jr200_wav_decode_api_version(), 1);
 

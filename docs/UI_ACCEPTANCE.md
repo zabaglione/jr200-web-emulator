@@ -31,7 +31,7 @@ UI変更はprivate repository内のWebアプリだけを対象とし、Pages、�
   KSTAT=1またはSHIFT併用時はneutral control code、KSTAT=0かつSHIFTなしではJR BASIC用の
   直接codeとkeyword列を使う。物理keyboardは同時押し、仮想CTRLは次の1keyだけに効く補助
   latchとし、keyword列の入力中は別keyを混在させない。
-- ABI 8で2 playerのactive-low joystick setterを追加した。現行system ABI 9は、
+- ABI 8で2 playerのactive-low joystick setterを追加した。この受入時のsystem ABI 9は、
   ABI 7までのFONT asset、`$D000`標準文字RAM、`$C000`ユーザー定義文字RAM、
   カセットロードモニターとABI 8のjoystickに加え、RAM拡張2種と初期化patternを
   公開する。書込み内容が変わった場合だけ該当文字領域のgenerationを更新する。

@@ -40,7 +40,8 @@ Pagesは同一commitのCI成功後に配信し、配信先でCJRとcatalogのHTT
 確認するまでWikiの「遊ぶ」リンクを有効にしません。純粋なゲーム配布差分向けに、
 成功済みの`source-and-codec` main commitを`trusted-fastpath-base.txt`に固定し、
 ソース不変性とActions成功履歴を確認してSHA固定runner v0.3.0を再利用する
-検証器を用意しました。ただしCI/Pagesで高速経路を有効化するworkflow変更は未反映です。
+検証器を用意しました。ただし固定runnerはABI 9の旧版であり、現在のABI 10には再利用できません。
+CI/Pagesで高速経路を有効化するworkflow変更も未反映です。
 承認済みcommit後に別途workflowのPRと実CI受入を行うまでは、main更新で通常の
 Emscripten再ビルドが走ります。#16の完了条件には数えません。
 

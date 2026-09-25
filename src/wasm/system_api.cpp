@@ -43,13 +43,31 @@ bool reset_loaded_machine()
     return true;
 }
 
+uint32_t drain_pcm(uint32_t maximum_frames, bool include_key_click)
+{
+    size_t limit = maximum_frames;
+    if (limit > jr200::PcmQueue::kCapacity) {
+        limit = jr200::PcmQueue::kCapacity;
+    }
+    size_t count = 0U;
+    jr200::PcmFrame frame{};
+    while (count < limit && machine.pcm().pop(frame)) {
+        if (!include_key_click) {
+            frame.key_click = 0;
+        }
+        pcm_output_buffer[count] = jr200::mix_pcm_mono(frame);
+        ++count;
+    }
+    return static_cast<uint32_t>(count);
+}
+
 }  // namespace
 
 extern "C" {
 
 uint32_t jr200_system_api_version()
 {
-    return 9U;
+    return 10U;
 }
 
 uint32_t jr200_system_configure_memory(
@@ -522,17 +540,12 @@ const int16_t* jr200_system_pcm_buffer_ptr()
 
 uint32_t jr200_system_pcm_drain(uint32_t maximum_frames)
 {
-    size_t limit = maximum_frames;
-    if (limit > jr200::PcmQueue::kCapacity) {
-        limit = jr200::PcmQueue::kCapacity;
-    }
-    size_t count = 0U;
-    jr200::PcmFrame frame{};
-    while (count < limit && machine.pcm().pop(frame)) {
-        pcm_output_buffer[count] = jr200::mix_pcm_mono(frame);
-        ++count;
-    }
-    return static_cast<uint32_t>(count);
+    return drain_pcm(maximum_frames, true);
+}
+
+uint32_t jr200_system_pcm_drain_without_click(uint32_t maximum_frames)
+{
+    return drain_pcm(maximum_frames, false);
 }
 
 uint32_t jr200_system_pcm_discard()

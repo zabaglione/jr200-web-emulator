@@ -18,11 +18,19 @@ export class WebAudioOutput {
     this.onChange = options.onChange ?? (() => {});
     this.volume = options.initialVolume ?? DEFAULT_VOLUME;
     const initialEnabled = options.initialEnabled ?? false;
+    const initialMuted = options.initialMuted ?? false;
+    const initialKeyClickEnabled = options.initialKeyClickEnabled ?? false;
     this.leadSeconds = options.leadSeconds ?? DEFAULT_LEAD_SECONDS;
     this.lateMarginSeconds = options.lateMarginSeconds ?? DEFAULT_LATE_MARGIN_SECONDS;
     this.maxAheadSeconds = options.maxAheadSeconds ?? DEFAULT_MAX_AHEAD_SECONDS;
     if (typeof initialEnabled !== 'boolean') {
       throw new Error('Initial enabled state must be boolean');
+    }
+    if (typeof initialMuted !== 'boolean') {
+      throw new Error('Initial muted state must be boolean');
+    }
+    if (typeof initialKeyClickEnabled !== 'boolean') {
+      throw new Error('Initial key click state must be boolean');
     }
     if (!Number.isFinite(this.volume) || this.volume < 0 || this.volume > 0.5) {
       throw new Error('Initial volume must be between 0 and 0.5');
@@ -36,8 +44,9 @@ export class WebAudioOutput {
     this.context = null;
     this.gain = null;
     this.enabled = initialEnabled;
+    this.keyClickEnabled = initialKeyClickEnabled;
     this.desiredRunning = false;
-    this.muted = false;
+    this.muted = initialMuted;
     this.nextStartTime = 0;
     this.activeSources = new Set();
     this.underruns = 0;
@@ -178,6 +187,15 @@ export class WebAudioOutput {
     return this.state();
   }
 
+  setKeyClickEnabled(enabled) {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Key click state must be boolean');
+    }
+    if (this.keyClickEnabled === enabled) return this.state();
+    this.keyClickEnabled = enabled;
+    return this.flush();
+  }
+
   pump(playbackRate = 1) {
     if (!Number.isFinite(playbackRate) || playbackRate <= 0) {
       throw new Error('Playback rate must be positive');
@@ -190,7 +208,7 @@ export class WebAudioOutput {
       return 0;
     }
 
-    const pcm = this.machineAudio.drain(this.machineAudio.capacity);
+    const pcm = this.machineAudio.drain(this.machineAudio.capacity, this.keyClickEnabled);
     if (pcm.length === 0) {
       if (this.nextStartTime !== 0 &&
           this.nextStartTime < this.context.currentTime + this.lateMarginSeconds) {
@@ -272,6 +290,7 @@ export class WebAudioOutput {
     return {
       supported: Boolean(this.AudioContextClass),
       enabled: this.enabled,
+      keyClickEnabled: this.keyClickEnabled,
       muted: this.muted,
       volume: this.volume,
       contextState: this.context?.state ?? 'not-created',

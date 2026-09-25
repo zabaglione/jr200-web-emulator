@@ -91,12 +91,13 @@
         <summary><span>03 / AUDIO</span><strong id="audio-heading">音声</strong></summary>
         <div class="tool-panel-body" aria-labelledby="audio-heading">
           <p>MN1271の3チャンネル、キークリック、ロードモニターを44.1 kHzモノラルPCMへmixし、Web Audioへ出力します。</p>
-          <p class="hint">音声は既定でONです。ブラウザの自動再生制限に従い、「起動」など最初の操作で音声デバイスを開始し、既定20%で出力します。</p>
+          <p class="hint">初回は音声ON・音量20%・キークリックOFFです。以後は前回の設定で起動します。ブラウザの自動再生制限に従い、「起動」など最初の操作で音声デバイスを開始します。</p>
           <div class="controls compact"><button id="audio-disable" type="button" disabled>音声を停止</button></div>
           <div class="audio-controls">
             <label>音量（最大50%）<input id="audio-volume" type="range" min="0" max="50" step="1" value="20" disabled></label>
             <output id="audio-volume-value" for="audio-volume">20%</output>
             <label class="check"><input id="audio-mute" type="checkbox" disabled> ミュート</label>
+            <label class="check"><input id="key-click-enabled" type="checkbox" disabled> キークリック音（既定OFF）</label>
           </div>
           <pre id="audio-status" aria-live="polite">WASMの準備を待っています。</pre>
         </div>
@@ -130,7 +131,7 @@
         <div class="tool-panel-body" aria-labelledby="inspect-heading">
           <p>ヘッダー、ブロック境界、加算チェックサムを検査します。元ファイルは変更しません。</p>
           <label class="file">CJRファイル<input id="cjr" type="file" accept=".cjr" disabled></label>
-          <label class="check"><input id="headerless" type="checkbox"> ヘッダーなし形式を明示的に許可</label>
+          <label class="check"><input id="headerless" type="checkbox" autocomplete="off"> ヘッダーなし形式を明示的に許可</label>
           <pre id="result" aria-live="polite">ファイルを選択してください。</pre>
           <h3>WAVからCJRを復元</h3>
           <p class="hint">完全に検証できたCJRだけを保存できます。ブラウザ入力上限は8 MiBです。</p>

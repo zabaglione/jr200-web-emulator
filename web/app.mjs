@@ -30,6 +30,11 @@ const TAPE_STATE_NAMES = ['取出し済み', '停止', '再生中', '録音待�
 const PREFERENCE_KEY = 'jr200-web-preferences-v1';
 const DEFAULT_PREFERENCES = Object.freeze({
   pauseOnFocusLoss: false,
+  keyClickEnabled: false,
+  audioEnabled: true,
+  audioVolume: 20,
+  audioMuted: false,
+  debugHistoryEnabled: false,
   tapeMonitorEnabled: true,
   tapeMonitorVolume: 25,
   screenScale: 'auto',
@@ -42,6 +47,14 @@ const DEFAULT_PREFERENCES = Object.freeze({
   ramExpansion2: false,
   ramInitPattern: 0,
   quickTypeInterval: 30,
+  macroSlot: 0,
+  wavRate: '48000',
+  wavBaud: '2400',
+  wavDecodeChannel: 'auto',
+  packName: 'TEST',
+  packAddress: '7000',
+  packKind: '1',
+  packBaud: '0',
   romajiKana: false,
   macros: Object.freeze(Array(10).fill('')),
   gamepadButtonA: 0,
@@ -86,6 +99,7 @@ const state = {
 
 let codec;
 let audioOutput;
+let audioSettingRevision = 0;
 let gamepadController;
 let inputController;
 const canvas = $('screen');
@@ -107,6 +121,25 @@ let glyphCacheToken = '';
 const glyphCache = new Map();
 buildVirtualKeyboard();
 syncPreferenceControls();
+$('headerless').checked = false;
+let headerlessPermissionRevoked = false;
+let headerlessExplicitlyAllowed = false;
+function revokeHeaderlessPermission() {
+  const wasEnabled = $('headerless').checked || headerlessPermissionRevoked;
+  $('headerless').checked = false;
+  headerlessPermissionRevoked = false;
+  if (wasEnabled && codec && $('cjr').files.length) void inspectFile();
+}
+window.addEventListener('pagehide', () => {
+  headerlessPermissionRevoked = $('headerless').checked;
+  headerlessExplicitlyAllowed = false;
+  $('headerless').checked = false;
+});
+window.addEventListener('pageshow', () => {
+  headerlessExplicitlyAllowed = false;
+  revokeHeaderlessPermission();
+  requestAnimationFrame(revokeHeaderlessPermission);
+});
 keyboardToggle.addEventListener('click', () => {
   const visible = keyboardDeck.hidden;
   keyboardDeck.hidden = !visible;
@@ -141,7 +174,10 @@ try {
   });
   gamepadController.update();
   audioOutput = new WebAudioOutput(codec.machine.audio, {
-    initialEnabled: true,
+    initialEnabled: preferences.audioEnabled,
+    initialVolume: preferences.audioVolume / 100,
+    initialMuted: preferences.audioMuted,
+    initialKeyClickEnabled: preferences.keyClickEnabled,
     onChange: () => showAudioStatus(),
   });
   applyTapeMonitorPreferences();
@@ -149,7 +185,7 @@ try {
   updateAssetStatus();
   await restoreSavedAssets({automatic: true});
   void prepareLinkedGame();
-  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'remember-assets', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'tape-monitor-enabled', 'tape-monitor-volume', 'audio-enable', 'audio-volume', 'audio-mute', 'pause-on-focus-loss', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel', 'fullscreen', 'screen-scale', 'screen-aspect', 'screen-rotation', 'screen-smoothing', 'cpu-speed', 'tape-turbo', 'ram-expansion-1', 'ram-expansion-2', 'ram-init-pattern', 'quick-type-text', 'quick-type-interval', 'macro-slot', 'macro-text', 'macro-save', 'macro-delete', 'romaji-kana', 'gamepad-button-a', 'gamepad-button-b', 'gamepad-one-button', 'forced-joystick', 'forced-joystick-a', 'forced-joystick-b']) {
+  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'remember-assets', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'tape-monitor-enabled', 'tape-monitor-volume', 'audio-enable', 'audio-volume', 'audio-mute', 'key-click-enabled', 'pause-on-focus-loss', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel', 'fullscreen', 'screen-scale', 'screen-aspect', 'screen-rotation', 'screen-smoothing', 'cpu-speed', 'tape-turbo', 'ram-expansion-1', 'ram-expansion-2', 'ram-init-pattern', 'quick-type-text', 'quick-type-interval', 'macro-slot', 'macro-text', 'macro-save', 'macro-delete', 'romaji-kana', 'gamepad-button-a', 'gamepad-button-b', 'gamepad-one-button', 'forced-joystick', 'forced-joystick-a', 'forced-joystick-b']) {
     $(id).disabled = false;
   }
   $('fullscreen').disabled = !document.fullscreenEnabled;
@@ -161,6 +197,7 @@ try {
   $('status').textContent = `初期化エラー: ${error.message}`;
 }
 
+revokeHeaderlessPermission();
 requestAnimationFrame(runFrame);
 
 async function prepareLinkedGame() {
@@ -313,6 +350,9 @@ function paintMachine() {
 }
 
 function runFrame(timestamp) {
+  if (!headerlessExplicitlyAllowed && $('headerless').checked) {
+    revokeHeaderlessPermission();
+  }
   gamepadController?.update();
   if (state.booted && !state.paused) {
     if (state.lastFrame === 0) state.lastFrame = timestamp;
@@ -584,6 +624,7 @@ $('start').addEventListener('click', async () => {
     const resetVector = validateCombinedRom(rom);
     applyMemoryConfiguration();
     codec.machine.boot(rom, state.font);
+    codec.machine.debugger.setHistoryEnabled(preferences.debugHistoryEnabled);
     gamepadController?.resync();
     state.booted = true;
     state.paused = false;
@@ -736,13 +777,14 @@ function showAudioStatus(message = '') {
     `sample rate: core ${audio.coreSampleRate} Hz / output ${audio.deviceSampleRate || '未確定'} Hz`,
     `PCM queue: ${audio.queueAvailable} / ${audio.queueCapacity} / core overflow ${audio.coreDropped}`,
     `音量: ${Math.round(audio.volume * 100)}% / ミュート ${audio.muted ? 'ON' : 'OFF'}`,
+    `キークリック: ${audio.keyClickEnabled ? 'ON' : 'OFF'}`,
     `予約済み: ${audio.scheduledFrames} frames / 非0 ${audio.nonzeroFrames} / peak ${audio.peakSample}`,
     `active ${audio.activeSources} / underrun ${audio.underruns} / 破棄 ${audio.discardedFrames}`,
     `再生倍率: ${audio.playbackRate.toFixed(2)}x / 先行 ${Math.round(audio.scheduledAheadSeconds * 1000)} ms / 先行上限破棄 ${audio.aheadDroppedFrames}`,
   ];
   if (audio.lastError) lines.push(`エラー: ${audio.lastError}`);
   if (message) lines.push(message);
-  lines.push('本体3音、キークリック、有効なロードモニターを出力します。カセットWAV生成とは別です。');
+  lines.push('本体3音、設定有効時のキークリック、有効なロードモニターを出力します。カセットWAV生成とは別です。');
   $('audio-status').textContent = lines.join('\n');
   $('audio-enable').disabled = !audio.supported ||
     (audio.enabled && audio.contextState === 'running');
@@ -815,28 +857,46 @@ function setGamepadState(player, activeLowState) {
 }
 
 $('audio-enable').addEventListener('click', async () => {
+  const revision = ++audioSettingRevision;
   try {
     await audioOutput.enable();
-    showAudioStatus('利用者操作で音声デバイスを有効化しました。');
+    if (revision !== audioSettingRevision) return;
+    preferences.audioEnabled = audioOutput.state().enabled;
+    savePreferences();
+    showAudioStatus(preferences.audioEnabled
+      ? '利用者操作で音声デバイスを有効化しました。'
+      : '音声デバイスは停止中です。');
     showTapeStatus();
   } catch (error) {
-    showAudioStatus(`音声を有効化できません: ${error.message}`);
+    if (revision === audioSettingRevision) {
+      showAudioStatus(`音声を有効化できません: ${error.message}`);
+    }
   }
 });
 
 $('audio-disable').addEventListener('click', async () => {
+  const revision = ++audioSettingRevision;
   try {
     await audioOutput.disable();
-    showAudioStatus('予約済み音声とPCM queueを破棄して停止しました。');
+    if (revision !== audioSettingRevision) return;
+    preferences.audioEnabled = audioOutput.state().enabled;
+    savePreferences();
+    showAudioStatus(preferences.audioEnabled
+      ? '音声デバイスは有効です。'
+      : '予約済み音声とPCM queueを破棄して停止しました。');
     showTapeStatus();
   } catch (error) {
-    showAudioStatus(`音声を停止できません: ${error.message}`);
+    if (revision === audioSettingRevision) {
+      showAudioStatus(`音声を停止できません: ${error.message}`);
+    }
   }
 });
 
 $('audio-volume').addEventListener('input', event => {
   try {
     audioOutput.setVolume(Number(event.target.value) / 100);
+    preferences.audioVolume = Number(event.target.value);
+    savePreferences();
     showAudioStatus();
   } catch (error) {
     showAudioStatus(`音量を変更できません: ${error.message}`);
@@ -846,12 +906,21 @@ $('audio-volume').addEventListener('input', event => {
 $('audio-mute').addEventListener('change', event => {
   try {
     audioOutput.setMuted(event.target.checked);
+    preferences.audioMuted = event.target.checked;
+    savePreferences();
     showAudioStatus(event.target.checked
       ? 'ミュート時の予約済み音声とPCM queueを破棄しました。'
       : 'ミュートを解除しました。');
   } catch (error) {
     showAudioStatus(`ミュートを変更できません: ${error.message}`);
   }
+});
+
+$('key-click-enabled').addEventListener('change', event => {
+  preferences.keyClickEnabled = event.target.checked;
+  savePreferences();
+  audioOutput.setKeyClickEnabled(preferences.keyClickEnabled);
+  showAudioStatus();
 });
 
 function updateTapeMountState(tape) {
@@ -1041,6 +1110,8 @@ $('debug-step').addEventListener('click', () => debugAction(() => {
 $('debug-refresh').addEventListener('click', refreshDebugger);
 $('debug-history-enabled').addEventListener('change', event => debugAction(() => {
   codec.machine.debugger.setHistoryEnabled(event.target.checked);
+  preferences.debugHistoryEnabled = event.target.checked;
+  savePreferences();
 }));
 $('debug-clear-history').addEventListener('click', () => debugAction(() => {
   codec.machine.debugger.clearHistory();
@@ -1399,6 +1470,16 @@ function loadPreferences() {
       pauseOnFocusLoss: typeof value?.pauseOnFocusLoss === 'boolean'
         ? value.pauseOnFocusLoss
         : DEFAULT_PREFERENCES.pauseOnFocusLoss,
+      keyClickEnabled: typeof value?.keyClickEnabled === 'boolean'
+        ? value.keyClickEnabled
+        : DEFAULT_PREFERENCES.keyClickEnabled,
+      audioEnabled: typeof value?.audioEnabled === 'boolean'
+        ? value.audioEnabled : DEFAULT_PREFERENCES.audioEnabled,
+      audioVolume: integer(value?.audioVolume, 0, 50, DEFAULT_PREFERENCES.audioVolume),
+      audioMuted: typeof value?.audioMuted === 'boolean'
+        ? value.audioMuted : DEFAULT_PREFERENCES.audioMuted,
+      debugHistoryEnabled: typeof value?.debugHistoryEnabled === 'boolean'
+        ? value.debugHistoryEnabled : DEFAULT_PREFERENCES.debugHistoryEnabled,
       tapeMonitorEnabled: typeof value?.tapeMonitorEnabled === 'boolean'
         ? value.tapeMonitorEnabled
         : DEFAULT_PREFERENCES.tapeMonitorEnabled,
@@ -1419,6 +1500,16 @@ function loadPreferences() {
         ? value.ramExpansion2 : DEFAULT_PREFERENCES.ramExpansion2,
       ramInitPattern: integer(value?.ramInitPattern, 0, 1, DEFAULT_PREFERENCES.ramInitPattern),
       quickTypeInterval: integer(value?.quickTypeInterval, 10, 100, DEFAULT_PREFERENCES.quickTypeInterval),
+      macroSlot: integer(value?.macroSlot, 0, 9, DEFAULT_PREFERENCES.macroSlot),
+      wavRate: oneOf(value?.wavRate, ['48000', '44100'], DEFAULT_PREFERENCES.wavRate),
+      wavBaud: oneOf(value?.wavBaud, ['2400', '600'], DEFAULT_PREFERENCES.wavBaud),
+      wavDecodeChannel: oneOf(value?.wavDecodeChannel, ['auto', 'left', 'right'], DEFAULT_PREFERENCES.wavDecodeChannel),
+      packName: typeof value?.packName === 'string' && /^[\x20-\x7e]{1,16}$/.test(value.packName)
+        ? value.packName : DEFAULT_PREFERENCES.packName,
+      packAddress: typeof value?.packAddress === 'string' && /^[0-9a-fA-F]{1,4}$/.test(value.packAddress)
+        ? value.packAddress : DEFAULT_PREFERENCES.packAddress,
+      packKind: oneOf(value?.packKind, ['0', '1'], DEFAULT_PREFERENCES.packKind),
+      packBaud: oneOf(value?.packBaud, ['0', '100'], DEFAULT_PREFERENCES.packBaud),
       romajiKana: typeof value?.romajiKana === 'boolean'
         ? value.romajiKana : DEFAULT_PREFERENCES.romajiKana,
       macros,
@@ -1446,6 +1537,11 @@ function savePreferences() {
 
 function syncPreferenceControls() {
   $('pause-on-focus-loss').checked = preferences.pauseOnFocusLoss;
+  $('key-click-enabled').checked = preferences.keyClickEnabled;
+  $('audio-volume').value = String(preferences.audioVolume);
+  $('audio-volume-value').textContent = `${preferences.audioVolume}%`;
+  $('audio-mute').checked = preferences.audioMuted;
+  $('debug-history-enabled').checked = preferences.debugHistoryEnabled;
   $('tape-monitor-enabled').checked = preferences.tapeMonitorEnabled;
   $('tape-monitor-volume').value = String(preferences.tapeMonitorVolume);
   $('tape-monitor-volume-value').textContent = `${preferences.tapeMonitorVolume}%`;
@@ -1461,6 +1557,14 @@ function syncPreferenceControls() {
   $('ram-init-pattern').value = String(preferences.ramInitPattern);
   $('quick-type-interval').value = String(preferences.quickTypeInterval);
   $('quick-type-interval-value').textContent = `${preferences.quickTypeInterval} ms`;
+  $('macro-slot').value = String(preferences.macroSlot);
+  $('wav-rate').value = preferences.wavRate;
+  $('wav-baud').value = preferences.wavBaud;
+  $('wav-decode-channel').value = preferences.wavDecodeChannel;
+  $('name').value = preferences.packName;
+  $('address').value = preferences.packAddress;
+  $('kind').value = preferences.packKind;
+  $('baud').value = preferences.packBaud;
   $('romaji-kana').checked = preferences.romajiKana;
   $('gamepad-button-a').value = String(preferences.gamepadButtonA);
   $('gamepad-button-b').value = String(preferences.gamepadButtonB);
@@ -1558,7 +1662,11 @@ $('quick-type-stop').addEventListener('click', () => {
   canvas.focus();
 });
 
-$('macro-slot').addEventListener('change', () => updateMacroEditor());
+$('macro-slot').addEventListener('change', event => {
+  preferences.macroSlot = Number(event.target.value);
+  savePreferences();
+  updateMacroEditor();
+});
 $('macro-text').addEventListener('input', () => {
   const slot = Number($('macro-slot').value);
   const registered = preferences.macros[slot] ?? '';
@@ -2032,6 +2140,8 @@ $('wav-decode-input').addEventListener('change', () => {
 });
 
 $('wav-decode-channel').addEventListener('change', () => {
+  preferences.wavDecodeChannel = $('wav-decode-channel').value;
+  savePreferences();
   if ($('wav-decode-input').files.length) {
     resetWavDecode('channelを変更しました。解析を再実行してください。');
   }
@@ -2104,8 +2214,29 @@ async function inspectFile() {
 
 $('cjr').addEventListener('change', inspectFile);
 $('headerless').addEventListener('change', () => {
+  headerlessExplicitlyAllowed = $('headerless').checked;
   if ($('cjr').files.length) inspectFile();
 });
+
+for (const [id, key] of [
+  ['wav-rate', 'wavRate'], ['wav-baud', 'wavBaud'],
+  ['kind', 'packKind'], ['baud', 'packBaud'],
+]) {
+  $(id).addEventListener('change', event => {
+    preferences[key] = event.target.value;
+    savePreferences();
+  });
+}
+for (const [id, key, pattern] of [
+  ['name', 'packName', /^[\x20-\x7e]{1,16}$/],
+  ['address', 'packAddress', /^[0-9a-fA-F]{1,4}$/],
+]) {
+  $(id).addEventListener('input', event => {
+    if (!pattern.test(event.target.value)) return;
+    preferences[key] = event.target.value;
+    savePreferences();
+  });
+}
 
 $('wav-create').addEventListener('click', () => {
   try {

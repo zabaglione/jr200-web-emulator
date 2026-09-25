@@ -51,6 +51,10 @@ UI follow-up #15〜#20: 2026-09-22受入。Full HD向けの操作バー・整数
 
 音声追補: 本体音声を既定ONの待機状態とし、ブラウザの自動再生制限に従って最初の「起動」操作でAudioContextを開始する。サービスマニュアルにあるPB6 key detection sound gateを共通コアへ追加し、実ROMの`POKE 0,0`で無音、`POKE 0,64`で非0 PCMを確認した。別key codeの重複押下、同一key hold、PB6途中無効化、音声開始中の停止競合も自動試験した。波形は資料に規定がないため2400 Hz・6 ms・peak 7000の近似で、物理実機との録音比較は未実施である。固定VJR-200 Windows版ソースは`KEYSOUND`定数だけを持ち、生成・mixは未実装だった。Playwright 1.63.0はGit対象外`.venv/`へ固定し、Chrome 153の実AudioContext lifecycleとfake contextによる決定的PCM browser smokeに成功した。
 
+キークリック出力設定追補（2026-09-25）: 本体音声の既定ONは維持し、ブラウザのキークリック出力だけを既定OFFにした。PB6の生成・制御は変更せず、WASMのPCM混合時にクリック成分だけを除外する。AudioパネルからON/OFFでき、設定はブラウザ内に保存する。固定runner v0.3.0は旧ABI 9のため、新ABI 10のWeb UIとは組み合わせない。
+
+設定復元追補（2026-09-25）: 既存localStorageキーを維持したまま、音声ON/OFF・音量・ミュート、WAV生成/解析条件、BIN→CJRフォーム、マクロ選択スロット、デバッガ履歴記録ON/OFFも前回値で初期化する。旧設定は項目ごとに検証して初回値で補完する。新しいCJR選択時のWAV速度は元ファイルの値を優先し、速度変換には明示選択が必要。ファイル選択、実行・録音状態、ヘッダーなし形式の明示許可は復元しない。ROM/フォントは従来の別途保存許可を必要とする。ローカルnative/sanitizer各13/13、直接WASM 9系統、配布検査、Chrome 153 browser smokeは通過。Emscripten正式buildは手元が6.0.10で固定6.0.9と異なるため、CIで判定する。
+
 CTRL・画面優先追補: 固定Windows版`Mn1544.cpp`のKSTAT分岐を再現し、neutral control codeと
 JR BASIC用の直接code／keyword列を物理・仮想keyboardの共通解決へ追加した。Windows 11 ARM上の
 VJR-200 1.8.2 x64で実ROMの`CTRL+A`が`AUTO`になることを目視確認し、合成Chrome試験で

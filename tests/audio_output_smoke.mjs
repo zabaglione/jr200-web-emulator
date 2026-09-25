@@ -99,8 +99,10 @@ class FakeMachineAudio {
     this.capacity = 4096;
     this.samples = [];
     this.dropped = 0;
+    this.drainCalls = [];
   }
-  drain(maximum) {
+  drain(maximum, includeKeyClick) {
+    this.drainCalls.push(includeKeyClick);
     return Int16Array.from(this.samples.splice(0, maximum));
   }
   discard() {
@@ -145,6 +147,8 @@ assert.equal(output.context.sources[0].buffer.sampleRate, 44100);
 assert.equal(output.context.sources[0].playbackRate.value, 1);
 assert.ok(Math.abs(output.context.sources[0].buffer.data[0] - 32767 / 32768) < 1e-7);
 assert.equal(output.context.sources[0].buffer.data[1], -1);
+assert.equal(output.state().keyClickEnabled, false);
+assert.equal(machine.drainCalls.at(-1), false);
 assert.equal(output.state().nonzeroFrames, 3);
 assert.equal(output.state().peakSample, 32768);
 
@@ -171,6 +175,19 @@ assert.equal(output.context.gain.gain.value, 0.1);
 assert.throws(() => output.setVolume(0.51), /between 0 and 0.5/);
 assert.throws(() => output.pump(0), /positive/);
 
+output.setKeyClickEnabled(true);
+assert.equal(output.state().keyClickEnabled, true);
+machine.samples.push(10);
+assert.equal(output.pump(), 1);
+assert.equal(machine.drainCalls.at(-1), true);
+output.setKeyClickEnabled(false);
+assert.equal(output.state().keyClickEnabled, false);
+assert.equal(output.state().activeSources, 0);
+machine.samples.push(20);
+assert.equal(output.pump(), 1);
+assert.equal(machine.drainCalls.at(-1), false);
+assert.throws(() => output.setKeyClickEnabled('off'), /must be boolean/);
+
 machine.samples.push(6, 7);
 await output.suspend();
 assert.equal(output.state().contextState, 'suspended');
@@ -189,16 +206,31 @@ const armedMachine = new FakeMachineAudio();
 const armed = new WebAudioOutput(armedMachine, {
   AudioContextClass: FakeAudioContext,
   initialEnabled: true,
+  initialVolume: 0.35,
+  initialMuted: true,
 });
 assert.equal(armed.state().enabled, true);
 assert.equal(armed.state().contextState, 'not-created');
+assert.equal(armed.state().muted, true);
+assert.equal(armed.state().volume, 0.35);
 assert.equal(FakeAudioContext.created, 1, 'armed output must wait for a user gesture');
 await armed.enable();
 assert.equal(FakeAudioContext.created, 2);
 assert.equal(armed.state().contextState, 'running');
+assert.equal(armed.context.gain.gain.value, 0);
+armed.setMuted(false);
+assert.equal(armed.context.gain.gain.value, 0.35);
 assert.throws(() => new WebAudioOutput(new FakeMachineAudio(), {
   AudioContextClass: FakeAudioContext,
   initialEnabled: 'yes',
+}), /must be boolean/);
+assert.throws(() => new WebAudioOutput(new FakeMachineAudio(), {
+  AudioContextClass: FakeAudioContext,
+  initialKeyClickEnabled: 'yes',
+}), /must be boolean/);
+assert.throws(() => new WebAudioOutput(new FakeMachineAudio(), {
+  AudioContextClass: FakeAudioContext,
+  initialMuted: 'yes',
 }), /must be boolean/);
 
 const racing = new WebAudioOutput(new FakeMachineAudio(), {

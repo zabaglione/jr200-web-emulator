@@ -662,11 +662,58 @@ def main() -> None:
                             has=persistence_page.locator('#behavior-heading'),
                         ).locator('summary').click()
                         expect(persistence_page.locator('#pause-on-focus-loss')).not_to_be_checked()
+                        expect(persistence_page.locator('#key-click-enabled')).not_to_be_checked()
                         persistence_page.locator('#pause-on-focus-loss').check()
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#audio-heading'),
+                        ).locator('summary').click()
+                        persistence_page.locator('#key-click-enabled').check()
+                        persistence_page.locator('#audio-mute').check()
+                        persistence_page.locator('#audio-volume').evaluate(
+                            "el => { el.value = '35'; el.dispatchEvent(new Event('input', {bubbles:true})); }"
+                        )
+                        persistence_page.locator('#audio-disable').click()
+                        expect(persistence_page.locator('#audio-status')).to_contain_text(
+                            'Web Audio: 無効'
+                        )
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#inspect-heading'),
+                        ).locator('summary').click()
+                        persistence_page.locator('#wav-rate').select_option('44100')
+                        persistence_page.locator('#wav-baud').select_option('600')
+                        persistence_page.locator('#wav-decode-channel').select_option('right')
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#pack-heading'),
+                        ).locator('summary').click()
+                        persistence_page.locator('#name').fill('LASTNAME')
+                        persistence_page.locator('#address').fill('A000')
+                        persistence_page.locator('#kind').select_option('0')
+                        persistence_page.locator('#baud').select_option('100')
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#input-assist-heading'),
+                        ).locator('summary').click()
+                        persistence_page.locator('#macro-slot').evaluate(
+                            "el => { el.value = '3'; el.dispatchEvent(new Event('change', {bubbles:true})); }"
+                        )
+                        expect(persistence_page.locator('#macro-slot')).to_have_value('3')
                         persistence_page.locator('#remember-assets').check()
                         expect(persistence_page.locator('#asset-status')).to_contain_text(
                             '次回は自動復元します'
                         )
+                        persistence_page.locator('#start').click()
+                        persistence_page.locator(
+                            'details.tool-panel',
+                            has=persistence_page.locator('#debugger-heading'),
+                        ).locator('summary').click()
+                        persistence_page.locator('#debug-history-enabled').check()
+                        persistence_page.locator('#headerless').check()
+                        persistence_page.goto('about:blank')
+                        persistence_page.go_back(wait_until='networkidle')
+                        expect(persistence_page.locator('#headerless')).not_to_be_checked()
                     finally:
                         persistence_context.close()
 
@@ -693,6 +740,29 @@ def main() -> None:
                             has=persistence_page.locator('#behavior-heading'),
                         ).locator('summary').click()
                         expect(persistence_page.locator('#pause-on-focus-loss')).to_be_checked()
+                        expect(persistence_page.locator('#key-click-enabled')).to_be_checked()
+                        expect(persistence_page.locator('#audio-mute')).to_be_checked()
+                        expect(persistence_page.locator('#audio-volume')).to_have_value('35')
+                        expect(persistence_page.locator('#audio-status')).to_contain_text(
+                            'Web Audio: 無効'
+                        )
+                        expect(persistence_page.locator('#audio-status')).to_contain_text(
+                            '音量: 35% / ミュート ON'
+                        )
+                        expect(persistence_page.locator('#wav-rate')).to_have_value('44100')
+                        expect(persistence_page.locator('#wav-baud')).to_have_value('600')
+                        expect(persistence_page.locator('#wav-decode-channel')).to_have_value('right')
+                        expect(persistence_page.locator('#name')).to_have_value('LASTNAME')
+                        expect(persistence_page.locator('#address')).to_have_value('A000')
+                        expect(persistence_page.locator('#kind')).to_have_value('0')
+                        expect(persistence_page.locator('#baud')).to_have_value('100')
+                        stored_slot = persistence_page.evaluate(
+                            "JSON.parse(localStorage.getItem('jr200-web-preferences-v1')).macroSlot"
+                        )
+                        assert stored_slot == 3, stored_slot
+                        expect(persistence_page.locator('#macro-slot')).to_have_value('3')
+                        expect(persistence_page.locator('#headerless')).not_to_be_checked()
+                        expect(persistence_page.locator('#debug-history-enabled')).to_be_checked()
                         expect(persistence_page.locator('#start')).to_be_enabled()
                         expect(persistence_page.locator('#rom-combined')).to_have_value('')
                         expect(persistence_page.locator('#font')).to_have_value('')
@@ -700,6 +770,7 @@ def main() -> None:
                             'CPUは実行していません'
                         )
                         persistence_page.locator('#start').click()
+                        expect(persistence_page.locator('#debug-history-enabled')).to_be_checked()
                         expect(persistence_page.locator('#machine-status')).to_contain_text(
                             'font 初期化済み', timeout=10000
                         )
@@ -1132,12 +1203,30 @@ def main() -> None:
                 assert 0 < stable_after['cacheSize'] <= stable_after['nodes'], stable_after
 
                 page.locator('#debug-memory-address').fill('C100')
+                expect(page.locator('#key-click-enabled')).not_to_be_checked()
+                expect(page.locator('#audio-status')).to_contain_text('キークリック: OFF')
                 audio_sources_before_key = page.evaluate(
                     'globalThis.__audioContexts[0].sources.length')
                 key_a.click()
                 page.wait_for_timeout(100)
                 page.locator('#debug-memory-read').click()
                 expect(page.locator('#debug-memory')).to_contain_text('C100: 61')
+                page.wait_for_function("""start =>
+                  globalThis.__audioContexts[0].sources.length > start
+                """, arg=audio_sources_before_key, timeout=3000)
+                assert page.evaluate("""start =>
+                  globalThis.__audioContexts[0].sources.slice(start).every(
+                    source => source.buffer?.data.every(sample => sample === 0)
+                  )
+                """, audio_sources_before_key)
+                page.locator(
+                    'details.tool-panel', has=page.locator('#audio-heading')
+                ).locator('summary').click()
+                page.locator('#key-click-enabled').check()
+                expect(page.locator('#audio-status')).to_contain_text('キークリック: ON')
+                audio_sources_before_key = page.evaluate(
+                    'globalThis.__audioContexts[0].sources.length')
+                key_a.click()
                 page.wait_for_function("""start =>
                   globalThis.__audioContexts[0].sources.slice(start).some(
                     source => source.buffer?.data.some(sample => sample !== 0)

@@ -19,7 +19,7 @@ export async function loadCodec() {
     memory = () => new Uint8Array(e.memory.buffer);
   }
   if (e.jr200_codec_api_version() !== 1) throw new Error('C ABIのバージョンが一致しません');
-  if (e.jr200_system_api_version() !== 9) throw new Error('システムABIのバージョンが一致しません');
+  if (e.jr200_system_api_version() !== 10) throw new Error('システムABIのバージョンが一致しません');
   if (e.jr200_wav_api_version() !== 1) throw new Error('WAV ABIのバージョンが一致しません');
   if (e.jr200_wav_decode_api_version() !== 1) throw new Error('WAV解析ABIのバージョンが一致しません');
   const text = new TextDecoder();
@@ -261,12 +261,17 @@ export async function loadCodec() {
   machine.audio = {
     sampleRate: e.jr200_system_pcm_sample_rate(),
     capacity: e.jr200_system_pcm_capacity(),
-    drain(maximumFrames = e.jr200_system_pcm_capacity()) {
+    drain(maximumFrames = e.jr200_system_pcm_capacity(), includeKeyClick = true) {
       if (!Number.isInteger(maximumFrames) || maximumFrames < 0 ||
           maximumFrames > e.jr200_system_pcm_capacity()) {
         throw new Error(`PCM取得件数は0〜${e.jr200_system_pcm_capacity()}で指定してください`);
       }
-      const count = e.jr200_system_pcm_drain(maximumFrames);
+      if (typeof includeKeyClick !== 'boolean') {
+        throw new Error('キークリック音の指定は真偽値にしてください');
+      }
+      const count = includeKeyClick
+        ? e.jr200_system_pcm_drain(maximumFrames)
+        : e.jr200_system_pcm_drain_without_click(maximumFrames);
       return Int16Array.from(new Int16Array(
         memory().buffer,
         e.jr200_system_pcm_buffer_ptr(),

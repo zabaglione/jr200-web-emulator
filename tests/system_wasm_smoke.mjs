@@ -7,7 +7,7 @@ const { instance } = await WebAssembly.instantiate(bytes, {});
 const e = instance.exports;
 e.__wasm_call_ctors();
 
-assert.equal(e.jr200_system_api_version(), 9);
+assert.equal(e.jr200_system_api_version(), 10);
 e.jr200_system_clear();
 assert.equal(e.jr200_system_configure_memory(1, 0, 1), 1);
 assert.equal(e.jr200_system_memory_config(0), 1);
@@ -188,7 +188,7 @@ e.jr200_system_tick(304);
 assert.equal(e.jr200_system_field(4), 10);
 assert.equal(e.jr200_system_pcm_sample_rate(), 44100);
 assert.equal(e.jr200_system_pcm_capacity(), 4096);
-assert.equal(e.jr200_system_pcm_drain(6), 6);
+assert.equal(e.jr200_system_pcm_drain_without_click(6), 6);
 assert.deepEqual(
   Array.from(new Int16Array(e.memory.buffer, e.jr200_system_pcm_buffer_ptr(), 6)),
   [7000,7000,7000,7000,7000,-7000]);
@@ -225,6 +225,18 @@ assert.ok(Array.from(new Int16Array(
   e.jr200_system_pcm_buffer_ptr(),
   overlappingKeyClickCount,
 )).some(sample => sample !== 0));
+
+e.jr200_system_set_key(0x43, 1);
+e.jr200_system_write(0xc803, 0x40);
+e.jr200_system_write(0xc803, 0x41);
+e.jr200_system_tick(304);
+const mutedKeyClickCount = e.jr200_system_pcm_drain_without_click(32);
+assert.equal(mutedKeyClickCount, 10);
+assert.ok(Array.from(new Int16Array(
+  e.memory.buffer,
+  e.jr200_system_pcm_buffer_ptr(),
+  mutedKeyClickCount,
+)).every(sample => sample === 0));
 
 e.jr200_system_write(0xc803, 0x00);
 e.jr200_system_tick(304);
@@ -266,7 +278,7 @@ e.jr200_system_write(0xc807, 0x40);
 e.jr200_system_read(0xc807);
 assert.equal(e.jr200_system_tape_field(19), 1);
 e.jr200_system_tick(304);
-const monitorCount = e.jr200_system_pcm_drain(32);
+const monitorCount = e.jr200_system_pcm_drain_without_click(32);
 const monitorPcm = Array.from(new Int16Array(
   e.memory.buffer,
   e.jr200_system_pcm_buffer_ptr(),

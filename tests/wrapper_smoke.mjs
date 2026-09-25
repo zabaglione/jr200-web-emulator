@@ -95,7 +95,9 @@ try {
   assert.equal(codec.machine.audio.capacity,4096);
   assert.deepEqual(codec.machine.audio.state(),{available:0,capacity:4096,sampleRate:44100,dropped:0});
   assert.deepEqual(codec.machine.audio.drain(0),new Int16Array());
+  assert.deepEqual(codec.machine.audio.drain(0,false),new Int16Array());
   assert.throws(()=>codec.machine.audio.drain(4097),/0〜4096/);
+  assert.throws(()=>codec.machine.audio.drain(0,'off'),/真偽値/);
   const rendered = codec.wav.encode(preserved,{sampleRate:48000,baud:2400});
   assert.equal(rendered.bytes.length,367084);
   assert.equal(rendered.pcmSamples,183520);
