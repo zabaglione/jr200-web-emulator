@@ -109,6 +109,7 @@ const romajiConverter = new RomajiKanaConverter();
 const forcedJoystickSource = 'gamepad:forced';
 let forcedJoystickCode = null;
 applyScreenPreferences();
+new ResizeObserver(updateAutoScreenScale).observe(document.querySelector('.display-area'));
 paintBlank();
 
 const keyboardToggle = $('keyboard-toggle');
@@ -248,9 +249,7 @@ function cancelPendingLinkedGame() {
 
 function applyScreenPreferences() {
   document.body.dataset.screenScale = preferences.screenScale;
-  if (preferences.screenScale === 'auto') {
-    document.documentElement.style.removeProperty('--screen-scale');
-  } else {
+  if (preferences.screenScale !== 'auto') {
     document.documentElement.style.setProperty('--screen-scale', preferences.screenScale);
   }
   document.body.dataset.screenSmoothing = String(preferences.screenSmoothing);
@@ -265,6 +264,7 @@ function applyScreenPreferences() {
   const displayHeight = rotated ? FRAME_WIDTH * videoRatio : FRAME_HEIGHT;
   document.documentElement.style.setProperty('--screen-display-width', `${displayWidth}px`);
   document.documentElement.style.setProperty('--screen-display-height', `${displayHeight}px`);
+  updateAutoScreenScale();
   if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
     canvas.width = pixelWidth;
     canvas.height = pixelHeight;
@@ -273,6 +273,23 @@ function applyScreenPreferences() {
   updateFullscreenSize();
   if (state.booted && codec) paintMachine();
   else paintBlank();
+}
+
+function updateAutoScreenScale() {
+  if (preferences.screenScale !== 'auto' || document.fullscreenElement === $('screen-shell')) return;
+  const area = document.querySelector('.display-area');
+  if (area.clientWidth <= 0 || area.clientHeight <= 0) return;
+  const shellStyle = getComputedStyle($('screen-shell'));
+  const inset = side => (parseFloat(shellStyle.getPropertyValue(`padding-${side}`)) || 0) +
+    (parseFloat(shellStyle.getPropertyValue(`border-${side}-width`)) || 0);
+  const width = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--screen-display-width')) || FRAME_WIDTH;
+  const height = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--screen-display-height')) || FRAME_HEIGHT;
+  const availableWidth = Math.max(1, area.clientWidth - inset('left') - inset('right') - 2);
+  const availableHeight = Math.max(1, area.clientHeight - inset('top') - inset('bottom') - 2);
+  const scale = Math.min(availableWidth / width, availableHeight / height);
+  document.documentElement.style.setProperty('--screen-scale', String(scale));
 }
 
 function updateFullscreenSize() {
@@ -310,10 +327,14 @@ document.addEventListener('fullscreenchange', () => {
   else {
     $('screen-shell').style.removeProperty('--fullscreen-screen-width');
     $('screen-shell').style.removeProperty('--fullscreen-screen-height');
+    updateAutoScreenScale();
   }
   canvas.focus();
 });
-window.addEventListener('resize', updateFullscreenSize);
+window.addEventListener('resize', () => {
+  updateFullscreenSize();
+  updateAutoScreenScale();
+});
 
 function paintBlank() {
   context.fillStyle = '#050806';
@@ -1441,7 +1462,8 @@ document.addEventListener('keydown', event => {
     {minimumHold},
   );
   if (!resolved) return;
-  if (resolved.kind !== 'modifier') event.preventDefault();
+  // Prevent the host input method from handling owned modifier chords too.
+  event.preventDefault();
 }, {capture: true});
 
 window.addEventListener('keyup', event => {

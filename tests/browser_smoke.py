@@ -458,6 +458,7 @@ def main() -> None:
                       const keyboard = keyboardElement.getBoundingClientRect();
                       const displayElement = document.querySelector('.display-area');
                       const display = displayElement.getBoundingClientRect();
+                      const shell = document.querySelector('#screen-shell').getBoundingClientRect();
                       const rail = document.querySelector('.utility-rail');
                       const railRect = rail.getBoundingClientRect();
                       const machine = document.querySelector('.machine-stage').getBoundingClientRect();
@@ -480,6 +481,10 @@ def main() -> None:
                         displayRight: display.right,
                         displayTop: display.top,
                         displayBottom: display.bottom,
+                        displayWidth: display.width,
+                        displayHeight: display.height,
+                        shellWidth: shell.width,
+                        shellHeight: shell.height,
                         imageRendering: getComputedStyle(document.querySelector('#screen')).imageRendering,
                         keyboardHidden: keyboardElement.hidden,
                         keyboardWidth: keyboard.width,
@@ -504,14 +509,29 @@ def main() -> None:
                       };
                     }""")
 
-                def assert_layout(target, width, height, scale):
+                def assert_auto_screen(target, expected_ratio=320 / 224):
+                    target.wait_for_function("""() => {
+                      const area = document.querySelector('.display-area').getBoundingClientRect();
+                      const shell = document.querySelector('#screen-shell').getBoundingClientRect();
+                      const widthGap = area.width - shell.width;
+                      const heightGap = area.height - shell.height;
+                      return widthGap >= -0.5 && heightGap >= -0.5 &&
+                        Math.min(widthGap, heightGap) <= 5;
+                    }""")
                     layout = layout_snapshot(target)
+                    assert abs(layout['screenWidth'] / layout['screenHeight'] - expected_ratio) < 0.001, layout
+                    assert layout['shellWidth'] <= layout['displayWidth'] + 0.5, layout
+                    assert layout['shellHeight'] <= layout['displayHeight'] + 0.5, layout
+                    assert min(layout['displayWidth'] - layout['shellWidth'],
+                               layout['displayHeight'] - layout['shellHeight']) <= 5, layout
+                    return layout
+
+                def assert_layout(target, width, height):
+                    layout = assert_auto_screen(target)
                     assert layout['innerWidth'] == width, layout
                     assert layout['innerHeight'] == height, layout
                     assert layout['width'] == width, layout
                     assert layout['height'] == height, layout
-                    assert layout['screenWidth'] == 320 * scale, layout
-                    assert layout['screenHeight'] == 224 * scale, layout
                     assert layout['screenBottom'] <= height, layout
                     assert layout['keyboardBottom'] <= height, layout
                     assert layout['keyboardHidden'], layout
@@ -524,16 +544,14 @@ def main() -> None:
                     return layout
 
                 def assert_visible_keyboard_layout(
-                    target, width, height, scale, *, side_by_side, min_key_height
+                    target, width, height, *, side_by_side, min_key_height
                 ):
                     target.locator('#keyboard-toggle').click()
-                    layout = layout_snapshot(target)
+                    layout = assert_auto_screen(target)
                     assert layout['innerWidth'] == width, layout
                     assert layout['innerHeight'] == height, layout
                     assert layout['width'] == width, layout
                     assert layout['height'] == height, layout
-                    assert layout['screenWidth'] == 320 * scale, layout
-                    assert layout['screenHeight'] == 224 * scale, layout
                     assert layout['screenBottom'] <= height, layout
                     assert layout['screenLeft'] >= layout['displayLeft'], layout
                     assert layout['screenRight'] <= layout['displayRight'], layout
@@ -588,25 +606,28 @@ def main() -> None:
                         background,
                         palette,
                     )
-                for width, height, hidden_scale, visible_scale, side_by_side, min_key_height in (
-                    (1920, 960, 3, 3, True, 29),
-                    (1920, 1080, 3, 3, True, 29),
-                    (1700, 840, 3, 2, False, 25),
-                    (1536, 768, 2, 2, False, 25),
-                    (1280, 720, 2, 2, False, 23),
-                    (1107, 737, 2, 2, False, 23),
+                for width, height, side_by_side, min_key_height in (
+                    (1920, 960, True, 29),
+                    (1920, 1080, True, 29),
+                    (1700, 840, False, 25),
+                    (1652, 1149, False, 25),
+                    (1536, 768, False, 25),
+                    (1280, 720, False, 23),
+                    (1107, 737, False, 23),
                 ):
                     page.set_viewport_size({'width':width, 'height':height})
-                    viewport_layout = assert_layout(page, width, height, hidden_scale)
+                    viewport_layout = assert_layout(page, width, height)
                     assert viewport_layout['dpr'] == 1, viewport_layout
                     visible_layout = assert_visible_keyboard_layout(
                         page,
                         width,
                         height,
-                        visible_scale,
                         side_by_side=side_by_side,
                         min_key_height=min_key_height,
                     )
+                    if width == 1652:
+                        assert viewport_layout['screenWidth'] > 640, viewport_layout
+                        assert visible_layout['screenWidth'] > 640, visible_layout
                     if width == 1107:
                         assert visible_layout['keyboardWidth'] <= 560, visible_layout
                 page.set_viewport_size({'width':1920, 'height':960})
@@ -620,13 +641,12 @@ def main() -> None:
                     dpr_page.on('pageerror', lambda error: errors.append(str(error)))
                     dpr_page.route('**/*', guard)
                     dpr_page.goto(base+'/', wait_until='networkidle')
-                    dpr_layout = assert_layout(dpr_page, 1920, 1080, 3)
+                    dpr_layout = assert_layout(dpr_page, 1920, 1080)
                     assert dpr_layout['dpr'] == 2, dpr_layout
                     assert_visible_keyboard_layout(
                         dpr_page,
                         1920,
                         1080,
-                        3,
                         side_by_side=True,
                         min_key_height=29,
                     )
@@ -929,10 +949,14 @@ def main() -> None:
                 page.locator('#screen-rotation').select_option('0')
                 page.locator('#screen-aspect').select_option('square')
                 page.locator('#screen-scale').select_option('auto')
-                restored_screen = page.locator('#screen').bounding_box()
-                assert restored_screen is not None
-                assert restored_screen['width'] == 960
-                assert restored_screen['height'] == 672
+                restored_screen = assert_auto_screen(page)
+                assert restored_screen['screenWidth'] > 960, restored_screen
+                page.locator('#screen-aspect').select_option('video')
+                page.locator('#screen-rotation').select_option('90')
+                assert_auto_screen(page, 224 / (320 * 0.85))
+                page.locator('#screen-rotation').select_option('0')
+                page.locator('#screen-aspect').select_option('square')
+                assert_auto_screen(page)
                 page.locator('#fullscreen').click()
                 expect(page.locator('#fullscreen')).to_have_text('全画面を終了')
                 assert page.evaluate(
@@ -1328,6 +1352,10 @@ def main() -> None:
 
                 page.locator('.virtual-key[data-key-id="ModeAnk"]').click()
                 expect(page.locator('#input-mode-status')).to_contain_text('英数')
+                normal_key_style = page.locator('.virtual-key[data-key-id="Digit3"]').evaluate('''node => ({
+                    border: getComputedStyle(node).borderColor,
+                    background: getComputedStyle(node).backgroundImage,
+                })''')
                 ctrl_key.click()
                 for key_id, legend in [
                     ('Digit1', 'CLS'), ('Digit3', 'SAVE'), ('KeyA', 'AUTO'),
@@ -1344,10 +1372,26 @@ def main() -> None:
                     })''')
                     assert dimensions['scroll'] <= dimensions['client'], (key_id, dimensions)
                     assert dimensions['font'] >= 7, (key_id, dimensions)
+                function_key_style = page.locator('.virtual-key[data-key-id="Digit3"]').evaluate('''node => ({
+                    border: getComputedStyle(node).borderColor,
+                    background: getComputedStyle(node).backgroundImage,
+                })''')
+                assert function_key_style == normal_key_style, function_key_style
                 ctrl_key.click()
                 expect(key_a.locator('.key-function')).to_be_hidden()
                 expect(key_a.locator('canvas')).to_be_visible()
                 page.locator('#screen').focus()
+                control_down = page.locator('#screen').evaluate('''canvas => {
+                    const down = new KeyboardEvent('keydown', {
+                        bubbles:true, cancelable:true, code:'ControlLeft', key:'Control', ctrlKey:true,
+                    });
+                    canvas.dispatchEvent(down);
+                    canvas.dispatchEvent(new KeyboardEvent('keyup', {
+                        bubbles:true, code:'ControlLeft', key:'Control',
+                    }));
+                    return down.defaultPrevented;
+                }''')
+                assert control_down, 'Control keydown escaped to the host input method'
                 page.keyboard.down('Control')
                 page.keyboard.down('a')
                 page.keyboard.up('a')
@@ -1533,15 +1577,12 @@ def main() -> None:
                 page.locator('#keyboard-toggle').click()
                 expect(page.locator('#keyboard-deck')).to_be_hidden()
                 assert 'is-pressed' not in (key_z.get_attribute('class') or '')
-                hidden_screen = page.locator('#screen').bounding_box()
-                assert hidden_screen is not None
-                assert hidden_screen['width'] == 960 and hidden_screen['height'] == 672, hidden_screen
-                assert hidden_screen['y'] + hidden_screen['height'] <= 960, hidden_screen
+                hidden_layout = assert_auto_screen(page)
+                assert hidden_layout['screenBottom'] <= 960, hidden_layout
                 page.locator('#keyboard-toggle').click()
                 expect(page.locator('#keyboard-deck')).to_be_visible()
-                visible_screen = page.locator('#screen').bounding_box()
-                assert visible_screen is not None
-                assert visible_screen['width'] == 960 and visible_screen['height'] == 672, visible_screen
+                visible_layout = assert_auto_screen(page)
+                assert visible_layout['screenWidth'] <= hidden_layout['screenWidth'] + 0.5, visible_layout
 
                 page.locator('#keyboard-toggle').focus()
                 page.keyboard.press('Enter')
