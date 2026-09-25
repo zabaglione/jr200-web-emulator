@@ -107,6 +107,7 @@
     "src/wasm/wav_api.cpp",
     "src/wasm/wav_decode_api.cpp",
     "tests/audio_output_smoke.mjs",
+    "tests/browser_game_catalog_smoke.py",
     "tests/browser_smoke.py",
     "tests/cpu_wasm_smoke.mjs",
     "tests/emscripten_smoke.mjs",

@@ -138,3 +138,12 @@ Firefox、Safari、公開Pagesの作品カタログとWikiリンク、実機動�
 条件を満たす場合だけ既存の通常カセット起動支援へ接続する。Chrome 153でフォルダー、
 2種類のZIPの取込、所有ROM/FONTでSIDE CATCHとRELIC DIVEの圧縮ZIPからの通常起動を
 確認した。Firefox/Safari、公開ZIP URL、実機は未確認。詳細は[起動パック](LAUNCH_PACK.md)。
+
+7作品配信追補（2026-09-25、ローカル検証）: jr200-devのclean-source ZIPから
+SIDE CATCH 0.1.2、RELIC DIVE 0.1.1、その他5作品の0.1.0を固定CJR・
+ライセンス・noticeとして取り込んだ。公開用catalog/asset ledgerは7件・33ファイル。
+native/sanitizer各13/13、直接WASMとChrome通常回帰に合格し、所有ROM/FONTを
+ローカルChromeへ与えたカタログリンクの通常MLOAD/USR起動と開始キー後の画面変化も
+7件すべて成功した。
+手元のEmscriptenは6.0.10で固定6.0.9と異なるため正式ビルドは未実施。
+PagesのCI・公開URL・Wikiリンク・物理JR-200は、この時点のローカル検証には含めない。

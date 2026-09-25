@@ -1,4 +1,68 @@
 {
   "schemaVersion": 1,
-  "games": []
+  "games": [
+    {
+      "id": "side-catch",
+      "title": "SIDE CATCH",
+      "version": "0.1.2",
+      "path": "games/side-catch/0.1.2/side-catch.cjr",
+      "sha256": "571e25aa5c7b76f00f3c827d0edbd11db4d3571b81b9fbc370412979a9f2c916",
+      "runCommand": "A=USR($1000)",
+      "titleMarker": "SIDE CATCH"
+    },
+    {
+      "id": "relic-dive",
+      "title": "RELIC DIVE",
+      "version": "0.1.1",
+      "path": "games/relic-dive/0.1.1/relic-dive.cjr",
+      "sha256": "16261dd1350a6b3b8b4ec76f4253039daa56f29bbe90f4ebe93b80449364c399",
+      "runCommand": "A=USR($1000)",
+      "titleMarker": "TAKE THE RELIC TO WIN"
+    },
+    {
+      "id": "lumen-cross",
+      "title": "LUMEN CROSS",
+      "version": "0.1.0",
+      "path": "games/lumen-cross/0.1.0/lumen-cross.cjr",
+      "sha256": "20331241139e3f64813234baea0dc5870c430269957929041ccb501d67e59f1c",
+      "runCommand": "A=USR($1000)",
+      "titleMarker": "LUMEN CROSS"
+    },
+    {
+      "id": "corner-crown",
+      "title": "CORNER CROWN",
+      "version": "0.1.0",
+      "path": "games/corner-crown/0.1.0/corner-crown.cjr",
+      "sha256": "33b3d153974fc652d151431adb2f4eae72fa604b89471005a34d138c32180ead",
+      "runCommand": "A=USR($1000)",
+      "titleMarker": "CORNER CROWN"
+    },
+    {
+      "id": "circuit-works",
+      "title": "CIRCUIT WORKS",
+      "version": "0.1.0",
+      "path": "games/circuit-works/0.1.0/circuit-works.cjr",
+      "sha256": "6c51881031bf87f4bfc22ea3576e0256d56defe6beb95fd2bdbb8d49726cada9",
+      "runCommand": "A=USR($1000)",
+      "titleMarker": "CIRCUIT WORKS"
+    },
+    {
+      "id": "hearth-zero",
+      "title": "HEARTH ZERO",
+      "version": "0.1.0",
+      "path": "games/hearth-zero/0.1.0/hearth-zero.cjr",
+      "sha256": "79395367d52bf7750281250a58bdc71cd141475e75576979df9d73ea3792cdab",
+      "runCommand": "A=USR($1000)",
+      "titleMarker": "HEARTH ZERO"
+    },
+    {
+      "id": "brick-pulse",
+      "title": "BRICK PULSE",
+      "version": "0.1.0",
+      "path": "games/brick-pulse/0.1.0/brick-pulse.cjr",
+      "sha256": "427068c12442ccfe04673e9a5ab30036f7d1b6b004061ba4d9c83ccc2ff85ba1",
+      "runCommand": "A=USR($1000)",
+      "titleMarker": "BRICK PULSE"
+    }
+  ]
 }

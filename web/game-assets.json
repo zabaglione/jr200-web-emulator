@@ -1,4 +1,137 @@
 {
   "schemaVersion": 1,
-  "files": {}
+  "files": {
+    "games/side-catch/0.1.2/EXPORT.json": {
+      "size": 604,
+      "sha256": "96fdfb5f6cd2009a3e207da6071db4e7c6ec2b4ae016e42312d96b070ad81b3a"
+    },
+    "games/side-catch/0.1.2/LICENSE.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/side-catch/0.1.2/side-catch.cjr": {
+      "size": 1593,
+      "sha256": "571e25aa5c7b76f00f3c827d0edbd11db4d3571b81b9fbc370412979a9f2c916"
+    },
+    "games/relic-dive/0.1.1/EXPORT.json": {
+      "size": 607,
+      "sha256": "1b5b80563f330e841d22fb509fd82b334b411c44880c3c655faba319f0cfc033"
+    },
+    "games/relic-dive/0.1.1/LICENSE.txt": {
+      "size": 1089,
+      "sha256": "057589caa530c3b20e5b988e8cfa6445ac3a8f0c8474584326afce89550ec070"
+    },
+    "games/relic-dive/0.1.1/LICENSES/BSD-3-Clause.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/relic-dive/0.1.1/THIRD_PARTY_NOTICES.md": {
+      "size": 398,
+      "sha256": "27903f7c0940519c526fa2c1c117cf2960c12dd8353da69ad95572025974b3ce"
+    },
+    "games/relic-dive/0.1.1/relic-dive.cjr": {
+      "size": 15405,
+      "sha256": "16261dd1350a6b3b8b4ec76f4253039daa56f29bbe90f4ebe93b80449364c399"
+    },
+    "games/lumen-cross/0.1.0/EXPORT.json": {
+      "size": 598,
+      "sha256": "97137d5e330065f573978e43844a83707defcbf0d85036fcb6652efd5925582f"
+    },
+    "games/lumen-cross/0.1.0/LICENSE.txt": {
+      "size": 1132,
+      "sha256": "eb066d0b8b7ab2ae1da387a2dfd4aaabf15b47ffe11f4fefd72093e32a12cd16"
+    },
+    "games/lumen-cross/0.1.0/LICENSES/BSD-3-Clause.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/lumen-cross/0.1.0/THIRD_PARTY_NOTICES.md": {
+      "size": 553,
+      "sha256": "48b32c71563bea1ff1d45b7865f49253f9c292f95e573d9791eef9bf686456b6"
+    },
+    "games/lumen-cross/0.1.0/lumen-cross.cjr": {
+      "size": 3664,
+      "sha256": "20331241139e3f64813234baea0dc5870c430269957929041ccb501d67e59f1c"
+    },
+    "games/corner-crown/0.1.0/EXPORT.json": {
+      "size": 601,
+      "sha256": "77d91918214f65c2c5f4d033838b4d7b1f7349b3d2e6f5db6ca508484d0117f2"
+    },
+    "games/corner-crown/0.1.0/LICENSE.txt": {
+      "size": 1132,
+      "sha256": "eb066d0b8b7ab2ae1da387a2dfd4aaabf15b47ffe11f4fefd72093e32a12cd16"
+    },
+    "games/corner-crown/0.1.0/LICENSES/BSD-3-Clause.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/corner-crown/0.1.0/THIRD_PARTY_NOTICES.md": {
+      "size": 554,
+      "sha256": "78e97df0599a2f687da12b2efe3c45f410a530bae479d026084da5fd71fb9fbb"
+    },
+    "games/corner-crown/0.1.0/corner-crown.cjr": {
+      "size": 4072,
+      "sha256": "33b3d153974fc652d151431adb2f4eae72fa604b89471005a34d138c32180ead"
+    },
+    "games/circuit-works/0.1.0/EXPORT.json": {
+      "size": 604,
+      "sha256": "771d8b16cc632bcf6d1ed5de8b46a24c367ac44ac9b1c8c4d0fde48d317ca993"
+    },
+    "games/circuit-works/0.1.0/LICENSE.txt": {
+      "size": 1132,
+      "sha256": "eb066d0b8b7ab2ae1da387a2dfd4aaabf15b47ffe11f4fefd72093e32a12cd16"
+    },
+    "games/circuit-works/0.1.0/LICENSES/BSD-3-Clause.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/circuit-works/0.1.0/THIRD_PARTY_NOTICES.md": {
+      "size": 555,
+      "sha256": "cf518ee6df20def9bdfc24c20ea15a8577ecdc65b18e28e7f6ee942aa0eca0cb"
+    },
+    "games/circuit-works/0.1.0/circuit-works.cjr": {
+      "size": 3952,
+      "sha256": "6c51881031bf87f4bfc22ea3576e0256d56defe6beb95fd2bdbb8d49726cada9"
+    },
+    "games/hearth-zero/0.1.0/EXPORT.json": {
+      "size": 598,
+      "sha256": "29cbb18cf60a082dc4fc3789edeb1c0da051a90d1dacfbeb227f04808985277f"
+    },
+    "games/hearth-zero/0.1.0/LICENSE.txt": {
+      "size": 1132,
+      "sha256": "eb066d0b8b7ab2ae1da387a2dfd4aaabf15b47ffe11f4fefd72093e32a12cd16"
+    },
+    "games/hearth-zero/0.1.0/LICENSES/BSD-3-Clause.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/hearth-zero/0.1.0/THIRD_PARTY_NOTICES.md": {
+      "size": 553,
+      "sha256": "b5014124c5825d3a32859289e6ce8dc07e6d24ca94844dacfdfd2e60c1fe2df2"
+    },
+    "games/hearth-zero/0.1.0/hearth-zero.cjr": {
+      "size": 4306,
+      "sha256": "79395367d52bf7750281250a58bdc71cd141475e75576979df9d73ea3792cdab"
+    },
+    "games/brick-pulse/0.1.0/EXPORT.json": {
+      "size": 598,
+      "sha256": "d9f92744ec9f61a9cc230f20716759db7e46f25e750b12de0318c3d00d71de75"
+    },
+    "games/brick-pulse/0.1.0/LICENSE.txt": {
+      "size": 1132,
+      "sha256": "eb066d0b8b7ab2ae1da387a2dfd4aaabf15b47ffe11f4fefd72093e32a12cd16"
+    },
+    "games/brick-pulse/0.1.0/LICENSES/BSD-3-Clause.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/brick-pulse/0.1.0/THIRD_PARTY_NOTICES.md": {
+      "size": 573,
+      "sha256": "165611be060ddc8168d425e0cdebdbcd5c4ad0601183461a9ff73e51f9349fb9"
+    },
+    "games/brick-pulse/0.1.0/brick-pulse.cjr": {
+      "size": 6109,
+      "sha256": "427068c12442ccfe04673e9a5ab30036f7d1b6b004061ba4d9c83ccc2ff85ba1"
+    }
+  }
 }

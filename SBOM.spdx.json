@@ -116,6 +116,125 @@
       "licenseDeclared": "PSF-2.0",
       "copyrightText": "NOASSERTION",
       "primaryPackagePurpose": "TEST"
+    },
+    {
+      "name": "brick-pulse",
+      "SPDXID": "SPDXRef-Package-Game-brick-pulse-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "427068c12442ccfe04673e9a5ab30036f7d1b6b004061ba4d9c83ccc2ff85ba1"
+        }
+      ]
+    },
+    {
+      "name": "circuit-works",
+      "SPDXID": "SPDXRef-Package-Game-circuit-works-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6c51881031bf87f4bfc22ea3576e0256d56defe6beb95fd2bdbb8d49726cada9"
+        }
+      ]
+    },
+    {
+      "name": "corner-crown",
+      "SPDXID": "SPDXRef-Package-Game-corner-crown-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "33b3d153974fc652d151431adb2f4eae72fa604b89471005a34d138c32180ead"
+        }
+      ]
+    },
+    {
+      "name": "hearth-zero",
+      "SPDXID": "SPDXRef-Package-Game-hearth-zero-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "79395367d52bf7750281250a58bdc71cd141475e75576979df9d73ea3792cdab"
+        }
+      ]
+    },
+    {
+      "name": "lumen-cross",
+      "SPDXID": "SPDXRef-Package-Game-lumen-cross-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "20331241139e3f64813234baea0dc5870c430269957929041ccb501d67e59f1c"
+        }
+      ]
+    },
+    {
+      "name": "relic-dive",
+      "SPDXID": "SPDXRef-Package-Game-relic-dive-0-1-1",
+      "versionInfo": "0.1.1",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "16261dd1350a6b3b8b4ec76f4253039daa56f29bbe90f4ebe93b80449364c399"
+        }
+      ]
+    },
+    {
+      "name": "side-catch",
+      "SPDXID": "SPDXRef-Package-Game-side-catch-0-1-2",
+      "versionInfo": "0.1.2",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "571e25aa5c7b76f00f3c827d0edbd11db4d3571b81b9fbc370412979a9f2c916"
+        }
+      ]
     }
   ],
   "relationships": [
@@ -163,6 +282,48 @@
       "spdxElementId": "SPDXRef-Package-Typing-Extensions",
       "relationshipType": "DEPENDENCY_OF",
       "relatedSpdxElement": "SPDXRef-Package-Pyee"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-brick-pulse-0-1-0",
+      "comment": "Approved immutable Web game brick-pulse/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-circuit-works-0-1-0",
+      "comment": "Approved immutable Web game circuit-works/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-corner-crown-0-1-0",
+      "comment": "Approved immutable Web game corner-crown/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-hearth-zero-0-1-0",
+      "comment": "Approved immutable Web game hearth-zero/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-lumen-cross-0-1-0",
+      "comment": "Approved immutable Web game lumen-cross/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-relic-dive-0-1-1",
+      "comment": "Approved immutable Web game relic-dive/0.1.1."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-side-catch-0-1-2",
+      "comment": "Approved immutable Web game side-catch/0.1.2."
     }
   ],
   "hasExtractedLicensingInfos": [
@@ -180,7 +341,7 @@
       "annotationDate": "2026-09-22T00:00:00Z",
       "annotationType": "OTHER",
       "annotator": "Tool: scripts/generate_sbom.py",
-      "comment": "Package-level SBOM for source and staged Web distribution. Manufacturer ROM/font data, tapes, recordings, JR2Rescue, and build toolchains are not distributed components. Emscripten-generated JavaScript and linked libc++abi runtime are distributed."
+      "comment": "Package-level SBOM for source and staged Web distribution. Approved game CJR files are distributed with their license and notices. Manufacturer ROM/font files, commercial tapes, private recordings, JR2Rescue, and build toolchains are not distributed components. Emscripten-generated JavaScript and linked libc++abi runtime are distributed."
     }
   ]
 }
