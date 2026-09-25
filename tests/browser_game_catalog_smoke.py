@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import argparse
 import functools
+import hashlib
 import http.server
 import json
 import threading
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.request import urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +68,20 @@ def main() -> None:
     parsed = urlparse(base)
     if parsed.scheme not in ('http', 'https') or (args.pages and base != PAGES):
         raise SystemExit('Unsupported site origin')
+    with urlopen(base + 'game-catalog.json', timeout=20) as response:
+        remote_catalog = response.read(65537)
+    if len(remote_catalog) > 65536 or json.loads(remote_catalog) != catalog:
+        raise SystemExit('Served catalog differs from the reviewed local catalog')
+    with urlopen(base + 'backend.json', timeout=20) as response:
+        backend = json.load(response)
+    if args.pages and backend != {'backend': 'emscripten'}:
+        raise SystemExit('Pages is not serving the formal Emscripten build')
+    for entry in entries:
+        with urlopen(base + entry['path'], timeout=20) as response:
+            payload = response.read(1024 * 1024 + 1)
+        if (len(payload) > 1024 * 1024
+                or hashlib.sha256(payload).hexdigest() != entry['sha256']):
+            raise SystemExit(f'{entry["id"]}: served CJR hash mismatch')
     executable = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
     try:
         with sync_playwright() as playwright:
@@ -76,6 +92,17 @@ def main() -> None:
             try:
                 context = browser.new_context(viewport={'width': 1280, 'height': 800})
                 try:
+                    blocked = []
+                    def guard(route):
+                        target = urlparse(route.request.url)
+                        if (target.scheme != parsed.scheme
+                                or target.netloc != parsed.netloc
+                                or route.request.method != 'GET'):
+                            blocked.append('unexpected request')
+                            route.abort()
+                        else:
+                            route.continue_()
+                    context.route('**/*', guard)
                     for entry in entries:
                         identifier = entry['id']
                         page = context.new_page()
@@ -116,6 +143,8 @@ def main() -> None:
                                   flush=True)
                         finally:
                             page.close()
+                    if blocked:
+                        raise AssertionError('Browser attempted an unexpected request')
                 finally:
                     context.close()
             finally:

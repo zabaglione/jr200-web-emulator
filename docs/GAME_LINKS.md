@@ -27,8 +27,8 @@ BASIC入力待ち、今回のカセット読出し進行、終端とREMOTE OFF�
 マーカーはcatalogと`EXPORT.json`の両方へ記録し、取り込み時に一致を検証します。
 未対応ROMでは理由を表示して、従来の手動MLOAD/USRへ戻ります。URLの任意コマンド、
 外部CJR、ローカルpathは受け付けません。音声がブラウザの許可待ちでもCPU起動とは分けて表示します。
-7作品をカタログに固定し、所有ROM/FONTを使うローカルChromeで7件とも通常
-MLOAD/USRによるリンク起動を確認しました。公開Pagesでの稼働は配信後に別途確認します。
+7作品をカタログに固定し、所有ROM/FONTを使うローカルChromeと公開Pagesの両方で
+7件とも通常MLOAD/USRによるリンク起動・開始キー後の画面変化を確認しました。
 
 Wiki以外でCJRと入力テキストをまとめて渡す場合は、[起動パック v1](LAUNCH_PACK.md)を
 利用できます。ローカルのZIP/フォルダーを選ぶ形式で、公開カタログのURLとは独立です。
@@ -37,8 +37,9 @@ Wiki以外でCJRと入力テキストをまとめて渡す場合は、[起動パ
 LUMEN CROSS、CORNER CROWN、CIRCUIT WORKS、HEARTH ZERO、BRICK PULSEの
 0.1.0を登録しました。各CJRは`web/game-assets.json`にサイズとSHA-256を固定し、
 ライセンス全文・notice・出所を同じ版のディレクトリへ置きます。
-Pages上のURL・hash・ROM/FONTを用いたブラウザ確認が済むまで、Wikiの
-「遊ぶ」リンクを公開完了として扱いません。
+Pages上のURL・hash・ROM/FONTを用いたブラウザ確認後、private Wikiの
+7作品ページへ「遊ぶ」リンクを同期しました。開発リポジトリのpublic化と
+Release/Wikiの匿名到達性は別途確認が必要です。
 初回ゲーム公開時には、jr200-devの固定packageからCJRと必要なライセンス・noticeを
 明示的に選んでエミュレータ配布物へ取り込み、`scripts/stage_web.py`のallow-list、
 SBOM、WikiのURL、サイトのHTTP到達性を一緒に更新してください。
@@ -74,4 +75,8 @@ Chromeでの自動マウントと起動後の保持、既存の通常CJRマウ�
 通常MLOAD/USR、作品ごとのタイトルマーカー、および開始キー後の画面変化を
 7件とも確認しています。
 SIDE CATCHとRELIC DIVEは入力後の画面、および保存ROM/FONTからの再起動も確認しました。
-これは公開Pages到達性・実機互換の証明ではありません。
+公開Pagesの正式Emscripten配信でも33資産のHTTPハッシュと7作品の通常起動・
+開始入力を確認しました。対象commitは`41fe1ecfe36e7d21596d6f677143dee13cab75d9`、
+[CI](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36121921425)と
+[Pages](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36122124483)が同一SHAで成功。
+これは物理JR-200の互換性証明ではありません。

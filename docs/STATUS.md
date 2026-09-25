@@ -147,3 +147,12 @@ native/sanitizer各13/13、直接WASMとChrome通常回帰に合格し、所有R
 7件すべて成功した。
 手元のEmscriptenは6.0.10で固定6.0.9と異なるため正式ビルドは未実施。
 PagesのCI・公開URL・Wikiリンク・物理JR-200は、この時点のローカル検証には含めない。
+
+7作品の公開Pages受入（2026-09-25）: main `41fe1ecfe36e7d21596d6f677143dee13cab75d9`
+の[CI](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36121921425)5ジョブと
+[Pages](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36122124483)の
+正式Emscripten build/deployが成功した。公開URLでは7件のカタログ、CJRを含む
+33配布fileのSHA-256、backend種別を照合し、所有ROM/FONTのローカル選択から
+7作品すべての通常MLOAD/USRと開始入力後の画面変化をChromeで確認した。
+private Wikiには作品ページを同期したが、開発リポジトリの一般公開と匿名到達性は別作業。
+実機JR-200は未確認。
