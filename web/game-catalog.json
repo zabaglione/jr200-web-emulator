@@ -58,9 +58,9 @@
     {
       "id": "brick-pulse",
       "title": "BRICK PULSE",
-      "version": "0.1.0",
-      "path": "games/brick-pulse/0.1.0/brick-pulse.cjr",
-      "sha256": "427068c12442ccfe04673e9a5ab30036f7d1b6b004061ba4d9c83ccc2ff85ba1",
+      "version": "0.1.1",
+      "path": "games/brick-pulse/0.1.1/brick-pulse.cjr",
+      "sha256": "ed27d003afab3adda49d722514bed00ffe10575cac8cfc0f9bcfb34e15f86972",
       "runCommand": "A=USR($1000)",
       "titleMarker": "BRICK PULSE"
     }

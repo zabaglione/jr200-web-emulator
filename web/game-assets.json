@@ -132,6 +132,26 @@
     "games/brick-pulse/0.1.0/brick-pulse.cjr": {
       "size": 6109,
       "sha256": "427068c12442ccfe04673e9a5ab30036f7d1b6b004061ba4d9c83ccc2ff85ba1"
+    },
+    "games/brick-pulse/0.1.1/EXPORT.json": {
+      "size": 598,
+      "sha256": "f400abf573b506453c360c570e51fc76f497a307f4360220542dcb1848ca3563"
+    },
+    "games/brick-pulse/0.1.1/LICENSE.txt": {
+      "size": 1132,
+      "sha256": "eb066d0b8b7ab2ae1da387a2dfd4aaabf15b47ffe11f4fefd72093e32a12cd16"
+    },
+    "games/brick-pulse/0.1.1/LICENSES/BSD-3-Clause.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/brick-pulse/0.1.1/THIRD_PARTY_NOTICES.md": {
+      "size": 573,
+      "sha256": "165611be060ddc8168d425e0cdebdbcd5c4ad0601183461a9ff73e51f9349fb9"
+    },
+    "games/brick-pulse/0.1.1/brick-pulse.cjr": {
+      "size": 6148,
+      "sha256": "ed27d003afab3adda49d722514bed00ffe10575cac8cfc0f9bcfb34e15f86972"
     }
   }
 }

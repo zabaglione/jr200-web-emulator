@@ -135,6 +135,23 @@
       ]
     },
     {
+      "name": "brick-pulse",
+      "SPDXID": "SPDXRef-Package-Game-brick-pulse-0-1-1",
+      "versionInfo": "0.1.1",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ed27d003afab3adda49d722514bed00ffe10575cac8cfc0f9bcfb34e15f86972"
+        }
+      ]
+    },
+    {
       "name": "circuit-works",
       "SPDXID": "SPDXRef-Package-Game-circuit-works-0-1-0",
       "versionInfo": "0.1.0",
@@ -288,6 +305,12 @@
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-Package-Game-brick-pulse-0-1-0",
       "comment": "Approved immutable Web game brick-pulse/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-brick-pulse-0-1-1",
+      "comment": "Approved immutable Web game brick-pulse/0.1.1."
     },
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",

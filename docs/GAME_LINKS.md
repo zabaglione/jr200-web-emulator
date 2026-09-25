@@ -34,8 +34,10 @@ Wiki以外でCJRと入力テキストをまとめて渡す場合は、[起動パ
 利用できます。ローカルのZIP/フォルダーを選ぶ形式で、公開カタログのURLとは独立です。
 
 `web/game-catalog.json` にはSIDE CATCH 0.1.2、RELIC DIVE 0.1.1、
-LUMEN CROSS、CORNER CROWN、CIRCUIT WORKS、HEARTH ZERO、BRICK PULSEの
-0.1.0を登録しました。各CJRは`web/game-assets.json`にサイズとSHA-256を固定し、
+LUMEN CROSS、CORNER CROWN、CIRCUIT WORKS、HEARTH ZEROの0.1.0、
+BRICK PULSE 0.1.1を登録しました。BRICK PULSE 0.1.0の資産URLは保持し、
+`?game=brick-pulse`の推奨版だけを0.1.1へ進めます。各CJRは
+`web/game-assets.json`にサイズとSHA-256を固定し、
 ライセンス全文・notice・出所を同じ版のディレクトリへ置きます。
 Pages上のURL・hash・ROM/FONTを用いたブラウザ確認後、private Wikiの
 7作品ページへ「遊ぶ」リンクを同期しました。開発リポジトリのpublic化と
@@ -80,3 +82,10 @@ SIDE CATCHとRELIC DIVEは入力後の画面、および保存ROM/FONTからの�
 [CI](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36121921425)と
 [Pages](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36122124483)が同一SHAで成功。
 これは物理JR-200の互換性証明ではありません。
+
+BRICK PULSE 0.1.1の配信前ローカル確認では、公開済みABI 10の正式Emscripten
+モジュールと、上記の新カタログ・新CJRを混合したlocalhostサイトを用いた。
+所有ROM/FONTをブラウザのファイル選択で渡し、`?game=brick-pulse&launch=1`から
+通常MLOAD/USR起動と開始入力後の画面変化を確認した。手元に残っていたABI 9の
+旧Emscripten生成物では初期化時にABI不一致となったため、これは新規ビルドの
+検証やPagesへの配信確認ではない。Pages配信後に公開URLで再確認する。

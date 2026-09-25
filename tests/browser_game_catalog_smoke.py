@@ -106,19 +106,37 @@ def main() -> None:
                     for entry in entries:
                         identifier = entry['id']
                         page = context.new_page()
+                        page_errors = []
+                        page.on('pageerror', lambda error: page_errors.append(str(error)))
                         try:
                             page.goto(base + '?game=' + identifier + '&launch=1',
                                       wait_until='networkidle')
+                            try:
+                                page.locator('#status').filter(
+                                    has_text='WASM起動済み').wait_for(timeout=30000)
+                            except PlaywrightTimeoutError as exc:
+                                raise AssertionError(
+                                    f'{identifier}: emulator initialization did not finish: '
+                                    f'{page.locator("#status").inner_text()}; '
+                                    f'page errors: {page_errors[:3]}'
+                                ) from exc
                             page.locator('#rom-combined').set_input_files(str(args.rom))
                             page.locator('#font').set_input_files(str(args.font))
+                            page.wait_for_timeout(1000)
+                            if page_errors:
+                                raise AssertionError(
+                                    f'{identifier}: page error before launch: {page_errors[:3]}')
                             try:
                                 page.locator('#game-launch-status').filter(
                                     has_text='を起動しました').wait_for(timeout=120000)
                             except PlaywrightTimeoutError as exc:
                                 status = page.locator('#game-launch-status').inner_text()
                                 machine = page.locator('#machine-status').inner_text()
+                                assets = page.locator('#asset-status').inner_text()
+                                backend_status = page.locator('#status').inner_text()
                                 raise AssertionError(
-                                    f'{identifier}: launch timed out; {status}; {machine}'
+                                    f'{identifier}: launch timed out; {status}; {machine}; '
+                                    f'{assets}; {backend_status}; page errors: {page_errors[:3]}'
                                 ) from exc
                             status = page.locator('#game-launch-status').inner_text()
                             if entry['title'] not in status:
