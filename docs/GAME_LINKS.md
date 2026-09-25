@@ -27,15 +27,18 @@ BASIC入力待ち、今回のカセット読出し進行、終端とREMOTE OFF�
 マーカーはcatalogと`EXPORT.json`の両方へ記録し、取り込み時に一致を検証します。
 未対応ROMでは理由を表示して、従来の手動MLOAD/USRへ戻ります。URLの任意コマンド、
 外部CJR、ローカルpathは受け付けません。音声がブラウザの許可待ちでもCPU起動とは分けて表示します。
-公開Pagesでの起動支援の稼働は配信後に別途確認します。公開用カタログは空です。
+7作品をカタログに固定し、所有ROM/FONTを使うローカルChromeで7件とも通常
+MLOAD/USRによるリンク起動を確認しました。公開Pagesでの稼働は配信後に別途確認します。
 
 Wiki以外でCJRと入力テキストをまとめて渡す場合は、[起動パック v1](LAUNCH_PACK.md)を
 利用できます。ローカルのZIP/フォルダーを選ぶ形式で、公開カタログのURLとは独立です。
 
-`web/game-catalog.json` は現在空です。jr200-devのSIDE CATCHは未公開candidate、
-RELIC DIVEは開発版であり、いずれも現時点ではPages配布物へ取り込みません。
-固定CJRとライセンス全文の確認、開発環境側の公開ゲート、Pages上のURL・hash・
-ROM/FONTを用いたブラウザ確認が済んだ版だけ、作品IDリンクをWikiへ載せます。
+`web/game-catalog.json` にはSIDE CATCH 0.1.2、RELIC DIVE 0.1.1、
+LUMEN CROSS、CORNER CROWN、CIRCUIT WORKS、HEARTH ZERO、BRICK PULSEの
+0.1.0を登録しました。各CJRは`web/game-assets.json`にサイズとSHA-256を固定し、
+ライセンス全文・notice・出所を同じ版のディレクトリへ置きます。
+Pages上のURL・hash・ROM/FONTを用いたブラウザ確認が済むまで、Wikiの
+「遊ぶ」リンクを公開完了として扱いません。
 初回ゲーム公開時には、jr200-devの固定packageからCJRと必要なライセンス・noticeを
 明示的に選んでエミュレータ配布物へ取り込み、`scripts/stage_web.py`のallow-list、
 SBOM、WikiのURL、サイトのHTTP到達性を一緒に更新してください。
@@ -66,7 +69,8 @@ Emscripten再ビルドが走ります。#16の完了条件には数えません�
 検証済み範囲: NodeのID・catalog・同一origin・SHA・容量guard、合成ROM/FONTを使う
 Chromeでの自動マウントと起動後の保持、既存の通常CJRマウント・高速ロード回帰。
 取得保留中に録音待機へ切り替える競合試験も含みます。
-加えて2026-09-25に所有ROM/FONT、SIDE CATCH候補CJR、RELIC DIVE開発版CJRを
-Chrome 153のlocalhostでそれぞれ試験しました。リンクから通常のMLOAD／USRを経て
-タイトル・操作後の画面まで確認し、再読込後の保存ROM/FONTからの自動起動も確認しました。
+加えて2026-09-25に所有ROM/FONT、7作品の固定CJRをChrome 153のlocalhostで
+それぞれ試験しました。`tests/browser_game_catalog_smoke.py`でカタログ経由の
+通常MLOAD/USRと作品ごとのタイトルマーカーによる起動完了を7件とも確認しています。
+SIDE CATCHとRELIC DIVEは入力後の画面、および保存ROM/FONTからの再起動も確認しました。
 これは公開Pages到達性・実機互換の証明ではありません。

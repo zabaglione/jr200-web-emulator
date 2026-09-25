@@ -1,0 +1,19 @@
+{
+  "id": "side-catch",
+  "title": "SIDE CATCH",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "BSD-3-Clause",
+  "source_commit": "25c50409af8e8f4909c9dbb9bb64cdb71bb3c4ae",
+  "cjr_sha256": "571e25aa5c7b76f00f3c827d0edbd11db4d3571b81b9fbc370412979a9f2c916",
+  "cjr_size": 1593,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.2.0",
+  "package_sha256": "795ab19ad04abff98c7a069c860178274f1a3b6647e3fd6df8cd0b19e90b6d9c",
+  "hardware": "not_run",
+  "title_marker": "SIDE CATCH"
+}

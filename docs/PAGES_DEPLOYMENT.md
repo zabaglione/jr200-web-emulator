@@ -1,6 +1,6 @@
 # GitHub Pagesでの公開
 
-公開サイトの本体は、固定したEmscripten 6.0.9で`make wasm`を実行して得る`build/site`です。ソースの`web/`だけ、またはリポジトリのルートをPagesに指定しても動作しません。ROM、メーカー由来フォント、CJR、WAV、録音はサイトに含めません。
+公開サイトの本体は、固定したEmscripten 6.0.9で`make wasm`を実行して得る`build/site`です。ソースの`web/`だけ、またはリポジトリのルートをPagesに指定しても動作しません。ROM、メーカー由来フォント、WAV、録音はサイトに含めません。公開承認済みの7作品のCJRだけを、ライセンス・noticeとともに固定ハッシュ付きで配信します。
 
 `.github/workflows/pages.yml`は、`main`の同じcommitに対する`source-and-codec` CIが全ジョブ成功した後だけ起動します。現在の`main`とcommitが一致しない古い成功結果は配信しません。private中はビルドと検査だけを行い、artifactのアップロードと配信はしません。publicではビルド後に`make check`を通し、`scripts/stage_web.py`が決めた静的ファイルだけをPages artifactとしてアップロードします。Pagesへの配信以外のActions artifactにはアプリや利用者ファイルを保存しません。
 
@@ -13,6 +13,7 @@
 1. `pages`のbuildとdeployが対象commitで両方successになっていることを確認する。
 2. 公開URLで`index.html`、`backend.json`、`jr200_codec.mjs`、`jr200_codec.wasm`、ライセンス全文が読めることを確認する。
 3. ROMなしでもWASMの準備完了を表示し、「起動済み」と誤表示しないことを確認する。権利確認済みのROMとフォントでのJR BASIC起動は、別の利用者操作として確認する。
-4. 公開されたファイル一覧にROM、フォント、CJR、WAV、録音、`local-assets/`がないことを確認する。
+4. 公開されたゲームカタログの7件、CJRとライセンス・noticeのHTTP到達性およびSHA-256を確認する。ROM、フォント、WAV、録音、`local-assets/`がないことも確認する。
+5. 権利を持つROM/FONTをローカルのブラウザファイル入力に与え、7件の`?game=<id>&launch=1`が通常MLOAD/USRで起動することを確認する。実機動作とは区別する。
 
 P12の生成WAVと物理JR-200の往復は未検証です。Pages上で動作しても実機互換を立証したことにはなりません。問題があればPages設定から配信を停止できますが、リポジトリのpublic状態は別に管理してください。

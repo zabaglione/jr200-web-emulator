@@ -1,0 +1,19 @@
+{
+  "id": "corner-crown",
+  "title": "CORNER CROWN",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "25c50409af8e8f4909c9dbb9bb64cdb71bb3c4ae",
+  "cjr_sha256": "33b3d153974fc652d151431adb2f4eae72fa604b89471005a34d138c32180ead",
+  "cjr_size": 4072,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "7054c34084a44cedd69eec47eca1ad423e9b9fd0a26ff8472ec7782ec36ef565",
+  "hardware": "not_run",
+  "title_marker": "CORNER CROWN"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "brick-pulse",
+  "title": "BRICK PULSE",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "25c50409af8e8f4909c9dbb9bb64cdb71bb3c4ae",
+  "cjr_sha256": "427068c12442ccfe04673e9a5ab30036f7d1b6b004061ba4d9c83ccc2ff85ba1",
+  "cjr_size": 6109,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "ce71145f81bcd5b94c1901ebab4170c5e87f5e7a65ca8315fe06a1efbaeb3ca8",
+  "hardware": "not_run",
+  "title_marker": "BRICK PULSE"
+}
