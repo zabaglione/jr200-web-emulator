@@ -5,6 +5,7 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
+from game_assets import validate_assets, validate_immutable_history
 ROOT=Path(__file__).resolve().parents[1]
 raw=(ROOT/'LICENSES/VJR200.txt').read_bytes()
 blob=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
@@ -46,7 +47,10 @@ for f in ['include/jr200/peripherals.hpp','include/jr200/system.hpp','src/core/p
     t=(ROOT/f).read_text()
     assert not any(token in t for token in ['system_clock','steady_clock','high_resolution_clock','requestAnimationFrame'])
 manifest=ROOT/'source-manifest.json'
+assert manifest.is_file(),'Source inventory is required'
+assert (ROOT/'.git').exists(),'Git history is required for distribution guard'
 if manifest.exists():
+    approved_games=validate_assets(ROOT/'web')
     forbidden={'.rom','.bin','.wav','.cjr','.jr2','.d88','.d20','.exe','.dll','.wasm'}
     files=json.loads(manifest.read_text())['files']
     assert files == sorted(set(files)),'Source inventory must be sorted and unique'
@@ -77,10 +81,12 @@ if manifest.exists():
         path=ROOT/p
         assert path.is_file() and not path.is_symlink(),f
         assert path.resolve().is_relative_to(ROOT.resolve()),f
-    if (ROOT/'.git').is_dir():
+    if (ROOT/'.git').exists():
         tracked=set(subprocess.check_output(
             ['git','ls-files'],cwd=ROOT,text=True).splitlines())
-        assert set(files)==tracked,'Source inventory differs from Git tracked files'
+        assert set(files) | set('web/'+name for name in approved_games)==tracked,\
+            'Source and approved game inventories differ from Git tracked files'
+        validate_immutable_history(ROOT, set('web/'+name for name in approved_games))
 sbom=json.loads((ROOT/'SBOM.spdx.json').read_text())
 assert sbom['spdxVersion']=='SPDX-2.3'
 packages={package['name']:package for package in sbom['packages']}

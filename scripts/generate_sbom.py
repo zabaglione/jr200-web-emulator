@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from game_assets import validate_assets
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +23,7 @@ TYPING_EXTENSIONS_VERSION = "4.16.0"
 
 def document() -> dict[str, object]:
     find_license = (ROOT / "LICENSES/VJR200.txt").read_text()
-    return {
+    result = {
         "spdxVersion": "SPDX-2.3",
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
@@ -235,6 +236,29 @@ def document() -> dict[str, object]:
             }
         ],
     }
+    assets = validate_assets(ROOT / 'web')
+    for name in sorted(assets):
+        if not name.endswith('/EXPORT.json'):
+            continue
+        notice = json.loads(assets[name])
+        ident = notice['id']
+        version = notice['web_version']
+        package_id = f'SPDXRef-Package-Game-{ident}-{version.replace(".", "-")}'
+        result['packages'].append({
+            'name': ident, 'SPDXID': package_id, 'versionInfo': version,
+            'downloadLocation': 'NOASSERTION', 'filesAnalyzed': False,
+            'licenseConcluded': notice['license'],
+            'licenseDeclared': notice['license'],
+            'copyrightText': 'See game LICENSE.txt',
+            'primaryPackagePurpose': 'APPLICATION',
+            'checksums': [{'algorithm': 'SHA256', 'checksumValue': notice['cjr_sha256']}],
+        })
+        result['relationships'].append({
+            'spdxElementId': 'SPDXRef-Package-jr200-web-emulator',
+            'relationshipType': 'CONTAINS', 'relatedSpdxElement': package_id,
+            'comment': f'Approved immutable Web game {ident}/{version}.',
+        })
+    return result
 
 
 def rendered() -> str:

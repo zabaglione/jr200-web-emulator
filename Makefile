@@ -32,3 +32,5 @@ sbom:
 check:
 	python3 scripts/generate_sbom.py --check
 	python3 scripts/check_distribution.py
+	python3 -m unittest tests.test_game_export_contract
+	python3 -m unittest tests.test_ci_change_scope

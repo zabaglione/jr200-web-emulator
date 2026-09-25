@@ -8,7 +8,8 @@ top_files=['README.md','LICENSE','THIRD_PARTY_NOTICES.md','SBOM.spdx.json','requ
 files=[x for x in top_files if (root/x).is_file() or x=='source-manifest.json']
 for folder in ['include','src','tests','tools','scripts','docs','LICENSES','web','.github']:
  for p in (root/folder).rglob('*'):
-  if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc':
+  if (p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'
+      and not (folder=='web' and p.relative_to(root/'web').parts[0]=='games')):
    files.append(p.relative_to(root).as_posix())
 (root/'source-manifest.json').write_text(json.dumps({'files':sorted(set(files))},ensure_ascii=False,indent=2)+'\n')
 print(f'Updated source inventory: {len(set(files))} files. Run make check before upload.')
