@@ -11,6 +11,7 @@ import {
   InputController,
   RomajiKanaConverter,
   displayCodeFor,
+  functionLegendFor,
   encodeJrText,
   forcedKeyCodeForJoystick,
   keyIdForKeyboardEvent,
@@ -1081,6 +1082,7 @@ function createVirtualKey(key, className = '') {
   button.type = 'button';
   button.className = `virtual-key key-${key.tone}${className ? ` ${className}` : ''}`;
   button.dataset.keyId = key.id;
+  button.dataset.baseLabel = key.name;
   button.style.setProperty('--key-width', String(key.width));
   button.setAttribute('aria-label', key.name);
   button.setAttribute('aria-pressed', 'false');
@@ -1097,6 +1099,10 @@ function createVirtualKey(key, className = '') {
     glyph.height = 8;
     glyph.setAttribute('aria-hidden', 'true');
     button.append(glyph);
+    const functionLabel = document.createElement('span');
+    functionLabel.className = 'key-function';
+    functionLabel.setAttribute('aria-hidden', 'true');
+    button.append(functionLabel);
   }
   const entries = virtualKeys.get(key.id) ?? [];
   entries.push(button);
@@ -1131,6 +1137,12 @@ function createVirtualKey(key, className = '') {
     }
   });
   return button;
+}
+
+function keycapFunctionText(legend) {
+  if (legend === null || legend.length <= 4) return legend ?? '';
+  const split = Math.ceil(legend.length / 2);
+  return `${legend.slice(0, split)}\n${legend.slice(split)}`;
 }
 
 function buildVirtualKeyboard() {
@@ -1238,7 +1250,15 @@ function refreshVirtualKeyboard(force = false) {
   }
   for (const [keyId, buttons] of virtualKeys) {
     const resolved = resolveKey(keyId, resolverState);
+    // JR-200取扱説明書を参照した。
+    const legend = functionLegendFor(keyId, resolverState);
     const code = displayCodeFor(keyId, resolverState);
+    let previewCode = displayCodeFor(keyId, input.ctrl
+      ? {...resolverState, ctrl: false} : resolverState);
+    if (input.ctrl && previewCode === null) {
+      previewCode = displayCodeFor(keyId, {...resolverState, ctrl: false, shift: false}) ??
+        displayCodeFor(keyId, {mode: INPUT_MODES.ANK, shift: false});
+    }
     const pressed = input.pressedKeyIds.has(keyId);
     const isMode = (keyId === 'ModeAnk' && input.mode === INPUT_MODES.ANK) ||
       (keyId === 'ModeKana' && input.mode === INPUT_MODES.KANA) ||
@@ -1249,23 +1269,28 @@ function refreshVirtualKeyboard(force = false) {
     const latched = keyId === 'ModifierShift' ? input.latchedShift :
       keyId === 'ModifierControl' ? input.latchedCtrl : false;
     for (const button of buttons) {
-      const available = Boolean(resolved) && (button.querySelector('.key-glyph') ? code !== null : true);
+      const canvas = button.querySelector('.key-glyph');
+      const available = Boolean(resolved) && (canvas ? code !== null || legend !== null : true);
       button.disabled = !interactive || !available;
       button.classList.toggle('is-pressed', pressed || modifierActive);
       button.classList.toggle('is-latched', latched || isMode);
+      button.classList.toggle('is-function', legend !== null);
       button.setAttribute('aria-pressed', String(isModifier ? modifierActive : isMode || pressed));
+      if (legend === null) button.setAttribute('aria-label', button.dataset.baseLabel);
+      else button.setAttribute('aria-label', `${button.dataset.baseLabel} / ${legend}`);
       button.dataset.pressed = String(pressed || modifierActive);
       if (code === null) delete button.dataset.code;
       else button.dataset.code = code.toString(16).toUpperCase().padStart(2, '0');
-      const canvas = button.querySelector('.key-glyph');
+      const functionLabel = button.querySelector('.key-function');
+      if (functionLabel) functionLabel.textContent = keycapFunctionText(legend);
       if (canvas && redraw) {
-        if (code === null || !glyphState.ready) {
+        if (previewCode === null || !glyphState.ready) {
           drawGlyph(canvas, null);
         } else {
-          let rows = glyphCache.get(code);
+          let rows = glyphCache.get(previewCode);
           if (!rows) {
-            rows = codec.machine.glyph(code, glyphState.bank).rows;
-            glyphCache.set(code, rows);
+            rows = codec.machine.glyph(previewCode, glyphState.bank).rows;
+            glyphCache.set(previewCode, rows);
           }
           drawGlyph(canvas, rows);
         }

@@ -9,6 +9,7 @@ import {
   JOYSTICK_NEUTRAL,
   RomajiKanaConverter,
   displayCodeFor,
+  functionLegendFor,
   encodeJrText,
   forcedKeyCodeForJoystick,
   joystickStateForGamepad,
@@ -115,6 +116,19 @@ assert.equal(code('Digit3', {
 assert.equal(displayCodeFor('KeyA', {
   mode: INPUT_MODES.ANK, ctrl: true, ctrlBasicMode: true,
 }), 0x61);
+const functionState = {mode: INPUT_MODES.ANK, ctrl: true, ctrlBasicMode: true};
+for (const [keyId, legend] of [
+  ['Digit1', 'CLS'], ['Digit2', 'HOME'], ['Digit3', 'SAVE'],
+  ['KeyA', 'AUTO'], ['KeyC', 'BREAK'], ['KeyZ', 'L.INS'],
+  ['At', 'RNDM'], ['Underscore', 'PICK'],
+]) {
+  assert.equal(functionLegendFor(keyId, functionState), legend, keyId);
+}
+assert.equal(functionLegendFor('KeyA', {...functionState, ctrl: false}), null);
+assert.equal(functionLegendFor('KeyA', {...functionState, shift: true}), null);
+assert.equal(functionLegendFor('KeyA', {...functionState, mode: INPUT_MODES.KANA}), null);
+assert.equal(functionLegendFor('KeyA', {...functionState, ctrlBasicMode: false}), null);
+assert.equal(functionLegendFor('Space', functionState), null);
 assert.deepEqual(
   resolveKey('Underscore', {mode: INPUT_MODES.ANK, ctrl: true, ctrlBasicMode: true}),
   {kind: 'macro', codes: [0x50, 0x49, 0x43, 0x4b, 0x20], displayCode: 0x5f},

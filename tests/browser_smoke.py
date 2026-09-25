@@ -1201,11 +1201,20 @@ def main() -> None:
                 shift_key.click()
 
                 ctrl_key = page.locator('.virtual-key[data-key-id="ModifierControl"]')
+                shift_key.click()
+                key_c = page.locator('.virtual-key[data-key-id="KeyC"]')
+                assert key_c.get_attribute('data-code') == 'E4'
+                graph_shift_c_glyph = key_c.locator('canvas').evaluate('canvas => canvas.toDataURL()')
                 ctrl_key.click()
                 expect(ctrl_key).to_have_attribute('aria-pressed', 'true')
                 expect(page.locator('#input-mode-status')).to_contain_text('CTRL待機')
-                key_c = page.locator('.virtual-key[data-key-id="KeyC"]')
+                graph_bracket = page.locator('.virtual-key[data-key-id="LeftBracket"]')
+                assert graph_bracket.get_attribute('data-code') == '1B'
+                expect(graph_bracket).to_be_enabled()
+                expect(graph_bracket.locator('canvas')).to_be_visible()
                 assert key_c.get_attribute('data-code') == '03'
+                expect(key_c).not_to_have_class(re.compile(r'\bis-function\b'))
+                assert key_c.locator('canvas').evaluate('canvas => canvas.toDataURL()') == graph_shift_c_glyph
                 key_c.focus()
                 page.keyboard.down('c')
                 page.wait_for_timeout(100)
@@ -1214,6 +1223,7 @@ def main() -> None:
                 page.keyboard.up('c')
                 expect(ctrl_key).to_have_attribute('aria-pressed', 'false')
                 expect(page.locator('#input-mode-status')).not_to_contain_text('CTRL待機')
+                shift_key.click()
 
                 page.locator('#screen').focus()
                 page.keyboard.down('Control')
@@ -1226,6 +1236,25 @@ def main() -> None:
 
                 page.locator('.virtual-key[data-key-id="ModeAnk"]').click()
                 expect(page.locator('#input-mode-status')).to_contain_text('英数')
+                ctrl_key.click()
+                for key_id, legend in [
+                    ('Digit1', 'CLS'), ('Digit3', 'SAVE'), ('KeyA', 'AUTO'),
+                    ('KeyC', 'BREAK'), ('At', 'RNDM'), ('Underscore', 'PICK'),
+                ]:
+                    key = page.locator(f'.virtual-key[data-key-id="{key_id}"]')
+                    assert key.locator('.key-function').text_content().replace('\n', '') == legend
+                    expect(key.locator('.key-function')).to_be_visible()
+                    expect(key.locator('canvas')).to_be_hidden()
+                    dimensions = key.evaluate('''node => ({
+                      scroll: node.scrollWidth, client: node.clientWidth,
+                      text: node.querySelector('.key-function').getBoundingClientRect().width,
+                      font: parseFloat(getComputedStyle(node.querySelector('.key-function')).fontSize),
+                    })''')
+                    assert dimensions['scroll'] <= dimensions['client'], (key_id, dimensions)
+                    assert dimensions['font'] >= 7, (key_id, dimensions)
+                ctrl_key.click()
+                expect(key_a.locator('.key-function')).to_be_hidden()
+                expect(key_a.locator('canvas')).to_be_visible()
                 page.locator('#screen').focus()
                 page.keyboard.down('Control')
                 page.keyboard.down('a')

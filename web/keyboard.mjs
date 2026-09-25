@@ -263,6 +263,12 @@ const BASIC_CTRL_CODES = Object.freeze({
   KeyV: 0x16,
 });
 
+const BASIC_CTRL_LEGENDS = Object.freeze({
+  Digit1: 'CLS', Digit2: 'HOME',
+  At: 'RNDM',
+  KeyZ: 'L.INS', KeyX: 'CANCEL', KeyC: 'BREAK', KeyV: 'HCOPY',
+});
+
 const macro = text => Object.freeze(Array.from(text, character => character.charCodeAt(0)));
 const BASIC_CTRL_MACROS = Object.freeze({
   Digit3: macro('SAVE '), Digit4: macro('LOAD '), Digit5: macro('VERIFY '),
@@ -366,6 +372,14 @@ export function displayCodeFor(keyId, state = {}) {
   return resolved && (resolved.kind === 'code' || resolved.kind === 'mode')
     ? resolved.code
     : resolved?.kind === 'macro' ? resolved.displayCode : null;
+}
+
+export function functionLegendFor(keyId, state = {}) {
+  if ((state.mode ?? INPUT_MODES.ANK) !== INPUT_MODES.ANK ||
+      !state.ctrl || state.shift || !state.ctrlBasicMode) return null;
+  if (Object.hasOwn(BASIC_CTRL_LEGENDS, keyId)) return BASIC_CTRL_LEGENDS[keyId];
+  const codes = BASIC_CTRL_MACROS[keyId];
+  return codes ? String.fromCharCode(...codes).trimEnd() : null;
 }
 
 const makeKey = (id, name, options = {}) => Object.freeze({

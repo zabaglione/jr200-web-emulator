@@ -1,5 +1,21 @@
 # 初期実装の試験記録
 
+## CTRL時の仮想キー表示（2026-09-25 / Windows 11 ARM・Chrome）
+
+Windows 11 ARMのVJR-200 1.8.2 x64を実ROMで起動し、Parallelsのゲスト向けキー送信を使って
+`CTRL+A`で`AUTO`、続く`CTRL+3`で`SAVE`がBASIC画面へ入力されることを目視確認した。
+Web版の入力解決は変更せず、英数・JR BASIC・CTRL・SHIFTなしのときだけ仮想キー上に
+キーワードのラベルを示す。その他のCTRL操作では、制御コードをキー面の文字として描かない。
+
+`node tests/keyboard_smoke.mjs`、`make test`（CTest 13/13）、`make sanitize`（CTest 13/13）、
+`make wasm-smoke`（9系統）、`make check`、Chrome 153の`make browser-smoke`が成功した。
+ブラウザ試験では機能ラベルの可視性・キー幅からのはみ出し・最低7pxの文字サイズ・入力コードの
+維持に加え、GRAPH＋SHIFT＋CTRLでキー面の画素がCTRL前と同一であることを確認した。
+この画素検査を追加した後、全体試験の後段で`C100: 20`待ちが1回失敗し、続く2回の再実行は
+成功した。原因は未特定で、入力タイミングの安定性は引き続き監視する。
+Emscripten本体buildは要求6.0.9に対し手元の導入版が6.0.10のため未実施。
+物理JR-200での照合、およびWindows版の全CTRL組合せの実操作は未実施である。
+
 ## Windows版機能差追補（2026-09-22 / macOS・Windows 11 ARM）
 
 VJR-200 V1.8.2の固定commit `dd748995bede57da5baebc1225c7a33433aa6934`を
