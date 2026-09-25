@@ -142,9 +142,15 @@ inner size 1918×968、DPR 1で画面640×448、補助パネル370px、最小キ
 BASIC起動、FONTから標準文字RAMへの転送、Key Aの実字形、英数／カナ切替、通常入力を確認した。
 Firefoxでは`LIST`／`RUN`、Safariでは100%／125%表示と押下状態の解除も確認した。当時確認した
 focus喪失停止は既定値変更前の挙動であり、現行の継続／設定停止切替はChrome 153の合成試験で
-確認した。Firefox／Safariではこの切替を未再試験である。ROM、font、利用者file名、hash、実データのscreenshotはrepository、
+確認した。Firefox／Safariではこの切替を未再試験である。この受入試験で使用したROM、font、利用者file名、hash、実データのscreenshotはrepository、
 CI artifact、本文書へ含めない。この三ブラウザ確認は実データでのWeb動作であり、物理JR-200の
 key matrixやWAV互換を示さない。
+
+2026-09-25に、別途依頼されたREADMEの操作説明用として、利用者所有の実機MSAVE録音から
+用意したROM・fontをlocalhostのブラウザで起動し、画面だけを撮影した。
+この1枚は上記の初回UI受入証拠画像とは別に扱う。ROM・fontのバイナリ、録音、
+利用者のローカルpathは公開しない。画像内の第三者の表示と字形は本プロジェクトの
+BSDライセンスの対象外であり、実機互換の証拠でもない。
 
 ## 回帰・性能
 
@@ -192,7 +198,8 @@ CHROMIUM_EXECUTABLE='/path/to/Google Chrome' \
 `LICENSES/VJR200.txt`と`THIRD_PARTY_NOTICES.md`を配布する。配色は日本向けJR-200の公開写真を
 観察した設計上の解釈で、公称色値とは称さない。現行の数字列、QWERTY列、左右SHIFT、
 下段モードキー／SPACE、独立cursor群は利用者提供の実機写真を配置参照にしたが、写真自体は
-転載しない。写真、logo、ROM、font字形画像は配布物へ含めない。
+転載しない。実機写真、logo、ROM・fontの元データや字形一覧は配布物へ含めない。
+READMEの起動画面だけは、上記の説明目的で撮影した画像として区別する。
 通常文字の4.5:1基準はW3C WCAG 2.2 SC 1.4.3を参照した。参照URLは
 [UPSTREAM.md](UPSTREAM.md)に集約する。
 

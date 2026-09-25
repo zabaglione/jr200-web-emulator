@@ -1,5 +1,5 @@
 # JR-200 Web Emulator — Statement of Work
-版: 0.5 / 更新日: 2026-09-22 / 状態: private初版0.0.1、UI follow-up、Windows機能差分実装
+版: 0.6 / 更新日: 2026-09-25 / 状態: public・Pages公開中。P12の実機WAV往復は未検証
 
 ## 1. 目的
 VJR200forWindowsを出発点に、JR-200日本向けモデルをブラウザで実行する独立したプロジェクトを開発する。エミュレーションの実装主体はC++20とし、WebAssemblyにコンパイルしてJavaScriptの表示・入力・ファイル操作と接続する。CJRを互換ファイル形式として維持し、最終的にCJR→WAV→実機LOAD/MLOAD、および実機SAVE/MSAVE→WAV→CJRの両方向を検証する。
@@ -8,7 +8,7 @@ VJR200forWindowsを出発点に、JR-200日本向けモデルをブラウザで�
 | 項目 | 決定 |
 |---|---|
 | 移植元 | find-jr200/VJR200forWindows。基準commitはUPSTREAM.mdに固定 |
-| 配置先 | zabaglione/jr200-web-emulator（利用者が作成済み）。既存リポジトリを再初期化しない。可視性の変更は利用者が別途判断する |
+| 配置先 | zabaglione/jr200-web-emulator（利用者が作成済み、現在public）。既存リポジトリを再初期化しない。以後の可視性変更は別途判断する |
 | コア | C++20、固定幅整数、OS非依存。native/WASMで同じソースとテストベクトル |
 | Web | JavaScript ES modules、Canvas、Web Audio、Gamepad API。UIとhost入力だけをJSに置く |
 | UI follow-up | GitHub Issue #15〜#20でFull HD配置、実機を参照したtheme、ROM由来字形の仮想keyboard、三browser回帰を追加。初期計画P00〜P13の番号は増やさない |
@@ -22,7 +22,7 @@ VJR200forWindowsを出発点に、JR-200日本向けモデルをブラウザで�
 「C++→WASM→JavaScript」は、WASMをさらにJSへ翻訳する意味ではない。C++をWASM本体にし、JS glue/ラッパーから呼び出す構成とする。
 
 ## 3. 含む作業
-ライセンスと由来の監査、ネイティブ/ブラウザ共通のCPU・バス・周辺回路コア、ROM選択とBASIC起動、文字・グラフィック表示、キーボード、2 playerジョイスティック、音声、CJRロード/セーブ、WAV書出し/解析、テスト、基本デバッガ、開発文書を対象とする。UI follow-upではFull HD通常windowで整数倍画面・主要操作・仮想keyboardを併用し、英数／カナ／GRAPHと読み込んだFONT／文字RAM字形を共通入力定義へ接続する。Windows機能差分は画面変換、自動入力／macro、ローマ字カナ、CJR高速load、memory dump、CPU/RAM、joystick設定を含む。
+ライセンスと由来の監査、ネイティブ/ブラウザ共通のCPU・バス・周辺回路コア、ROM選択とBASIC起動、文字・グラフィック表示、キーボード、2 playerジョイスティック、音声、CJRロード/セーブ、WAV書出し/解析、テスト、基本デバッガ、開発文書を対象とする。UI follow-upではFull HD通常windowで画面・主要操作・仮想keyboardを併用し、英数／カナ／GRAPHと読み込んだFONT／文字RAM字形を共通入力定義へ接続する。現行の画面自動倍率は縦横比を保ち、表示領域に収まる最大サイズを使う。Windows機能差分は画面変換、自動入力／macro、ローマ字カナ、CJR高速load、memory dump、CPU/RAM、joystick設定を含む。
 
 ## 4. 初版の対象外
 FDD/D20/D88、プリンタ、RS-232C、JR-200U/JR-300の完全互換、特殊ローダーの網羅、JR2の全面実装、クラウド同期、ROMの取得代行・配布、一般公開サイト、Windows版GUIの外観再現。Windows版のstate save/load、debug label/disassembler、recent-fileは今回の差分実装に含めない。JR2は将来の生信号経路として設計上分離するが、CJR/WAVの完了を遅らせる必須条件にしない。
@@ -39,7 +39,7 @@ FDD/D20/D88、プリンタ、RS-232C、JR-200U/JR-300の完全互換、特殊ロ
 - platform: ROM/ファイル読み込み、画面表示、キーボードイベント、Gamepad API polling、音声キュー、任意の保存を担当する。
 - wasm: バージョン付きC ABI。所有権・バッファ容量・エラーコード・メモリ更新タイミングを明記する。
 
-CPU時間は実行サイクルで決める。requestAnimationFrameの呼び出し間隔やディスプレイのHzをCPUクロックとして扱わない。ブラウザ休止時は明示的にポーズし、復帰時の巨大な追いつき処理を避ける。初版でpthread/SharedArrayBufferを必須にしない。
+CPU時間は実行サイクルで決める。requestAnimationFrameの呼び出し間隔やディスプレイのHzをCPUクロックとして扱わない。別タブへ移ったときは押下キーを解放し、CPUは既定で続行する。設定により自動一時停止を選べる。ブラウザが非表示タブの実行を制限しても、復帰時に巨大な追いつき処理を行わない。初版でpthread/SharedArrayBufferを必須にしない。
 
 ## 6. 成果物
 開発計画、初期14件のIssue本文と登録manifest、UI follow-up 6件、ライセンス原文/由来台帳、移植コード、native/WASMテスト、ブラウザUI、WAV変換CLI/ブラウザ機能、実機試験手順・結果台帳を段階的に作成する。現在納品されている範囲はSTATUS.mdを正とし、計画に書かれた機能を実装済みとみなさない。
@@ -60,8 +60,9 @@ M4はP12で判定し、private初版0.0.1のP13受入条件には含めない。
 「実機互換未検証」を維持する。
 
 ### M5: UI follow-up
-CSS viewport 1920×960と1920×1080の100%表示で、仮想keyboardを既定で閉じ、3倍の整数倍画面と
-主要操作をページ全体のscrollなしで表示する。仮想keyboard表示時も画面倍率を維持し、Full HDでは
+初回受入時の3倍整数倍という条件は[UI受入記録](UI_ACCEPTANCE.md)に残す。以下は後続の自動倍率変更を反映した現行条件。
+CSS viewport 1920×960と1920×1080の100%表示で、仮想keyboardを既定で閉じ、縦横比を保ち表示領域に収まる最大画面と
+主要操作をページ全体のscrollなしで表示する。仮想keyboard表示時も画面を不必要に縮小せず、Full HDでは
 横の補助領域、1536×768と1280×720では最大620pxの中央配置として横へ引き伸ばさない。desktopの
 補助keyは25px以上（Full HD横配置は29px以上）とし、物理keyboard操作とfocus可能なbuttonを維持する。
 1536×768、1280×720、実125% zoom、DPR 1／2で横切れを
@@ -72,7 +73,7 @@ ROM／font／利用者情報を配布しない。詳細はUI_ACCEPTANCE.mdを正
 ## 8. 依存する提供物と未確認事項
 ROM1/ROM2各8192バイト、フォント2048バイトを利用者が権利を確認して用意する。結合ROM形式は16384バイトで、順序はROM1($A000–$BFFF)→ROM2($E000–$FFFF)。この条件は公式の準備手順による。P06では利用者提供の実機MSAVE録音3本をGit対象外領域で受領し、独立参照ツールによりこのサイズのROM/フォントを復元した。検体自体は成果物へ含めない。
 
-利用者がJR-200実機から作成したMSAVE録音は利用できるが、P06では実機操作への立会い、生成WAVの実機読込、通常LOAD/SAVE往復を確認していない。Windows上の基準実装実行環境またはその実測結果も必要になる。ROM起動や参照ツールでの録音復元を、P12の実機互換合格判定の代替にしない。
+利用者がJR-200実機から作成したMSAVE録音は利用できるが、P06では実機操作への立会い、生成WAVの実機読込、通常LOAD/SAVE往復を確認していない。後続のWindows版との比較は[STATUS.md](STATUS.md)に記録した。ROM起動や参照ツールでの録音復元を、P12の実機互換合格判定の代替にしない。
 
 ## 9. リスクと対処
 上流MN1271の挙動は作者自身が近似実装と説明している。したがって「Windows版との一致」と「実機との一致」を分ける。波形にはヘッダー固定速度、データ速度、位相、リーダー等の別条件がある。CJRパーサや参照ツールでのWAV復元成功を、自前WAV実装や実機互換と取り違えない。

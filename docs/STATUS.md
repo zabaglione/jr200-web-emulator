@@ -1,5 +1,5 @@
 # 実装・検証状況
-基準日: 2026-09-22 / 初期パッケージ0.0.1
+初期基準日: 2026-09-22 / 更新日: 2026-09-25 / 初期パッケージ0.0.1
 
 ## リポジトリ初期設定：完了
 
@@ -59,9 +59,9 @@ CTRL・画面優先追補: 固定Windows版`Mn1544.cpp`のKSTAT分岐を再現�
 JR BASIC用の直接code／keyword列を物理・仮想keyboardの共通解決へ追加した。Windows 11 ARM上の
 VJR-200 1.8.2 x64で実ROMの`CTRL+A`が`AUTO`になることを目視確認し、合成Chrome試験で
 物理`Control+C`、`Control+A`、仮想CTRLの1回latchを確認した。画面は320×224内の256×192表示と
-TV外周色を維持し、仮想keyboardを既定で閉じた。1920px幅では3倍画面の横、1536／1280px幅では
-最大620pxの中央へcompact keyboardを置き、横への間延びと画面縮小を防いだ。現行配置はChrome 153で
-確認済みだが、Firefox／Safariではこの追補後の再試験を行っていない。
+TV外周色を維持し、仮想keyboardを既定で閉じた。当時の配置では1920px幅で3倍画面の横、1536／1280px幅で
+最大620pxの中央へcompact keyboardを置き、横への間延びと画面縮小を防いだ。この時点の配置はChrome 153で
+確認済みだが、Firefox／Safariではこの追補後の再試験を行っていない。後続の自動倍率への変更は下記を参照。
 
 Windows機能差分追補: VJR-200 V1.8.2の固定commitを正とし、File、View、
 Tools、Optionsの実装をsourceから棚卸した。Webで実現可能なCJR高速ロード、
@@ -73,8 +73,18 @@ Quick Type、10件のmacro、ローマ字カナ、64 KiB memory dump、画面1�
 RAM設定はsystem ABI 9で共通C++コアへ反映する。state save、JR2、FDD、printer、
 debug label/disassembler、recent-file再選択は、不完全な代用を作らず保留した。詳細は
 [WINDOWS_PARITY.md](WINDOWS_PARITY.md)。この差分後はnative 10/10、直接WASM/JS 8系統、
-Chrome 153 browser smokeで合成ROMによる新規UI配線を確認した。remote CI、物理JR-200、
-物理gamepadでの追試は未実施である。
+Chrome 153 browser smokeで合成ROMによる新規UI配線を確認した。この実装直後はremote CI、物理JR-200、
+物理gamepadでの追試は未実施だった。後続commitのCIは下記を参照。
+
+画面自動倍率・CTRL表示追補（2026-09-25）: 画面倍率の既定を「自動」にし、表示領域の幅と高さから
+縦横比を保った最大倍率を連続計算する。1〜5倍の固定倍率は選択肢として残す。
+仮想keyboardのCTRL時はJR BASICの機能ラベルを表示し、全キーを一律に枠付きへはしない。
+Chromeの合成ROM回帰を行い、この変更を含むcommit `b7103bd` の
+[source-and-codec CI](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36102302269)は5ジョブすべて成功した。
+2026-09-25の対象commit `535f40a` でも
+[CI](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36105566715)と
+[Pages](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36105832612)は成功した。
+後続の文書変更と起動画面画像は、この対象commitの検証範囲に含まれない。
 
 ## 未実装・未検証
 
