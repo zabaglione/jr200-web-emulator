@@ -594,11 +594,12 @@ def main() -> None:
                     (1700, 840, 3, 2, False, 25),
                     (1536, 768, 2, 2, False, 25),
                     (1280, 720, 2, 2, False, 23),
+                    (1107, 737, 2, 2, False, 23),
                 ):
                     page.set_viewport_size({'width':width, 'height':height})
                     viewport_layout = assert_layout(page, width, height, hidden_scale)
                     assert viewport_layout['dpr'] == 1, viewport_layout
-                    assert_visible_keyboard_layout(
+                    visible_layout = assert_visible_keyboard_layout(
                         page,
                         width,
                         height,
@@ -606,6 +607,8 @@ def main() -> None:
                         side_by_side=side_by_side,
                         min_key_height=min_key_height,
                     )
+                    if width == 1107:
+                        assert visible_layout['keyboardWidth'] <= 560, visible_layout
                 page.set_viewport_size({'width':1920, 'height':960})
 
                 dpr_context = browser.new_context(
