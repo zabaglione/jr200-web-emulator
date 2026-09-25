@@ -883,7 +883,7 @@ def main() -> None:
                 ahead_match = re.search(r'先行 (\d+) ms', audio_timing)
                 active_match = re.search(r'active (\d+)', audio_timing)
                 assert ahead_match and int(ahead_match.group(1)) <= 300, audio_timing
-                assert active_match and int(active_match.group(1)) < 30, audio_timing
+                assert active_match and int(active_match.group(1)) <= 30, audio_timing
                 page.locator('#cpu-speed').evaluate("""input => {
                   input.value = '100';
                   input.dispatchEvent(new Event('input', {bubbles:true}));

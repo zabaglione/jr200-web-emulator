@@ -1,5 +1,19 @@
 # 初期実装の試験記録
 
+## main配信ゲートのIndexedDB試験修正（2026-09-25）
+
+PR #23のマージcommit `aed2202d3c70f6838319807511122ed221f29d03`に対する
+[CI run 36094705197](https://github.com/zabaglione/jr200-web-emulator/actions/runs/36094705197)は、
+native 2件、sanitizer、WASMが成功したが、browser-smokeの保存済みROM/FONTを
+即時再起動後に自動復元する検査で失敗した。このため同commitのPages runはskipされた。
+
+IndexedDBの書き込み要求成功時点ではなくtransaction完了時に保存成功を表示するよう修正した。
+ローカルでは`make test`・`make sanitize`各CTest 13/13、`make wasm-smoke` 9系統、
+`make check`が成功した。`make browser-smoke`は最初の実行が成功し、2回目は
+音声active source数が従来の厳密な`< 30`判定で境界値30となり失敗した。
+判定を`<= 30`へ修正した後、Chrome 153で連続2回成功した。
+これらは実機WAV往復や公開Pagesの更新を証明しない。
+
 ## CTRL時の仮想キー表示（2026-09-25 / Windows 11 ARM・Chrome）
 
 Windows 11 ARMのVJR-200 1.8.2 x64を実ROMで起動し、Parallelsのゲスト向けキー送信を使って
