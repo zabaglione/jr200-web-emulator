@@ -227,6 +227,36 @@ class ExportContractTests(unittest.TestCase):
         with self.assertRaises(GameAssetError):
             validate_immutable_history(repository, set())
 
+    def test_shallow_history_is_fetched_or_fails_closed(self):
+        bare = self.root / 'bare.git'
+        source = self.root / 'source'
+        shallow = self.root / 'shallow'
+        unavailable = self.root / 'unavailable'
+        def git(where, *args):
+            return subprocess.run(['git', *args], cwd=where, check=True,
+                                  capture_output=True, text=True).stdout.strip()
+        git(self.root, 'init', '-q', '--bare', str(bare))
+        source.mkdir()
+        git(source, 'init', '-q')
+        name = 'web/games/test-game/1.0.0/test-game.cjr'
+        asset = source / name
+        asset.parent.mkdir(parents=True)
+        asset.write_bytes(cjr())
+        git(source, 'add', name)
+        git(source, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.com',
+            'commit', '-q', '-m', 'fixture')
+        git(source, 'remote', 'add', 'origin', str(bare))
+        git(source, 'push', 'origin', 'HEAD:refs/heads/main')
+        for target in (shallow, unavailable):
+            git(self.root, 'clone', '-q', '--depth=1', '--branch=main',
+                f'file://{bare}', str(target))
+            self.assertEqual(git(target, 'rev-parse', '--is-shallow-repository'), 'true')
+        validate_immutable_history(shallow, {name})
+        self.assertEqual(git(shallow, 'rev-parse', '--is-shallow-repository'), 'false')
+        git(unavailable, 'remote', 'remove', 'origin')
+        with self.assertRaises(GameAssetError):
+            validate_immutable_history(unavailable, {name})
+
 
 if __name__ == '__main__':
     unittest.main()

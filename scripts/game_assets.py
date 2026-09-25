@@ -30,7 +30,17 @@ def validate_immutable_history(root: Path, current_paths: set[str]) -> None:
     shallow = subprocess.check_output(['git', 'rev-parse', '--is-shallow-repository'],
                                       cwd=root, text=True).strip()
     if shallow != 'false':
-        raise GameAssetError('Full Git history is required for immutable games')
+        try:
+            result = subprocess.run(['git', 'fetch', '--unshallow', '--no-tags', 'origin'],
+                                    cwd=root, capture_output=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise GameAssetError('Full Git history could not be fetched') from exc
+        if result.returncode != 0:
+            raise GameAssetError('Full Git history could not be fetched')
+        shallow = subprocess.check_output(['git', 'rev-parse', '--is-shallow-repository'],
+                                          cwd=root, text=True).strip()
+        if shallow != 'false':
+            raise GameAssetError('Full Git history is still unavailable')
     historic = set(subprocess.check_output(
         ['git', 'log', '--format=', '--name-only', 'HEAD', '--', 'web/games'],
         cwd=root, text=True).splitlines())
