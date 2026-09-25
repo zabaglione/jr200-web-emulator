@@ -62,12 +62,15 @@ CJR・LICENSE・noticeを登録します。`source-manifest.json`はソースだ
 `python3 scripts/update_manifest.py`、`make check`、`make wasm`で配布物を検査します。
 Pagesは同一commitのCI成功後に配信し、配信先でCJRとcatalogのHTTP到達性・hashを
 確認するまでWikiの「遊ぶ」リンクを有効にしません。純粋なゲーム配布差分向けに、
-成功済みの`source-and-codec` main commitを`trusted-fastpath-base.txt`に固定し、
-ソース不変性とActions成功履歴を確認してSHA固定runner v0.3.0を再利用する
-検証器を用意しました。ただし固定runnerはABI 9の旧版であり、現在のABI 10には再利用できません。
-CI/Pagesで高速経路を有効化するworkflow変更も未反映です。
-承認済みcommit後に別途workflowのPRと実CI受入を行うまでは、main更新で通常の
-Emscripten再ビルドが走ります。#16の完了条件には数えません。
+`scripts/ci_change_scope.py`がmainの更新範囲、配布moduleを生成した固定run、
+差分比較の基準SHAに対応する全5ジョブ成功runを別々に調べ、
+`scripts/stage_public_runner.py`が公開Pagesで配信済みのABI 10モジュール2ファイルを
+サイズ・SHA-256・ビルド入力の指紋で照合します。旧ABI 9のrunner v0.3.0とは別経路です。
+公開Pagesの2ファイルは、同一SHAの成功したPages run `36147963934`の配布tarと
+バイト一致しました。ゲーム以外の変更・不明な履歴・取得失敗・hash不一致では
+フルビルドを選び、固定値を自動更新しません。軽量経路でも`make check`、
+Emscripten ABI smoke、合成ROMによるブラウザ試験を実施します。
+この経路のremote main/Pagesでの選択受入はまだ未実施であり、#16はOpenです。
 
 検証済み範囲: NodeのID・catalog・同一origin・SHA・容量guard、合成ROM/FONTを使う
 Chromeでの自動マウントと起動後の保持、既存の通常CJRマウント・高速ロード回帰。

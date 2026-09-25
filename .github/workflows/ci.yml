@@ -6,7 +6,53 @@ concurrency:
   group: source-and-codec-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      game_only: ${{ steps.classify.outputs.game_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify main-only game distribution changes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCOPE="$(python3 scripts/ci_change_scope.py --event push --base "$BASE_SHA")"
+          if [ "$SCOPE" = game_only=true ] && python3 scripts/stage_public_runner.py; then
+            echo 'game_only=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'game_only=false' >> "$GITHUB_OUTPUT"
+          fi
+  game-assets:
+    needs: scope
+    if: needs.scope.outputs.game_only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: make check
+      - run: python3 -m venv build/browser-venv
+      - run: 'build/browser-venv/bin/python -m pip install --only-binary=:all: --requirement requirements-ci.txt'
+      - run: build/browser-venv/bin/python -m playwright install --with-deps chromium
+      - run: python3 scripts/stage_public_runner.py
+      - run: build/browser-venv/bin/python tests/browser_smoke.py
   native:
+    needs: scope
+    if: needs.scope.outputs.game_only != 'true'
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -18,6 +64,8 @@ jobs:
           persist-credentials: false
       - run: make test
   sanitized:
+    needs: scope
+    if: needs.scope.outputs.game_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -26,6 +74,8 @@ jobs:
           persist-credentials: false
       - run: make sanitize
   wasm-codec:
+    needs: scope
+    if: needs.scope.outputs.game_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -35,6 +85,8 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y clang lld
       - run: make wasm-smoke
   browser-smoke:
+    needs: scope
+    if: needs.scope.outputs.game_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

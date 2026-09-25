@@ -35,3 +35,4 @@ check:
 	python3 -m unittest tests.test_game_export_contract
 	python3 -m unittest tests.test_create_launch_pack
 	python3 -m unittest tests.test_ci_change_scope
+	python3 -m unittest tests.test_stage_public_runner
