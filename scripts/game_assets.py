@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from game_export_contract import RUNNER_VERSION, _cjr_contains_entry
+from game_export_contract import RUNNER_VERSION, TITLE_MARKER, _cjr_contains_entry
 
 ID = re.compile(r'[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z')
 VERSION = re.compile(r'\d+\.\d+\.\d+\Z')
@@ -149,8 +149,9 @@ def validate_assets(web: Path) -> dict[str, bytes]:
                 raise GameAssetError('MIT game lacks complete SDK BSD attribution')
     seen = set()
     for entry in catalog['games']:
-        if not isinstance(entry, dict) or set(entry) != {
-                'id', 'title', 'version', 'path', 'sha256', 'runCommand'}:
+        entry_fields = {'id', 'title', 'version', 'path', 'sha256', 'runCommand'}
+        if (not isinstance(entry, dict) or not entry_fields.issubset(entry)
+                or not set(entry).issubset(entry_fields | {'titleMarker'})):
             raise GameAssetError('Invalid game catalog entry')
         ident, version = entry['id'], entry['version']
         if (not isinstance(ident, str) or len(ident) > 64 or not ID.fullmatch(ident)
@@ -158,7 +159,10 @@ def validate_assets(web: Path) -> dict[str, bytes]:
                 or not isinstance(entry['title'], str) or not entry['title'].strip()
                 or len(entry['title']) > 80 or not isinstance(entry['sha256'], str)
                 or not HASH.fullmatch(entry['sha256'])
-                or not isinstance(entry['runCommand'], str) or not RUN.fullmatch(entry['runCommand'])):
+                or not isinstance(entry['runCommand'], str) or not RUN.fullmatch(entry['runCommand'])
+                or ('titleMarker' in entry and
+                    (not isinstance(entry['titleMarker'], str) or
+                     not TITLE_MARKER.fullmatch(entry['titleMarker'])))):
             raise GameAssetError('Invalid game catalog entry fields')
         seen.add(ident)
         prefix = f'games/{ident}/{version}/'
@@ -166,7 +170,8 @@ def validate_assets(web: Path) -> dict[str, bytes]:
         if entry['path'] != cjr or cjr not in result or prefix + 'LICENSE.txt' not in result:
             raise GameAssetError('Recommended game is missing its immutable CJR or license')
         notice = json.loads(result[prefix + 'EXPORT.json'])
-        if notice['title'] != entry['title'] or notice['run_command'] != entry['runCommand']:
+        if (notice['title'] != entry['title'] or notice['run_command'] != entry['runCommand']
+                or notice.get('title_marker') != entry.get('titleMarker')):
             raise GameAssetError('Recommended entry differs from approved notice')
         if (hashlib.sha256(result[cjr]).hexdigest() != entry['sha256']
                 or not 0 < len(result[cjr]) <= MAX_CJR_BYTES

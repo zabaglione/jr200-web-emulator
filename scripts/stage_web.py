@@ -33,6 +33,7 @@ else:
 expected = {
     'LICENSE.txt', 'THIRD_PARTY_NOTICES.md', 'SBOM.spdx.json', 'LICENSES',
     'app.mjs', 'audio.mjs', 'codec.mjs', 'keyboard.mjs', 'game-launch.mjs',
+    'launch-pack.mjs',
     'game-catalog.json', 'game-assets.json', 'index.html', 'style.css',
     'jr200_codec.wasm', 'backend.json',
 }

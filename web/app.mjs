@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {loadCodec} from './codec.mjs';
 import {WebAudioOutput} from './audio.mjs';
-import {fetchGame, requestedGame} from './game-launch.mjs';
+import {basicInputReady, fetchGame, launchImageMatches, readyPromptRows,
+  requestedAutoLaunch, requestedGame, supportsAutomaticBasic, titleMarkerVisible,
+  validateLaunchImage} from './game-launch.mjs';
+import {folderMembers, validateLaunchPack, zipMembers} from './launch-pack.mjs';
 import {
   CONTROL_KEYS,
   INPUT_MODES,
@@ -73,6 +76,9 @@ const state = {
   font: null,
   names: {},
   origins: {},
+  assetSelectionRevision: 0,
+  assetReadRevisions: {},
+  assetReadPending: {},
   booted: false,
   paused: true,
   lastFrame: 0,
@@ -87,8 +93,11 @@ const state = {
   tapeMountedSelectionRevision: 0,
   tapeSelectionStatus: '',
   linkedGame: null,
+  linkedLaunch: null,
   gameLinkPending: false,
   gameLinkRevision: 0,
+  packImportPending: false,
+  packImportRevision: 0,
   wavCjr: null,
   wavName: '',
   decodedCjr: null,
@@ -186,7 +195,7 @@ try {
   updateAssetStatus();
   await restoreSavedAssets({automatic: true});
   void prepareLinkedGame();
-  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'remember-assets', 'restore-assets', 'forget-assets', 'tape-cjr', 'tape-mount', 'tape-record', 'tape-monitor-enabled', 'tape-monitor-volume', 'audio-enable', 'audio-volume', 'audio-mute', 'key-click-enabled', 'pause-on-focus-loss', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel', 'fullscreen', 'screen-scale', 'screen-aspect', 'screen-rotation', 'screen-smoothing', 'cpu-speed', 'tape-turbo', 'ram-expansion-1', 'ram-expansion-2', 'ram-init-pattern', 'quick-type-text', 'quick-type-interval', 'macro-slot', 'macro-text', 'macro-save', 'macro-delete', 'romaji-kana', 'gamepad-button-a', 'gamepad-button-b', 'gamepad-one-button', 'forced-joystick', 'forced-joystick-a', 'forced-joystick-b']) {
+  for (const id of ['rom-combined', 'rom1', 'rom2', 'font', 'cjr', 'bin', 'create', 'remember-assets', 'restore-assets', 'forget-assets', 'tape-cjr', 'launch-pack-zip', 'launch-pack-folder', 'tape-mount', 'tape-record', 'tape-monitor-enabled', 'tape-monitor-volume', 'audio-enable', 'audio-volume', 'audio-mute', 'key-click-enabled', 'pause-on-focus-loss', 'wav-rate', 'wav-baud', 'wav-decode-input', 'wav-decode-channel', 'fullscreen', 'screen-scale', 'screen-aspect', 'screen-rotation', 'screen-smoothing', 'cpu-speed', 'tape-turbo', 'ram-expansion-1', 'ram-expansion-2', 'ram-init-pattern', 'quick-type-text', 'quick-type-interval', 'macro-slot', 'macro-text', 'macro-save', 'macro-delete', 'romaji-kana', 'gamepad-button-a', 'gamepad-button-b', 'gamepad-one-button', 'forced-joystick', 'forced-joystick-a', 'forced-joystick-b']) {
     $(id).disabled = false;
   }
   $('fullscreen').disabled = !document.fullscreenEnabled;
@@ -208,27 +217,17 @@ async function prepareLinkedGame() {
   try {
     id = requestedGame(location.search);
     if (id === null) return;
+    const autoLaunch = requestedAutoLaunch(location.search);
     state.gameLinkPending = true;
     $('game-launch').hidden = false;
     $('game-launch-status').textContent = '作品CJRを確認しています。';
     const game = await fetchGame(id, new URL('./', location.href));
     if (state.tapeSelectionRevision !== selectionRevision
         || state.gameLinkRevision !== requestRevision) return;
-    const summary = codec.inspect(game.bytes);
-    if (summary.fileType !== 1 || summary.dataBlocks < 1) {
-      throw new Error('作品は標準マシン語CJRではありません。');
-    }
-    codec.machine.tape.mount(game.bytes);
-    state.linkedGame = game;
-    state.tapeSelectedName = `${id}.cjr`;
-    state.tapeName = state.tapeSelectedName;
-    state.tapeSelectionRevision++;
-    state.tapeMountedSelectionRevision = state.tapeSelectionRevision;
-    state.tapeSelectionStatus = 'マシン語 / MLOAD用です。';
+    mountGameWithInput(game, {name: `${id}.cjr`, autoLaunch, requireMachine: true,
+      label: `${game.entry.title} ${game.entry.version}`,
+      instructions: `手元のROMとフォントで起動後、MLOAD、続いて ${game.entry.runCommand} を入力してください。CJRの自動実行や高速ロードはしていません。`});
     state.gameLinkPending = false;
-    $('game-launch-status').textContent = `${game.entry.title} ${game.entry.version} をカセットにセットしました。`;
-    $('game-launch-instructions').textContent = `手元のROMとフォントで起動後、MLOAD、続いて ${game.entry.runCommand} を入力してください。CJRの自動実行や高速ロードはしていません。`;
-    showTapeStatus();
   } catch (error) {
     if (state.tapeSelectionRevision !== selectionRevision
         || state.gameLinkRevision !== requestRevision) return;
@@ -239,13 +238,98 @@ async function prepareLinkedGame() {
   }
 }
 
+function mountGameWithInput(game, {name, autoLaunch, requireMachine, label, instructions}) {
+  const summary = codec.inspect(game.bytes);
+  if (summary.dataBlocks < 1 || (requireMachine ? summary.fileType !== 1
+    : summary.fileType !== 0 && summary.fileType !== 1)) {
+    throw new Error('作品は標準LOAD/MLOADに対応するCJRではありません。');
+  }
+  const image = autoLaunch && game.entry.titleMarker
+    ? validateLaunchImage(game.entry, game.bytes, summary) : null;
+  codec.machine.tape.mount(game.bytes);
+  $('tape-cjr').value = '';
+  state.linkedGame = game;
+  state.tapeSelectedName = name;
+  state.tapeName = name;
+  state.tapeSelectionRevision++;
+  state.tapeMountedSelectionRevision = state.tapeSelectionRevision;
+  state.tapeSelectionStatus = summary.fileType === 1
+    ? 'マシン語 / MLOAD用です。' : 'BASIC / LOAD用です。';
+  $('game-launch').hidden = false;
+  $('game-launch-status').textContent = `${label} をカセットにセットしました。`;
+  if (autoLaunch && game.entry.titleMarker) {
+    state.linkedLaunch = {phase: 'assets', game, image,
+      mountedRevision: state.tapeSelectionRevision, deadline: 0,
+      sawRead: false, promptRows: []};
+    $('game-launch-cancel').hidden = false;
+    showLinkedLaunch('ROM/FONTを確認しています。',
+      '初回は手元のROM/FONTを選択してください。保存済みなら自動で起動します。');
+    void startLinkedGameFromAssets();
+  } else if (autoLaunch) {
+    showLinkedLaunch('この版は自動起動に未対応です。', instructions);
+  } else {
+    $('game-launch-instructions').textContent = instructions;
+  }
+  showTapeStatus();
+}
+
 function cancelPendingLinkedGame() {
+  if (state.linkedLaunch && state.linkedLaunch.phase !== 'complete') {
+    cancelLinkedLaunch('手動のカセット操作を優先しました。');
+  }
+  if (state.packImportPending) {
+    state.packImportPending = false;
+    state.packImportRevision++;
+    $('launch-pack-cancel').hidden = true;
+    $('launch-pack-status').textContent = '手動操作を優先し、パックの読込を中止しました。';
+  }
   if (!state.gameLinkPending) return;
   state.gameLinkPending = false;
   state.gameLinkRevision++;
   $('game-launch-status').textContent = '手動のカセット操作を優先しました。';
   $('game-launch-instructions').textContent = '作品CJRの自動セットは中止しました。';
 }
+
+function showLinkedLaunch(status, instructions = '') {
+  $('game-launch-status').textContent = status;
+  $('game-launch-instructions').textContent = instructions;
+}
+
+function cancelLinkedLaunch(reason) {
+  if (!state.linkedLaunch) return;
+  state.linkedLaunch = null;
+  if (state.autoType?.origin === 'linked-launch') stopAutomaticInput(reason);
+  $('game-launch-cancel').hidden = true;
+  showLinkedLaunch(reason, '手動のMLOADと作品の実行コマンドは引き続き利用できます。');
+}
+
+function failLinkedLaunch(reason) {
+  cancelLinkedLaunch(`自動起動を中止しました: ${reason}`);
+}
+
+async function startLinkedGameFromAssets() {
+  const launch = state.linkedLaunch;
+  if (!launch || launch.phase !== 'assets' || launch.starting || !assetsReady()) return;
+  const assetRevision = state.assetSelectionRevision;
+  let supported;
+  try {
+    supported = await supportsAutomaticBasic(selectedRom());
+  } catch {
+    supported = false;
+  }
+  if (state.linkedLaunch !== launch || launch.phase !== 'assets' || launch.starting
+      || state.assetSelectionRevision !== assetRevision) return;
+  if (!supported) {
+    failLinkedLaunch('このROM版のBASIC入力待ちは未検証です。');
+    return;
+  }
+  launch.starting = true;
+  await startMachine({automatic: true});
+}
+
+$('game-launch-cancel').addEventListener('click', () => {
+  cancelLinkedLaunch('利用者が自動起動を中止しました。');
+});
 
 function applyScreenPreferences() {
   document.body.dataset.screenScale = preferences.screenScale;
@@ -376,6 +460,8 @@ function runFrame(timestamp) {
   }
   gamepadController?.update();
   if (state.booted && !state.paused) {
+    // A delayed tab must not send another command byte before checking timeout.
+    advanceLinkedLaunch(timestamp);
     if (state.lastFrame === 0) state.lastFrame = timestamp;
     const seconds = Math.min(Math.max((timestamp - state.lastFrame) / 1000, 0), 0.05);
     state.lastFrame = timestamp;
@@ -405,6 +491,7 @@ function runFrame(timestamp) {
       }
     }
     paintMachine();
+    advanceLinkedLaunch(timestamp);
     if (state.fpsWindowStart === 0) state.fpsWindowStart = timestamp;
     ++state.fpsFrames;
     const fpsElapsed = timestamp - state.fpsWindowStart;
@@ -430,6 +517,7 @@ function runFrame(timestamp) {
 
 function effectiveCpuPercent() {
   if (state.autoType) return 1000;
+  if (state.linkedLaunch?.phase === 'loading') return 1000;
   if (preferences.tapeTurbo && codec && state.booted) {
     const tape = codec.machine.tape.state();
     if (tape.mode === 1 && tape.remote) return 1000;
@@ -462,6 +550,13 @@ function startAutomaticInput(codes, {label, origin, intervalMs = 30} = {}) {
   if (!(codes instanceof Uint8Array) || codes.length === 0) {
     throw new Error('入力する文字がありません');
   }
+  if (origin !== 'linked-launch' && state.linkedLaunch
+      && state.linkedLaunch.phase !== 'complete') {
+    cancelLinkedLaunch('手動入力を優先しました。');
+  }
+  if (origin !== 'linked-launch' && (state.gameLinkPending || state.packImportPending)) {
+    cancelPendingLinkedGame();
+  }
   stopAutomaticInput();
   releaseKeys({preserveRomaji: origin === 'romaji'});
   state.autoType = {
@@ -487,6 +582,18 @@ function finishAutomaticInput(message) {
   gamepadController?.resync();
   showAutomaticInputStatus(message, origin);
   refreshVirtualKeyboard();
+  if (origin === 'linked-launch' && state.linkedLaunch) {
+    const launch = state.linkedLaunch;
+    if (launch.phase === 'typing-mload') {
+      launch.phase = 'loading';
+      launch.deadline = performance.now() + 120000;
+      showLinkedLaunch('通常のMLOADで読み込んでいます。');
+    } else if (launch.phase === 'typing-usr') {
+      launch.phase = 'title';
+      launch.deadline = performance.now() + 15000;
+      showLinkedLaunch('作品の起動を確認しています。');
+    }
+  }
 }
 
 function stopAutomaticInput(message = '') {
@@ -499,7 +606,75 @@ function stopAutomaticInput(message = '') {
   gamepadController?.resync();
   showAutomaticInputStatus(message || '入力を停止しました。', origin);
   refreshVirtualKeyboard();
+  if (origin === 'linked-launch' && state.linkedLaunch) {
+    cancelLinkedLaunch('自動入力を中止したため、作品の起動支援を停止しました。');
+  }
   return true;
+}
+
+function advanceLinkedLaunch(timestamp) {
+  const launch = state.linkedLaunch;
+  if (!launch || launch.phase === 'assets' || launch.phase === 'complete') return;
+  if (!state.booted || state.paused || state.tapeSelectionRevision !== launch.mountedRevision) {
+    failLinkedLaunch('実行状態またはカセットの選択が変わりました。');
+    return;
+  }
+  if (timestamp > launch.deadline) {
+    failLinkedLaunch('この段階の制限時間を超えました。');
+    return;
+  }
+  const tape = codec.machine.tape.state();
+  if (tape.error || tape.mode !== 1) {
+    failLinkedLaunch('カセットが読み込み可能な状態ではありません。');
+    return;
+  }
+  if (launch.phase === 'typing-mload' || launch.phase === 'loading') {
+    launch.sawRead ||= tape.readStarted || tape.samplePosition > 0 || tape.state === 2;
+  }
+  if (launch.phase === 'basic') {
+    if (!basicInputReady(codec.machine)) return;
+    if (tape.state !== 1 || tape.remote || tape.samplePosition !== 0) {
+      failLinkedLaunch('カセットが先頭の待機状態ではありません。');
+      return;
+    }
+    launch.promptRows = readyPromptRows(address => codec.machine.peek(address));
+    launch.phase = 'typing-mload';
+    launch.deadline = timestamp + 10000;
+    startAutomaticInput(encodeJrText('MLOAD\r'),
+      {label: 'MLOAD入力', origin: 'linked-launch', intervalMs: 30});
+    showLinkedLaunch('JR BASICへMLOADを入力しています。');
+  } else if (launch.phase === 'loading') {
+    if (!launch.sawRead || tape.state !== 6 || tape.remote
+        || tape.samplePosition !== tape.totalSamples) return;
+    if (!launchImageMatches(launch.image.loadBlocks,
+      address => codec.machine.peek(address))) {
+      failLinkedLaunch('CJRのロード結果が一致しません。');
+      return;
+    }
+    if (!basicInputReady(codec.machine)) return;
+    const rows = readyPromptRows(address => codec.machine.peek(address));
+    if (!rows.some(row => !launch.promptRows.includes(row))) return;
+    if (titleMarkerVisible(address => codec.machine.peek(address),
+      launch.game.entry.titleMarker)) {
+      failLinkedLaunch('実行前からタイトル表示が存在します。');
+      return;
+    }
+    launch.phase = 'typing-usr';
+    launch.deadline = timestamp + 15000;
+    startAutomaticInput(encodeJrText(`${launch.game.entry.runCommand}\r`),
+      {label: '作品起動入力', origin: 'linked-launch', intervalMs: 30});
+    showLinkedLaunch('MLOAD完了を確認しました。作品の実行コマンドを入力しています。');
+  } else if (launch.phase === 'title') {
+    const pc = codec.machine.registers().pc;
+    const inGame = launch.image.loadBlocks.some(block =>
+      block.address <= pc && pc < block.address + block.bytes.length);
+    if (!inGame || !titleMarkerVisible(address => codec.machine.peek(address),
+      launch.game.entry.titleMarker)) return;
+    launch.phase = 'complete';
+    $('game-launch-cancel').hidden = true;
+    showLinkedLaunch(`${launch.game.entry.title} を起動しました。`,
+      '通常のMLOADと作品固有のUSRを通りました。音が出ない場合は音声を有効化してください。');
+  }
 }
 
 function showAutomaticInputStatus(message = '', origin = state.autoType?.origin) {
@@ -556,6 +731,7 @@ function selectedRom() {
 }
 
 function assetsReady() {
+  if (Object.values(state.assetReadPending).some(Boolean)) return false;
   try {
     selectedRom();
     return state.font instanceof Uint8Array && state.font.length === 2048 && !isUniform(state.font);
@@ -607,19 +783,32 @@ function hex4(value) {
 }
 
 async function loadInput(id, key, size, label) {
+  state.assetSelectionRevision++;
+  const readRevision = (state.assetReadRevisions[key] ?? 0) + 1;
+  state.assetReadRevisions[key] = readRevision;
+  state.assetReadPending[key] = true;
+  updateAssetStatus();
   try {
     const file = $(id).files[0];
-    state[key] = await readExact(file, size, label);
+    const bytes = await readExact(file, size, label);
+    if (state.assetReadRevisions[key] !== readRevision) return;
+    state.assetReadPending[key] = false;
+    state.assetSelectionRevision++;
+    state[key] = bytes;
     state.names[key] = file.name;
     state.origins[key] = 'file';
     updateAssetStatus();
   } catch (error) {
+    if (state.assetReadRevisions[key] !== readRevision) return;
+    state.assetReadPending[key] = false;
+    state.assetSelectionRevision++;
     state[key] = null;
     state.names[key] = '';
     state.origins[key] = '';
     updateAssetStatus(`エラー: ${error.message}`);
   }
   await persistAssetsIfAllowed();
+  void startLinkedGameFromAssets();
 }
 
 $('rom-combined').addEventListener('change', () => loadInput('rom-combined', 'rom', 16384, '結合ROM'));
@@ -629,16 +818,25 @@ $('font').addEventListener('change', () => loadInput('font', 'font', 2048, 'フ�
 
 for (const input of document.querySelectorAll('input[name="rom-mode"]')) {
   input.addEventListener('change', async () => {
+    state.assetSelectionRevision++;
     state.romMode = input.value;
     $('combined-fields').hidden = state.romMode !== 'combined';
     $('split-fields').hidden = state.romMode !== 'split';
     updateAssetStatus();
     await persistAssetsIfAllowed();
+    void startLinkedGameFromAssets();
   });
 }
 
-$('start').addEventListener('click', async () => {
+async function startMachine({automatic = false} = {}) {
   try {
+    if (!automatic && (state.gameLinkPending || state.packImportPending)) {
+      cancelPendingLinkedGame();
+    }
+    if (!automatic && state.linkedLaunch && state.linkedLaunch.phase !== 'assets') {
+      cancelLinkedLaunch('ROMを手動で再起動しました。');
+    }
+    const launchAtBoot = state.linkedLaunch;
     stopAutomaticInput();
     inputController.reset();
     const rom = selectedRom();
@@ -668,9 +866,22 @@ $('start').addEventListener('click', async () => {
     showAutomaticInputStatus('入力できます。');
     updateMacroEditor();
     canvas.focus();
+    if (state.linkedLaunch === launchAtBoot && launchAtBoot?.phase === 'assets') {
+      launchAtBoot.phase = 'basic';
+      launchAtBoot.deadline = performance.now() + 15000;
+      showLinkedLaunch('BASICの入力待ちを確認しています。');
+    }
+    return true;
   } catch (error) {
     setNotice('error', `起動できません: ${error.message}`);
+    if (state.linkedLaunch) failLinkedLaunch(error.message);
+    return false;
   }
+}
+
+$('start').addEventListener('click', () => {
+  if (state.linkedLaunch?.phase === 'assets') void startLinkedGameFromAssets();
+  else void startMachine();
 });
 
 $('pause').addEventListener('click', () => {
@@ -683,6 +894,8 @@ $('pause').addEventListener('click', () => {
 
 $('reset').addEventListener('click', () => {
   try {
+    cancelPendingLinkedGame();
+    if (state.linkedLaunch) cancelLinkedLaunch('ROMをリセットしたため自動起動を中止しました。');
     stopAutomaticInput();
     inputController.reset();
     applyMemoryConfiguration();
@@ -709,6 +922,10 @@ $('reset').addEventListener('click', () => {
 });
 
 function setPaused(paused, reason) {
+  if (paused && (state.gameLinkPending || state.packImportPending)) cancelPendingLinkedGame();
+  if (paused && state.linkedLaunch && state.linkedLaunch.phase !== 'complete') {
+    cancelLinkedLaunch('一時停止したため自動起動を中止しました。');
+  }
   if (paused) stopAutomaticInput('一時停止したため自動入力を終了しました。');
   state.paused = paused;
   state.lastFrame = 0;
@@ -1301,6 +1518,14 @@ function pressInput(keyId, source, {minimumHold = false} = {}) {
     minimumHold,
     ctrlBasicMode: ctrlBasicMode(),
   });
+  if (resolved && resolved.kind !== 'modifier' && state.linkedLaunch
+      && state.linkedLaunch.phase !== 'complete') {
+    cancelLinkedLaunch('手動キー入力を優先しました。');
+  }
+  if (resolved && resolved.kind !== 'modifier'
+      && (state.gameLinkPending || state.packImportPending)) {
+    cancelPendingLinkedGame();
+  }
   if (resolved && resolved.kind !== 'modifier') inputController.clearLatch('ctrl');
   return resolved;
 }
@@ -1420,6 +1645,10 @@ document.addEventListener('keydown', event => {
     return;
   }
   const keyId = keyIdForKeyboardEvent(event);
+  if (keyId && (state.gameLinkPending || state.packImportPending || (state.linkedLaunch
+      && state.linkedLaunch.phase !== 'complete'))) {
+    cancelPendingLinkedGame();
+  }
   const isControlInput = keyId === 'ModifierControl' ||
     (Boolean(keyId) && event.ctrlKey && !event.metaKey && !event.altKey);
   // macOS Japanese IME marks some CTRL shortcuts (notably CTRL+3) as
@@ -1930,6 +2159,11 @@ async function restoreSavedAssets({automatic = false} = {}) {
       saved.names.font.trim() !== '';
     validateCombinedRom(rom);
     if (font.length !== 2048 || isUniform(font)) throw new Error('保存済みフォントが不正です');
+    state.assetSelectionRevision++;
+    for (const key of ['rom', 'rom1', 'rom2', 'font']) {
+      state.assetReadRevisions[key] = (state.assetReadRevisions[key] ?? 0) + 1;
+      state.assetReadPending[key] = false;
+    }
     state.romMode = 'combined';
     state.rom = rom;
     state.rom1 = null;
@@ -2013,6 +2247,55 @@ function downloadBytes(bytes, name, type = 'application/octet-stream') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+async function importLaunchPack(kind) {
+  cancelPendingLinkedGame();
+  const input = $(kind === 'zip' ? 'launch-pack-zip' : 'launch-pack-folder');
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const revision = ++state.packImportRevision;
+  const tapeRevision = state.tapeSelectionRevision;
+  state.packImportPending = true;
+  $('launch-pack-cancel').hidden = false;
+  $('launch-pack-status').textContent = '起動パックを検査しています。';
+  try {
+    const members = kind === 'zip'
+      ? await zipMembers(await readLimited(files[0], 2 * 1024 * 1024))
+      : await folderMembers(files);
+    const pack = await validateLaunchPack(members);
+    if (revision !== state.packImportRevision || tapeRevision !== state.tapeSelectionRevision) return;
+    const autoLaunch = Boolean(pack.runCommand && pack.titleMarker);
+    const game = {entry: {id: 'local-pack', title: pack.title,
+      runCommand: pack.runCommand, titleMarker: pack.titleMarker}, bytes: pack.bytes};
+    const instructions = pack.runCommand
+      ? `CJRと入力テキストを取り込みました。ROM/FONTで起動後、MLOAD、${pack.runCommand} を手動で入力できます。`
+      : 'CJRをセットし、入力テキストを入力支援欄へ取り込みました。内容を確認してから手動で入力を開始してください。';
+    mountGameWithInput(game, {name: pack.fileName, autoLaunch,
+      requireMachine: false, label: pack.title, instructions});
+    $('quick-type-text').value = pack.text;
+    $('launch-pack-status').textContent = autoLaunch
+      ? `${pack.title}: CJRと入力テキストを検証しました。通常のMLOAD/USRで起動支援中です。`
+      : `${pack.title}: CJRをセットし、入力テキストを取り込みました。自動起動はしません。`;
+  } catch (error) {
+    if (revision === state.packImportRevision) {
+      $('launch-pack-status').textContent = `取り込めません: ${error.message}`;
+    }
+  } finally {
+    if (revision === state.packImportRevision) {
+      state.packImportPending = false;
+      $('launch-pack-cancel').hidden = true;
+    }
+  }
+}
+
+$('launch-pack-zip').addEventListener('change', () => { void importLaunchPack('zip'); });
+$('launch-pack-folder').addEventListener('change', () => { void importLaunchPack('folder'); });
+$('launch-pack-cancel').addEventListener('click', () => {
+  state.packImportRevision++;
+  state.packImportPending = false;
+  $('launch-pack-cancel').hidden = true;
+  $('launch-pack-status').textContent = '起動パックの読込を中止しました。';
+});
+
 $('tape-cjr').addEventListener('change', async () => {
   cancelPendingLinkedGame();
   const file = $('tape-cjr').files[0];
@@ -2046,20 +2329,24 @@ $('tape-cjr').addEventListener('change', async () => {
 });
 
 async function mountSelectedTape() {
+  const revision = state.tapeSelectionRevision;
   const file = $('tape-cjr').files[0];
   const bytes = state.linkedGame?.bytes || await readLimited(file);
+  if (revision !== state.tapeSelectionRevision) return false;
   state.tapeName = '';
   state.tapeMountedSelectionRevision = 0;
   codec.machine.tape.mount(bytes);
-  state.tapeName = file?.name || state.linkedGame?.entry.id + '.cjr';
+  state.tapeName = file?.name || state.tapeSelectedName || state.linkedGame?.entry.id + '.cjr';
   state.tapeMountedSelectionRevision = state.tapeSelectionRevision;
+  return true;
 }
 
 $('tape-mount').addEventListener('click', async () => {
   cancelPendingLinkedGame();
   try {
-    await mountSelectedTape();
-    showTapeStatus('通常のカセット入力信号としてマウントしました。LOADまたはMLOADを実行してください。');
+    if (await mountSelectedTape()) {
+      showTapeStatus('通常のカセット入力信号としてマウントしました。LOADまたはMLOADを実行してください。');
+    }
   } catch (error) {
     showTapeStatus(`マウントできません: ${error.message}`);
   }
@@ -2068,9 +2355,11 @@ $('tape-mount').addEventListener('click', async () => {
 $('tape-quick-load').addEventListener('click', async () => {
   cancelPendingLinkedGame();
   try {
+    const revision = state.tapeSelectionRevision;
     const file = $('tape-cjr').files[0];
     const bytes = state.linkedGame?.bytes || await readLimited(file);
-    const name = file?.name || state.linkedGame?.entry.id + '.cjr';
+    if (revision !== state.tapeSelectionRevision) return;
+    const name = file?.name || state.tapeSelectedName || state.linkedGame?.entry.id + '.cjr';
     stopAutomaticInput();
     releaseKeys();
     const result = codec.machine.quickLoad(bytes);

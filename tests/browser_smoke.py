@@ -9,6 +9,7 @@ from __future__ import annotations
 import functools
 import hashlib
 import http.server
+import io
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,7 @@ import shutil
 import sys
 import tempfile
 import threading
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = bytes([2,42,0,26,255,255,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,255,255,255,255,255,255,255,255,149,2,42,1,1,112,0,171,73,2,42,255,255,112,1])
@@ -256,6 +258,7 @@ def main() -> None:
                         'path': 'games/test-game/1.0.0/test-game.cjr',
                         'sha256': hashlib.sha256(GOLDEN).hexdigest(),
                         'runCommand': 'A=USR($7000)',
+                        'titleMarker': 'TEST GAME',
                     }],
                 }
                 linked.route('**/game-catalog.json', lambda route: route.fulfill(
@@ -313,6 +316,45 @@ def main() -> None:
                 linked.goto(base+'/?game=../bad', wait_until='networkidle')
                 expect(linked.locator('#game-launch-status')).to_contain_text(
                     'ゲームIDが不正')
+                linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    'ROM/FONTを確認しています')
+                linked.locator('#game-launch-cancel').click()
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    '利用者が自動起動を中止')
+                linked_catalog['games'][0].pop('titleMarker')
+                linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    'この版は自動起動に未対応')
+                expect(linked.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'mounted')
+                assert linked.locator('#game-launch-cancel').is_hidden()
+                linked_catalog['games'][0]['titleMarker'] = 'TEST GAME'
+                linked.locator('#rom-combined').set_input_files({
+                    'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
+                    'buffer': bytes(ROM),
+                })
+                linked.locator('#font').set_input_files({
+                    'name': 'synthetic-font.bin',
+                    'mimeType': 'application/octet-stream', 'buffer': FONT,
+                })
+                expect(linked.locator('#machine-status')).to_contain_text('ROM未提供')
+                linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
+                linked.locator('#rom-combined').set_input_files({
+                    'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
+                    'buffer': bytes(ROM),
+                })
+                linked.locator('#font').set_input_files({
+                    'name': 'synthetic-font.bin',
+                    'mimeType': 'application/octet-stream', 'buffer': FONT,
+                })
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    'このROM版のBASIC入力待ちは未検証')
+                expect(linked.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'mounted')
+                linked.goto(base+'/?game=test-game&launch=bad', wait_until='networkidle')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    'ゲーム起動指定が不正')
                 linked.add_init_script('''
                     const nativeFetch = globalThis.fetch.bind(globalThis);
                     globalThis.fetch = async (...args) => {
@@ -339,7 +381,130 @@ def main() -> None:
                 expect(linked.locator('#tape-status')).to_contain_text('状態: 録音待機')
                 expect(linked.locator('#game-launch-status')).to_contain_text(
                     '手動のカセット操作を優先')
+                linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
+                linked.wait_for_function('typeof window.__releaseGameCjr === "function"')
+                linked.locator('#rom-combined').set_input_files({
+                    'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
+                    'buffer': bytes(ROM),
+                })
+                linked.locator('#font').set_input_files({
+                    'name': 'synthetic-font.bin',
+                    'mimeType': 'application/octet-stream', 'buffer': FONT,
+                })
+                linked.locator('#start').click()
+                expect(linked.locator('#machine-status')).to_contain_text('実行中')
+                expect(linked.locator('#game-launch-status')).to_contain_text(
+                    '手動のカセット操作を優先')
+                linked.evaluate('window.__releaseGameCjr()')
+                linked.wait_for_timeout(250)
+                expect(linked.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'none')
                 linked.close()
+
+                pack_page = main_context.new_page()
+                pack_page.on('pageerror', lambda error: errors.append(str(error)))
+                pack_page.route('**/*', guard)
+                pack_page.goto(base+'/', wait_until='networkidle')
+                pack_input = b'MLOAD\r\nA=USR($7000)\r\n'
+                pack_meta = json.dumps({
+                    'schemaVersion': 1, 'title': 'TEST GAME',
+                    'media': {'file': 'game.cjr', 'size': len(GOLDEN),
+                              'sha256': hashlib.sha256(GOLDEN).hexdigest()},
+                    'input': {'file': 'launch.txt', 'size': len(pack_input),
+                              'sha256': hashlib.sha256(pack_input).hexdigest()},
+                }).encode()
+                pack_files = {'pack.json': pack_meta, 'game.cjr': GOLDEN,
+                              'launch.txt': pack_input}
+                for compression in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+                    archive = io.BytesIO()
+                    with zipfile.ZipFile(archive, 'w', compression=compression) as output:
+                        for name, payload in pack_files.items():
+                            output.writestr(name, payload)
+                    pack_page.locator('#launch-pack-zip').set_input_files({
+                        'name': f'game-{compression}.zip',
+                        'mimeType': 'application/zip', 'buffer': archive.getvalue(),
+                    })
+                    expect(pack_page.locator('#launch-pack-status')).to_contain_text(
+                        '自動起動はしません')
+                    expect(pack_page.locator('#tape-mount-state')).to_have_attribute(
+                        'data-state', 'mounted')
+                    assert pack_page.locator('#quick-type-text').input_value() == (
+                        pack_input.decode().replace('\r\n', '\n'))
+                with tempfile.TemporaryDirectory(prefix='jr200-pack-') as directory:
+                    folder = Path(directory) / 'game'
+                    folder.mkdir()
+                    for name, payload in pack_files.items():
+                        (folder / name).write_bytes(payload)
+                    pack_page.locator('#launch-pack-folder').set_input_files(str(folder))
+                    expect(pack_page.locator('#launch-pack-status')).to_contain_text(
+                        '自動起動はしません')
+                invalid_pack = io.BytesIO()
+                invalid_meta = json.loads(pack_meta)
+                invalid_meta['media']['sha256'] = '0' * 64
+                with zipfile.ZipFile(invalid_pack, 'w') as output:
+                    for name, payload in pack_files.items():
+                        output.writestr(name, json.dumps(invalid_meta).encode()
+                                        if name == 'pack.json' else payload)
+                pack_page.locator('#launch-pack-zip').set_input_files({
+                    'name': 'invalid.zip', 'mimeType': 'application/zip',
+                    'buffer': invalid_pack.getvalue(),
+                })
+                expect(pack_page.locator('#launch-pack-status')).to_contain_text(
+                    'SHA-256が一致しません')
+                expect(pack_page.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'mounted')
+                pack_page.evaluate('''() => {
+                  const original = File.prototype.arrayBuffer;
+                  File.prototype.arrayBuffer = async function() {
+                    if (this.name === 'slow.zip') {
+                      await new Promise(resolve => { window.__releasePackRead = resolve; });
+                    }
+                    return original.call(this);
+                  };
+                }''')
+                pack_page.locator('#launch-pack-zip').set_input_files({
+                    'name': 'slow.zip', 'mimeType': 'application/zip',
+                    'buffer': archive.getvalue(),
+                })
+                pack_page.wait_for_function('typeof window.__releasePackRead === "function"')
+                pack_page.locator('#tape-cjr').set_input_files({
+                    'name': 'manual.cjr', 'mimeType': 'application/octet-stream',
+                    'buffer': GOLDEN,
+                })
+                expect(pack_page.locator('#launch-pack-status')).to_contain_text(
+                    '手動操作を優先')
+                pack_page.evaluate('window.__releasePackRead()')
+                pack_page.wait_for_timeout(250)
+                expect(pack_page.locator('#tape-mount-state')).to_have_attribute(
+                    'data-state', 'pending')
+                pack_page.locator('#tape-cjr').set_input_files({
+                    'name': 'old.cjr', 'mimeType': 'application/octet-stream',
+                    'buffer': bytes(SPECIAL),
+                })
+                expect(pack_page.locator('#tape-status')).to_contain_text('状態:')
+                pack_page.evaluate('''() => {
+                  const original = File.prototype.arrayBuffer;
+                  File.prototype.arrayBuffer = async function() {
+                    if (this.name === 'old.cjr') {
+                      await new Promise(resolve => { window.__releaseOldTape = resolve; });
+                    }
+                    return original.call(this);
+                  };
+                }''')
+                pack_page.locator('#tape-heading').click()
+                pack_page.locator('#tape-mount').click()
+                pack_page.wait_for_function('typeof window.__releaseOldTape === "function"')
+                pack_page.locator('#launch-pack-zip').set_input_files({
+                    'name': 'new.zip', 'mimeType': 'application/zip',
+                    'buffer': archive.getvalue(),
+                })
+                expect(pack_page.locator('#launch-pack-status')).to_contain_text(
+                    '自動起動はしません')
+                pack_page.evaluate('window.__releaseOldTape()')
+                pack_page.wait_for_timeout(250)
+                expect(pack_page.locator('#tape-mount-state')).to_contain_text('game.cjr')
+                expect(pack_page.locator('#tape-status')).to_contain_text('媒体: game.cjr')
+                pack_page.close()
 
                 local_rom = os.environ.get('JR200_TEST_ROM')
                 local_font = os.environ.get('JR200_TEST_FONT')
@@ -356,6 +521,10 @@ def main() -> None:
                             'path': 'games/local-rom-test/0.1.0/local-rom-test.cjr',
                             'sha256': hashlib.sha256(cjr_bytes).hexdigest(),
                             'runCommand': 'A=USR($1000)',
+                            'titleMarker': {
+                                'side-catch': 'SIDE CATCH',
+                                'relic-dive': 'TAKE THE RELIC TO WIN',
+                            }.get(Path(local_cjr).stem, 'LOCAL ROM TEST'),
                         }],
                     }
                     local_linked = main_context.new_page()
@@ -369,17 +538,87 @@ def main() -> None:
                                            status=200,
                                            content_type='application/octet-stream',
                                            body=cjr_bytes))
-                    local_linked.goto(base+'/?game=local-rom-test', wait_until='networkidle')
+                    auto_launch = os.environ.get('JR200_TEST_AUTOLAUNCH') == '1'
+                    local_linked.goto(base+'/?game=local-rom-test' +
+                                      ('&launch=1' if auto_launch else ''),
+                                      wait_until='networkidle')
                     expect(local_linked.locator('#game-launch-status')).to_contain_text(
+                        'ROM/FONTを確認しています' if auto_launch else
                         'LOCAL ROM TEST 0.1.0 をカセットにセット')
                     local_linked.locator('#rom-combined').set_input_files(local_rom)
                     local_linked.locator('#font').set_input_files(local_font)
-                    local_linked.locator('#start').click()
+                    if not auto_launch:
+                        local_linked.locator('#start').click()
                     expect(local_linked.locator('#machine-status')).to_contain_text('実行中')
                     expect(local_linked.locator('#tape-mount-state')).to_have_attribute(
                         'data-state', 'mounted')
+                    if auto_launch:
+                        expect(local_linked.locator('#game-launch-status')).to_contain_text(
+                            'を起動しました', timeout=120000)
+                        capture_dir = os.environ.get('JR200_TEST_CAPTURE_DIR')
+                        if capture_dir:
+                            capture = Path(capture_dir)
+                            capture.mkdir(parents=True, exist_ok=True)
+                            stem = Path(local_cjr).stem
+                            local_linked.wait_for_timeout(200)
+                            title = local_linked.locator('#screen').screenshot(
+                                path=str(capture / f'{stem}-title.png'))
+                            key = {'side-catch': 'd', 'relic-dive': 'Enter'}.get(stem)
+                            if key:
+                                local_linked.locator('#screen').focus()
+                                local_linked.keyboard.press(key)
+                                local_linked.wait_for_timeout(
+                                    9000 if stem == 'relic-dive' else 500)
+                                gameplay = local_linked.locator('#screen').screenshot(
+                                    path=str(capture / f'{stem}-play.png'))
+                                assert title != gameplay, 'game input did not change the display'
+                        local_linked.locator('#remember-assets').evaluate('''input => {
+                            input.checked = true;
+                            input.dispatchEvent(new Event('change', {bubbles: true}));
+                        }''')
+                        expect(local_linked.locator('#asset-status')).to_contain_text(
+                            'IndexedDBへ保存しました')
+                        local_linked.reload(wait_until='networkidle')
+                        expect(local_linked.locator('#asset-status li').filter(
+                            has_text='（保存済み）')).to_have_count(2)
+                        expect(local_linked.locator('#game-launch-status')).to_contain_text(
+                            'を起動しました', timeout=120000)
+                        launch_text = b'MLOAD\nA=USR($1000)\n'
+                        launch_meta = json.dumps({
+                            'schemaVersion': 1, 'title': 'LOCAL ROM TEST',
+                            'titleMarker': local_catalog['games'][0]['titleMarker'],
+                            'media': {'file': 'game.cjr', 'size': len(cjr_bytes),
+                                      'sha256': hashlib.sha256(cjr_bytes).hexdigest()},
+                            'input': {'file': 'launch.txt', 'size': len(launch_text),
+                                      'sha256': hashlib.sha256(launch_text).hexdigest()},
+                        }).encode()
+                        launch_zip = io.BytesIO()
+                        with zipfile.ZipFile(launch_zip, 'w',
+                                             compression=zipfile.ZIP_DEFLATED) as output:
+                            output.writestr('pack.json', launch_meta)
+                            output.writestr('game.cjr', cjr_bytes)
+                            output.writestr('launch.txt', launch_text)
+                        pack_real = main_context.new_page()
+                        pack_real.on('pageerror', lambda error: errors.append(str(error)))
+                        pack_real.route('**/*', guard)
+                        pack_real.goto(base+'/', wait_until='networkidle')
+                        expect(pack_real.locator('#asset-status li').filter(
+                            has_text='（保存済み）')).to_have_count(2)
+                        pack_real.locator('#launch-pack-zip').set_input_files({
+                            'name': 'local-game.zip', 'mimeType': 'application/zip',
+                            'buffer': launch_zip.getvalue(),
+                        })
+                        expect(pack_real.locator('#launch-pack-status')).to_contain_text(
+                            '起動支援中')
+                        expect(pack_real.locator('#game-launch-status')).to_contain_text(
+                            'を起動しました', timeout=120000)
+                        if capture_dir:
+                            pack_real.locator('#screen').screenshot(
+                                path=str(capture / f'{Path(local_cjr).stem}-pack-title.png'))
+                        pack_real.close()
                     local_linked.close()
-                    print('PASS local ROM/FONT: linked CJR mount persists after boot')
+                    print('PASS local ROM/FONT: link and ZIP pack normal MLOAD/USR auto launch' if auto_launch
+                          else 'PASS local ROM/FONT: linked CJR mount persists after boot')
 
                 real_audio_context = browser.new_context(
                     viewport={'width':1280,'height':720},

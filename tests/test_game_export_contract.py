@@ -109,6 +109,28 @@ class ExportContractTests(unittest.TestCase):
             prepare(self.export, self.web, self.root / 'blocked', 'test-game@1.0.0')
         self.assertFalse((self.root / 'blocked').exists())
 
+    def test_title_marker_requires_matching_export_notice(self):
+        base_catalog = self.root / 'base-catalog.json'
+        base_catalog.write_bytes((self.web / 'game-catalog.json').read_bytes())
+        self.entry['titleMarker'] = 'TEST GAME'
+        self.source['title_marker'] = 'TEST GAME'
+        self.payloads[self.prefix + 'EXPORT.json'] = encoded(self.source)
+        self.write_export()
+        self.assertEqual(validate_export(self.export, self.web / 'game-catalog.json')
+                         ['entry']['titleMarker'], 'TEST GAME')
+        output = self.root / 'marker-output'
+        prepare(self.export, self.web, output, 'test-game@1.0.0')
+        for name in (*self.payloads, 'game-catalog.json', 'game-assets.json'):
+            path = self.web / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((output / name).read_bytes())
+        self.assertEqual(validate_assets(self.web)[self.entry['path']], cjr())
+        self.source['title_marker'] = 'WRONG GAME'
+        self.payloads[self.prefix + 'EXPORT.json'] = encoded(self.source)
+        self.write_export()
+        with self.assertRaises(ExportContractError):
+            validate_export(self.export, base_catalog)
+
     def test_new_version_preserves_old_immutable_bytes(self):
         first = self.root / 'first'
         prepare(self.export, self.web, first, 'test-game@1.0.0')

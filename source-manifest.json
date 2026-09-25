@@ -26,6 +26,7 @@
     "docs/GITHUB_SETUP.md",
     "docs/HARDWARE_TEST_PLAN.md",
     "docs/ISSUE_INDEX.md",
+    "docs/LAUNCH_PACK.md",
     "docs/P03_REFERENCE_RESULTS.md",
     "docs/P04_CPU_AUDIT.md",
     "docs/P05_PERIPHERAL_AUDIT.md",
@@ -76,6 +77,7 @@
     "scripts/check_emscripten_version.py",
     "scripts/ci_change_scope.py",
     "scripts/compare_wav_reference.py",
+    "scripts/create_launch_pack.py",
     "scripts/game_assets.py",
     "scripts/game_export_contract.py",
     "scripts/generate_sbom.py",
@@ -109,12 +111,14 @@
     "tests/emscripten_smoke.mjs",
     "tests/game_launch_smoke.mjs",
     "tests/keyboard_smoke.mjs",
+    "tests/launch_pack_smoke.mjs",
     "tests/system_wasm_smoke.mjs",
     "tests/test_bootstrap.py",
     "tests/test_cassette.cpp",
     "tests/test_ci_change_scope.py",
     "tests/test_cjr.cpp",
     "tests/test_cjrtool.py",
+    "tests/test_create_launch_pack.py",
     "tests/test_game_export_contract.py",
     "tests/test_m6800.cpp",
     "tests/test_package_runner.py",
@@ -137,6 +141,7 @@
     "web/game-launch.mjs",
     "web/index.html",
     "web/keyboard.mjs",
+    "web/launch-pack.mjs",
     "web/style.css"
   ]
 }

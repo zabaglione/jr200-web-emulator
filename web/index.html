@@ -25,6 +25,7 @@
     <section id="game-launch" class="game-launch" aria-live="polite" hidden>
       <strong id="game-launch-status"></strong>
       <p id="game-launch-instructions"></p>
+      <button id="game-launch-cancel" type="button" hidden>自動起動を中止</button>
     </section>
   </div>
 
@@ -109,6 +110,11 @@
           <p>CJRをMN1271の通常信号経路で再生し、SAVE/MSAVEの出力波形をCJRへ復号します。</p>
           <p class="hint">標準のBASIC（LOAD/SAVE）とマシン語（MLOAD/MSAVE）だけに対応します。</p>
           <label class="file">再生するCJRファイル<input id="tape-cjr" type="file" accept=".cjr,application/octet-stream" disabled></label>
+          <p class="hint">起動パックはCJR・launch.txt・pack.jsonをまとめて読み込みます。ROM/FONTは含めず、手元のものを使います。</p>
+          <label class="file">起動パックZIP<input id="launch-pack-zip" type="file" accept=".zip,application/zip" disabled></label>
+          <label class="file">起動パックのフォルダー<input id="launch-pack-folder" type="file" webkitdirectory directory multiple disabled></label>
+          <div class="controls compact"><button id="launch-pack-cancel" type="button" hidden>パック読込を中止</button></div>
+          <p id="launch-pack-status" class="hint" role="status">起動パックは未選択です。</p>
           <div id="tape-mount-state" class="tape-mount-state" data-state="none" aria-live="polite">選択中: なし / 現在のマウント: なし</div>
           <div class="controls compact">
             <button id="tape-mount" type="button" disabled>マウント</button><button id="tape-eject" type="button" disabled>取出し</button><button id="tape-rewind" type="button" disabled>巻戻し</button>

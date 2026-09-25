@@ -113,3 +113,18 @@ RELIC DIVE開発版CJRでも、Chromeのlocalhost上でマウントと起動後�
 SIDE CATCH・RELIC DIVEなど開発中のCJRはPagesへ配信していない。
 [作品リンクの契約](GAME_LINKS.md)を参照。remote Pagesでの新機能稼働や
 作品別MLOAD／実行の確認は、コードの公開・配信後に別途必要である。
+
+起動支援追補（2026-09-25、ローカル検証）: `?game=<id>&launch=1`を追加し、
+対応ROMのBASIC入力待ち、今回の通常カセット読出し、終端・REMOTE OFF、
+全ロードbyte一致と新しいBASIC入力待ちを確認してから、カタログ固定のUSRを入力する。
+所有ROM/FONTとSIDE CATCH／RELIC DIVE開発版CJRを用いたlocalhostのChrome 153で、
+初回選択と保存済みROM/FONTの両方から通常MLOAD/USRを通る起動を確認した。
+両作品のタイトル画面と入力後の画面も撮影した。合成ROMは起動支援を拒否する。
+Firefox、Safari、公開Pagesの作品カタログとWikiリンク、実機動作は未確認である。
+
+起動パック追補（2026-09-25、ローカル検証）: `pack.json`、CJR、`launch.txt`を
+フォルダーまたはstored/deflate ZIPから取り込み、SHA/サイズ/CRCとZIP構造を検査する。
+任意の入力テキストは入力支援欄へ置くが自動入力せず、MLOAD→USRとタイトルマーカーの
+条件を満たす場合だけ既存の通常カセット起動支援へ接続する。Chrome 153でフォルダー、
+2種類のZIPの取込、所有ROM/FONTでSIDE CATCHとRELIC DIVEの圧縮ZIPからの通常起動を
+確認した。Firefox/Safari、公開ZIP URL、実機は未確認。詳細は[起動パック](LAUNCH_PACK.md)。

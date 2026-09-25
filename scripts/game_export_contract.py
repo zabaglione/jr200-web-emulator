@@ -16,6 +16,7 @@ VERSION = re.compile(r'\d+\.\d+\.\d+\Z')
 HASH = re.compile(r'[0-9a-f]{64}\Z')
 COMMIT = re.compile(r'[0-9a-f]{40}\Z')
 RUN = re.compile(r'A=USR\(\$([0-9A-F]{4})\)\Z')
+TITLE_MARKER = re.compile(r'[A-Z0-9 ]{6,32}\Z')
 MAX_CJR_BYTES = 1024 * 1024
 MAX_META_BYTES = 256 * 1024
 RUNNER_VERSION = (0, 3, 0)
@@ -96,8 +97,9 @@ def validate_export(root: Path, base_catalog: Path, *,
     if manifest['mode'] == 'preview' and not allow_preview:
         raise ExportContractError('Candidate preview cannot enter a release site')
     entry = manifest.get('entry')
-    if not isinstance(entry, dict) or set(entry) != {
-            'id', 'title', 'version', 'path', 'sha256', 'runCommand'}:
+    entry_fields = {'id', 'title', 'version', 'path', 'sha256', 'runCommand'}
+    if (not isinstance(entry, dict) or not entry_fields.issubset(entry)
+            or not set(entry).issubset(entry_fields | {'titleMarker'})):
         raise ExportContractError('Invalid catalog entry')
     ident, version = entry['id'], entry['version']
     if (not isinstance(ident, str) or len(ident) > 64 or not ID.fullmatch(ident)
@@ -105,7 +107,10 @@ def validate_export(root: Path, base_catalog: Path, *,
             or not isinstance(entry['title'], str) or not entry['title'].strip()
             or len(entry['title']) > 80 or not isinstance(entry['sha256'], str)
             or not HASH.fullmatch(entry['sha256'])
-            or not isinstance(entry['runCommand'], str) or not RUN.fullmatch(entry['runCommand'])):
+            or not isinstance(entry['runCommand'], str) or not RUN.fullmatch(entry['runCommand'])
+            or ('titleMarker' in entry and
+                (not isinstance(entry['titleMarker'], str) or
+                 not TITLE_MARKER.fullmatch(entry['titleMarker'])))):
         raise ExportContractError('Invalid catalog entry fields')
     prefix = f'games/{ident}/{version}/'
     if entry['path'] != prefix + f'{ident}.cjr':
@@ -115,6 +120,7 @@ def validate_export(root: Path, base_catalog: Path, *,
             or source.get('id') != ident or source.get('web_version') != version
             or source.get('cjr_sha256') != entry['sha256']
             or source.get('run_command') != entry['runCommand']
+            or source.get('title_marker') != entry.get('titleMarker')
             or source.get('license') not in ('MIT', 'BSD-3-Clause')
             or source.get('title') != entry['title']
             or not isinstance(source.get('version'), str)
