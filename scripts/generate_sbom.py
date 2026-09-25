@@ -228,8 +228,10 @@ def document() -> dict[str, object]:
                 "annotator": "Tool: scripts/generate_sbom.py",
                 "comment": (
                     "Package-level SBOM for source and staged Web distribution. "
-                    "Manufacturer ROM/font data, tapes, recordings, JR2Rescue, "
-                    "and build toolchains are not distributed components. "
+                    "Approved game CJR files are distributed with their license "
+                    "and notices. Manufacturer ROM/font files, commercial tapes, "
+                    "private recordings, JR2Rescue, and build toolchains are "
+                    "not distributed components. "
                     "Emscripten-generated JavaScript and linked libc++abi "
                     "runtime are distributed."
                 ),
@@ -247,7 +249,9 @@ def document() -> dict[str, object]:
         result['packages'].append({
             'name': ident, 'SPDXID': package_id, 'versionInfo': version,
             'downloadLocation': 'NOASSERTION', 'filesAnalyzed': False,
-            'licenseConcluded': notice['license'],
+            'licenseConcluded': (
+                'MIT AND BSD-3-Clause' if notice['license'] == 'MIT'
+                else notice['license']),
             'licenseDeclared': notice['license'],
             'copyrightText': 'See game LICENSE.txt',
             'primaryPackagePurpose': 'APPLICATION',

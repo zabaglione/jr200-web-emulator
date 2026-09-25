@@ -123,7 +123,7 @@
       "versionInfo": "0.1.0",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
+      "licenseConcluded": "MIT AND BSD-3-Clause",
       "licenseDeclared": "MIT",
       "copyrightText": "See game LICENSE.txt",
       "primaryPackagePurpose": "APPLICATION",
@@ -140,7 +140,7 @@
       "versionInfo": "0.1.0",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
+      "licenseConcluded": "MIT AND BSD-3-Clause",
       "licenseDeclared": "MIT",
       "copyrightText": "See game LICENSE.txt",
       "primaryPackagePurpose": "APPLICATION",
@@ -157,7 +157,7 @@
       "versionInfo": "0.1.0",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
+      "licenseConcluded": "MIT AND BSD-3-Clause",
       "licenseDeclared": "MIT",
       "copyrightText": "See game LICENSE.txt",
       "primaryPackagePurpose": "APPLICATION",
@@ -174,7 +174,7 @@
       "versionInfo": "0.1.0",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
+      "licenseConcluded": "MIT AND BSD-3-Clause",
       "licenseDeclared": "MIT",
       "copyrightText": "See game LICENSE.txt",
       "primaryPackagePurpose": "APPLICATION",
@@ -191,7 +191,7 @@
       "versionInfo": "0.1.0",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
+      "licenseConcluded": "MIT AND BSD-3-Clause",
       "licenseDeclared": "MIT",
       "copyrightText": "See game LICENSE.txt",
       "primaryPackagePurpose": "APPLICATION",
@@ -208,7 +208,7 @@
       "versionInfo": "0.1.1",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
+      "licenseConcluded": "MIT AND BSD-3-Clause",
       "licenseDeclared": "MIT",
       "copyrightText": "See game LICENSE.txt",
       "primaryPackagePurpose": "APPLICATION",
@@ -341,7 +341,7 @@
       "annotationDate": "2026-09-22T00:00:00Z",
       "annotationType": "OTHER",
       "annotator": "Tool: scripts/generate_sbom.py",
-      "comment": "Package-level SBOM for source and staged Web distribution. Manufacturer ROM/font data, tapes, recordings, JR2Rescue, and build toolchains are not distributed components. Emscripten-generated JavaScript and linked libc++abi runtime are distributed."
+      "comment": "Package-level SBOM for source and staged Web distribution. Approved game CJR files are distributed with their license and notices. Manufacturer ROM/font files, commercial tapes, private recordings, JR2Rescue, and build toolchains are not distributed components. Emscripten-generated JavaScript and linked libc++abi runtime are distributed."
     }
   ]
 }

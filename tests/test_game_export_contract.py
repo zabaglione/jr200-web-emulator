@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from game_assets import GameAssetError, validate_assets, validate_immutable_history  # noqa: E402
 from game_export_contract import (  # noqa: E402
     ExportContractError, MAX_CJR_BYTES, MAX_META_BYTES, validate_export)
+from generate_sbom import document  # noqa: E402
 from prepare_game_import import prepare  # noqa: E402
 
 
@@ -278,6 +279,23 @@ class ExportContractTests(unittest.TestCase):
         git(unavailable, 'remote', 'remove', 'origin')
         with self.assertRaises(GameAssetError):
             validate_immutable_history(unavailable, {name})
+
+
+class PublishedSbomTests(unittest.TestCase):
+    def test_game_license_conclusion_includes_embedded_sdk(self):
+        sbom = document()
+        games = {item['name']: item for item in sbom['packages']
+                 if item['SPDXID'].startswith('SPDXRef-Package-Game-')}
+        self.assertEqual(len(games), 7)
+        self.assertEqual(games['side-catch']['licenseDeclared'], 'BSD-3-Clause')
+        self.assertEqual(games['side-catch']['licenseConcluded'], 'BSD-3-Clause')
+        for name in set(games) - {'side-catch'}:
+            self.assertEqual(games[name]['licenseDeclared'], 'MIT')
+            self.assertEqual(games[name]['licenseConcluded'],
+                             'MIT AND BSD-3-Clause')
+        annotation = sbom['annotations'][0]['comment']
+        self.assertIn('Approved game CJR files are distributed', annotation)
+        self.assertIn('Manufacturer ROM/font files', annotation)
 
 
 if __name__ == '__main__':

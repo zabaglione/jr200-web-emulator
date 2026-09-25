@@ -18,6 +18,10 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = 'https://zabaglione.github.io/jr200-web-emulator/'
+START_KEYS = {'side-catch': 'd', 'relic-dive': 'Enter',
+              'lumen-cross': 'Enter', 'corner-crown': 'Enter',
+              'circuit-works': 'Enter', 'hearth-zero': 'Enter',
+              'brick-pulse': 'Enter'}
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -92,11 +96,23 @@ def main() -> None:
                             status = page.locator('#game-launch-status').inner_text()
                             if entry['title'] not in status:
                                 raise AssertionError(f'{identifier}: unexpected launch status')
+                            before = page.locator('#screen').screenshot()
+                            page.locator('#screen').focus()
+                            page.keyboard.press(START_KEYS[identifier])
+                            changed = False
+                            for _ in range(12):
+                                page.wait_for_timeout(250)
+                                if page.locator('#screen').screenshot() != before:
+                                    changed = True
+                                    break
+                            if not changed:
+                                raise AssertionError(
+                                    f'{identifier}: start input did not change the screen')
                             if args.capture_dir:
                                 args.capture_dir.mkdir(parents=True, exist_ok=True)
                                 page.locator('#screen').screenshot(
-                                    path=str(args.capture_dir / f'{identifier}.png'))
-                            print(f'PASS {identifier}: catalog CJR MLOAD/USR launch',
+                                    path=str(args.capture_dir / f'{identifier}-play.png'))
+                            print(f'PASS {identifier}: catalog CJR MLOAD/USR and play input',
                                   flush=True)
                         finally:
                             page.close()
