@@ -289,7 +289,7 @@ const BASIC_CTRL_MACROS = Object.freeze({
 });
 
 const EVENT_KEY_IDS = Object.freeze({
-  Enter: 'Return', Backspace: 'Rubout', Delete: 'Delete',
+  Enter: 'Return', NumpadEnter: 'Return', Backspace: 'Rubout', Delete: 'Delete',
   ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown',
   ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight',
   Insert: 'Insert', Home: 'Home', Space: 'Space',
