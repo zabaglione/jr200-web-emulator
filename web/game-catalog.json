@@ -4,9 +4,9 @@
     {
       "id": "side-catch",
       "title": "SIDE CATCH",
-      "version": "0.1.2",
-      "path": "games/side-catch/0.1.2/side-catch.cjr",
-      "sha256": "571e25aa5c7b76f00f3c827d0edbd11db4d3571b81b9fbc370412979a9f2c916",
+      "version": "0.1.3",
+      "path": "games/side-catch/0.1.3/side-catch.cjr",
+      "sha256": "afb7532fb0add608acc147e1c8c96600357e455fe9ae183a61484493f691816b",
       "runCommand": "A=USR($1000)",
       "titleMarker": "SIDE CATCH"
     },

@@ -152,6 +152,18 @@
     "games/brick-pulse/0.1.1/brick-pulse.cjr": {
       "size": 6148,
       "sha256": "ed27d003afab3adda49d722514bed00ffe10575cac8cfc0f9bcfb34e15f86972"
+    },
+    "games/side-catch/0.1.3/EXPORT.json": {
+      "size": 604,
+      "sha256": "4defbd95816e388a8d677098aeea8527c9462a6f635956a47d573dc2239947fc"
+    },
+    "games/side-catch/0.1.3/LICENSE.txt": {
+      "size": 1530,
+      "sha256": "6ea139690174f1e10416b8423dd798f5253b451de678e98681be12559d5cc4c4"
+    },
+    "games/side-catch/0.1.3/side-catch.cjr": {
+      "size": 1593,
+      "sha256": "afb7532fb0add608acc147e1c8c96600357e455fe9ae183a61484493f691816b"
     }
   }
 }
