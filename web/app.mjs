@@ -1633,7 +1633,8 @@ function drawGlyph(canvas, rows) {
 document.addEventListener('keydown', event => {
   const virtualKey = event.target.closest?.('.virtual-key');
   if (event.target !== canvas && !virtualKey) return;
-  if (virtualKey && (event.code === 'Enter' || event.code === 'Space')) return;
+  if (virtualKey && (event.code === 'Enter' || event.code === 'NumpadEnter'
+      || event.code === 'Space')) return;
   if (event.altKey && event.code === 'Enter' && !event.metaKey && !event.ctrlKey) {
     event.preventDefault();
     toggleFullscreen();

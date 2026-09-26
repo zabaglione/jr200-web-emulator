@@ -132,7 +132,7 @@ class ExportContractTests(unittest.TestCase):
         with self.assertRaises(ExportContractError):
             validate_export(self.export, base_catalog)
 
-    def test_new_version_preserves_old_immutable_bytes(self):
+    def test_new_version_and_recommendation_rollback_preserve_immutable_bytes(self):
         first = self.root / 'first'
         prepare(self.export, self.web, first, 'test-game@1.0.0')
         first_file = self.entry['path']
@@ -140,6 +140,7 @@ class ExportContractTests(unittest.TestCase):
             path = self.web / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((first / name).read_bytes())
+        old_catalog = (self.web / 'game-catalog.json').read_bytes()
         old_bytes = (self.web / first_file).read_bytes()
         self.prefix = 'games/test-game/1.1.0/'
         self.entry['version'] = '1.1.0'
@@ -165,6 +166,15 @@ class ExportContractTests(unittest.TestCase):
         self.assertEqual(assets[self.entry['path']], cjr())
         self.assertEqual(json.loads((self.web / 'game-catalog.json').read_text())
                          ['games'][0]['version'], '1.1.0')
+        new_catalog = (self.web / 'game-catalog.json').read_bytes()
+        (self.web / 'game-catalog.json').write_bytes(old_catalog)
+        rolled_back = validate_assets(self.web)
+        self.assertEqual(json.loads((self.web / 'game-catalog.json').read_text())
+                         ['games'][0]['version'], '1.0.0')
+        self.assertEqual(rolled_back[first_file], old_bytes)
+        self.assertEqual(rolled_back[self.entry['path']], cjr())
+        (self.web / 'game-catalog.json').write_bytes(new_catalog)
+        self.assertEqual(validate_assets(self.web)[self.entry['path']], cjr())
 
     def test_tamper_and_stale_catalog_are_rejected_without_output(self):
         (self.export / self.entry['path']).write_bytes(b'wrong')
