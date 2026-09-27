@@ -56,6 +56,22 @@ SBOM、WikiのURL、サイトのHTTP到達性を一緒に更新してくださ�
 同じIDの旧版ファイルは残し、catalogの推奨版だけを更新します。既存の`?game=id`は
 推奨版を開き、過去版CJRは固定URLのまま配布します。
 
+不具合時は、実際に起動確認済みの版を先に特定し、その版のCJR・`EXPORT.json`・
+ライセンスが`web/game-assets.json`に残り、固定SHA-256と一致することを確認します。
+隔離stagingで`web/game-catalog.json`の対象IDだけをその版の既存entryへ戻し、
+`validate_assets`と`make check`を通します。新旧どちらの固定URLも削除・上書きせず、
+他作品のentryと全資産hashが変わらないことを差分で確認します。
+公開rollbackには別途承認を得て、同一SHAのCI・Pages成功と公開catalog/CJRの
+取得・起動を確認します。Wikiはその時点の`jr200-dev/main`を基準に隔離branchを
+作り、対象作品の公開版情報だけを正常版の固定packageと整合させます。他作品の
+公開版情報や生成ページは維持し、全公開作品について`public_check.py`と
+`generate.py --expected-commit <更新後のmain SHA> check`を通します。Wiki同期の
+dry-runで対象作品以外の予期しない変更がないことを確認し、別途承認後に同期します。
+手書きページは維持し、同期後は更新後の`main`を`--root`に指定して
+`tools/wiki/public_check.py --after-wiki-push`で全公開ZIP・CJR・Wikiを再照合します。
+古いsource cloneを全公開作品の検証元には使いません。隔離fixtureでは推奨版の
+復帰とWiki生成ページの復帰をそれぞれ試験済みですが、公開サイトのrollbackは実施していません。
+
 承認済みの差分だけを`web/`へ反映し、`web/game-assets.json`の完全一致allow-listに
 CJR・LICENSE・noticeを登録します。`source-manifest.json`はソースだけ、
 `game-assets.json`はゲーム資産だけを列挙し、`make sbom`、

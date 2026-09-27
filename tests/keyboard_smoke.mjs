@@ -145,6 +145,8 @@ for (const mode of Object.values(INPUT_MODES)) {
 }
 
 assert.equal(keyIdForKeyboardEvent({code: 'KeyQ'}), 'KeyQ');
+assert.equal(keyIdForKeyboardEvent({code: 'Enter'}), 'Return');
+assert.equal(keyIdForKeyboardEvent({code: 'NumpadEnter'}), 'Return');
 assert.equal(keyIdForKeyboardEvent({code: 'PageUp'}), 'ModeGraph');
 assert.equal(keyIdForKeyboardEvent({code: 'Convert'}), 'ModeGraph');
 assert.equal(keyIdForKeyboardEvent({code: 'PageDown'}), 'ModeAnk');

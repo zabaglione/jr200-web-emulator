@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -16,6 +17,7 @@ import time
 from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 
 ELEMENT_KEY = "element-6066-11e4-a52e-4f735466cecf"
@@ -151,7 +153,64 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--width", type=int, default=1920)
     parser.add_argument("--height", type=int, default=1080)
     parser.add_argument("--screenshot", type=Path)
+    parser.add_argument("--game", help="published catalog game ID to launch")
+    parser.add_argument("--start-key", choices=("return", "numpad-enter"),
+                        default="return")
     return parser.parse_args()
+
+
+def game_smoke(driver: WebDriver, args: argparse.Namespace) -> None:
+    if args.game != "brick-pulse":
+        raise RuntimeError("Only brick-pulse has a defined start-input assertion")
+    query = parse_qs(urlsplit(args.url).query)
+    if query != {"game": [args.game], "launch": ["1"]}:
+        raise RuntimeError("The game URL must select exactly one automatic launch")
+    base = args.url.split("?", 1)[0]
+    with urlopen(urljoin(base, "game-catalog.json"), timeout=20) as response:
+        catalog = json.load(response)
+    matches = [entry for entry in catalog["games"] if entry["id"] == args.game]
+    if len(matches) != 1:
+        raise RuntimeError("The published game is not unique in the catalog")
+    entry = matches[0]
+    if entry.get("path") != f"games/{args.game}/{entry.get('version')}/{args.game}.cjr":
+        raise RuntimeError("The published game path is not fixed to its ID and version")
+    with urlopen(urljoin(base, entry["path"]), timeout=20) as response:
+        cjr = response.read(1024 * 1024 + 1)
+    if len(cjr) > 1024 * 1024 or hashlib.sha256(cjr).hexdigest() != entry["sha256"]:
+        raise RuntimeError("Published CJR hash mismatch")
+    driver.wait_text("#game-launch-status", "ROM/FONT", timeout=30)
+    driver.upload("#rom-combined", args.rom)
+    driver.upload("#font", args.font)
+    driver.wait_text("#game-launch-status", "を起動しました", timeout=120)
+    status = driver.text("#game-launch-status")
+    if entry["title"] not in status:
+        raise RuntimeError("The wrong game reached the title screen")
+    before = driver.execute("return document.querySelector('#screen').toDataURL()")
+    driver.execute("window.__smokeKeys=[]; addEventListener('keydown', e => "
+                   "window.__smokeKeys.push({key:e.key,code:e.code}))")
+    driver.type_keys("#screen", "\ue006" if args.start_key == "return" else "\ue007",
+                     delay_ms=75)
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        if driver.execute("return document.querySelector('#screen').toDataURL()") != before:
+            break
+        time.sleep(0.2)
+    else:
+        if args.screenshot:
+            args.screenshot.parent.mkdir(parents=True, exist_ok=True)
+            args.screenshot.write_bytes(base64.b64decode(driver.call("GET", "/screenshot")))
+        focus = driver.execute("return document.activeElement?.id || ''")
+        keys = driver.execute("return window.__smokeKeys")
+        raise RuntimeError("Start input did not change the game screen; "
+                           f"focus={focus}; keys={keys}; machine={driver.text('#machine-status')}")
+    if args.screenshot:
+        args.screenshot.parent.mkdir(parents=True, exist_ok=True)
+        args.screenshot.write_bytes(base64.b64decode(driver.call("GET", "/screenshot")))
+    print(json.dumps({"status": "passed", "browser": driver.capabilities.get("browserName"),
+                      "browserVersion": driver.capabilities.get("browserVersion"),
+                      "game": args.game, "version": entry["version"],
+                      "startKey": args.start_key,
+                      "cjrSha256": entry["sha256"]}, sort_keys=True))
 
 
 def main() -> None:
@@ -168,6 +227,10 @@ def main() -> None:
         driver.wait_text("#status", "WASM起動済み")
         if "CPUは実行していません" not in driver.text("#machine-status"):
             raise RuntimeError("No-ROM boundary did not remain stopped")
+
+        if args.game:
+            game_smoke(driver, args)
+            return
 
         driver.upload("#rom-combined", args.rom)
         driver.upload("#font", args.font)

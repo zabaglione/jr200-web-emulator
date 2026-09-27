@@ -264,10 +264,12 @@ def main() -> None:
                 linked.route('**/game-catalog.json', lambda route: route.fulfill(
                     status=200, content_type='application/json',
                     body=json.dumps(linked_catalog)))
-                linked.route('**/games/test-game/1.0.0/test-game.cjr',
-                             lambda route: route.fulfill(
-                                 status=200, content_type='application/octet-stream',
-                                 body=GOLDEN))
+                linked_cjr_response = {'status': 200, 'body': GOLDEN}
+                def serve_linked_cjr(route):
+                    route.fulfill(status=linked_cjr_response['status'],
+                                  content_type='application/octet-stream',
+                                  body=linked_cjr_response['body'])
+                linked.route('**/games/test-game/1.0.0/test-game.cjr', serve_linked_cjr)
                 linked.goto(base+'/?game=test-game', wait_until='networkidle')
                 expect(linked.locator('#game-launch-status')).to_contain_text(
                     'TEST GAME 1.0.0 をカセットにセット')
@@ -316,6 +318,19 @@ def main() -> None:
                 linked.goto(base+'/?game=../bad', wait_until='networkidle')
                 expect(linked.locator('#game-launch-status')).to_contain_text(
                     'ゲームIDが不正')
+                for status, body, expected in [
+                    (404, b'', '作品CJRを取得できません'),
+                    (200, GOLDEN[:-1] + b'\x00', 'SHA-256が一致しません'),
+                ]:
+                    linked_cjr_response.update(status=status, body=body)
+                    linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
+                    expect(linked.locator('#game-launch-status')).to_contain_text(expected)
+                    expect(linked.locator('#game-launch-instructions')).to_contain_text(
+                        '手元のCJRを選んで読み込むことはできます')
+                    expect(linked.locator('#tape-mount-state')).to_have_attribute(
+                        'data-state', 'none')
+                    expect(linked.locator('#machine-status')).to_contain_text('ROM未提供')
+                linked_cjr_response.update(status=200, body=GOLDEN)
                 linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
                 expect(linked.locator('#game-launch-status')).to_contain_text(
                     'ROM/FONTを確認しています')
@@ -1537,6 +1552,17 @@ def main() -> None:
                 page.wait_for_timeout(100)
                 page.locator('#debug-memory-read').click()
                 expect(page.locator('#debug-memory')).to_contain_text('C100: 21')
+
+                key_a.evaluate('''node => {
+                  window.__numpadVirtualClicks = 0;
+                  node.addEventListener('click', () => ++window.__numpadVirtualClicks);
+                }''')
+                key_a.focus()
+                page.keyboard.press('NumpadEnter')
+                page.wait_for_timeout(150)
+                assert page.evaluate('window.__numpadVirtualClicks') == 1
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 61')
 
                 page.locator('.virtual-key[data-key-id="ModeGraph"]').click()
                 expect(page.locator('#input-mode-status')).to_contain_text('GRAPH')
