@@ -166,14 +166,41 @@ class ExportContractTests(unittest.TestCase):
         self.assertEqual(assets[self.entry['path']], cjr())
         self.assertEqual(json.loads((self.web / 'game-catalog.json').read_text())
                          ['games'][0]['version'], '1.1.0')
-        new_catalog = (self.web / 'game-catalog.json').read_bytes()
-        (self.web / 'game-catalog.json').write_bytes(old_catalog)
+        other_prefix = 'games/other-game/2.0.0/'
+        other_entry = {**self.entry, 'id': 'other-game', 'title': 'OTHER GAME',
+                       'version': '2.0.0', 'path': other_prefix + 'other-game.cjr'}
+        ledger = json.loads((self.web / 'game-assets.json').read_text())
+        for name, payload in self.payloads.items():
+            other_name = other_prefix + ('other-game.cjr' if name.endswith('.cjr')
+                                          else name.removeprefix(self.prefix))
+            if name.endswith('EXPORT.json'):
+                payload = encoded({**self.source, 'id': 'other-game',
+                                   'title': 'OTHER GAME', 'version': '2.0.0',
+                                   'web_version': '2.0.0'})
+            path = self.web / other_name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(payload)
+            ledger['files'][other_name] = {'size': len(payload), 'sha256': digest(payload)}
+        (self.web / 'game-assets.json').write_bytes(encoded(ledger))
+        unchanged_ledger = (self.web / 'game-assets.json').read_bytes()
+        new_catalog = json.loads((self.web / 'game-catalog.json').read_text())
+        new_catalog['games'].append(other_entry)
+        (self.web / 'game-catalog.json').write_bytes(encoded(new_catalog))
+        self.assertEqual(validate_assets(self.web)[other_entry['path']], cjr())
+
+        rolled_back_catalog = json.loads((self.web / 'game-catalog.json').read_text())
+        rolled_back_catalog['games'][0] = json.loads(old_catalog)['games'][0]
+        (self.web / 'game-catalog.json').write_bytes(encoded(rolled_back_catalog))
         rolled_back = validate_assets(self.web)
         self.assertEqual(json.loads((self.web / 'game-catalog.json').read_text())
                          ['games'][0]['version'], '1.0.0')
+        self.assertEqual(json.loads((self.web / 'game-catalog.json').read_text())
+                         ['games'][1], other_entry)
+        self.assertEqual((self.web / 'game-assets.json').read_bytes(), unchanged_ledger)
         self.assertEqual(rolled_back[first_file], old_bytes)
         self.assertEqual(rolled_back[self.entry['path']], cjr())
-        (self.web / 'game-catalog.json').write_bytes(new_catalog)
+        self.assertEqual(rolled_back[other_entry['path']], cjr())
+        (self.web / 'game-catalog.json').write_bytes(encoded(new_catalog))
         self.assertEqual(validate_assets(self.web)[self.entry['path']], cjr())
 
     def test_tamper_and_stale_catalog_are_rejected_without_output(self):

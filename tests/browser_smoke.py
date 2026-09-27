@@ -1553,6 +1553,17 @@ def main() -> None:
                 page.locator('#debug-memory-read').click()
                 expect(page.locator('#debug-memory')).to_contain_text('C100: 21')
 
+                key_a.evaluate('''node => {
+                  window.__numpadVirtualClicks = 0;
+                  node.addEventListener('click', () => ++window.__numpadVirtualClicks);
+                }''')
+                key_a.focus()
+                page.keyboard.press('NumpadEnter')
+                page.wait_for_timeout(150)
+                assert page.evaluate('window.__numpadVirtualClicks') == 1
+                page.locator('#debug-memory-read').click()
+                expect(page.locator('#debug-memory')).to_contain_text('C100: 61')
+
                 page.locator('.virtual-key[data-key-id="ModeGraph"]').click()
                 expect(page.locator('#input-mode-status')).to_contain_text('GRAPH')
                 assert key_a.get_attribute('data-code') == '91'
