@@ -151,14 +151,14 @@ def main() -> None:
 
                 page.route("**/*", guard)
                 page.goto(base + "/", wait_until="networkidle")
-                page.locator("#rom-combined").set_input_files(
+                page.locator("#rom-combined:enabled").set_input_files(
                     {
                         "name": "performance.rom",
                         "mimeType": "application/octet-stream",
                         "buffer": bytes(ROM),
                     }
                 )
-                page.locator("#font").set_input_files(
+                page.locator("#font:enabled").set_input_files(
                     {
                         "name": "performance-font.bin",
                         "mimeType": "application/octet-stream",
@@ -167,8 +167,9 @@ def main() -> None:
                 )
                 page.locator("#start").click()
                 expect(page.locator("#machine-status")).to_contain_text("実行中")
-                page.locator("#audio-enable").click()
+                # Starting the emulator also starts audio with the default settings.
                 expect(page.locator("#audio-status")).to_contain_text("context running")
+                page.wait_for_function("() => globalThis.__audioContexts[0]?.sources.length > 0")
                 page.wait_for_timeout(1000)
 
                 start_cycles = status_number(
@@ -187,6 +188,9 @@ def main() -> None:
                 audio_status = page.locator("#audio-status").text_content() or ""
                 end_underruns = status_number(audio_status, r"underrun (\d+)")
                 core_overflow = status_number(audio_status, r"core overflow (\d+)")
+                cycles = end_cycles - start_cycles
+                if cycles <= 0:
+                    raise RuntimeError("Emulator did not advance during the measurement window")
                 if errors or external:
                     raise RuntimeError({"pageErrors": errors, "externalRequests": external})
                 print(
@@ -196,10 +200,8 @@ def main() -> None:
                             "viewport": [1920, 960],
                             "dpr": page.evaluate("devicePixelRatio"),
                             "durationMs": args.duration_ms,
-                            "cycles": end_cycles - start_cycles,
-                            "cyclesPerSecond": round(
-                                (end_cycles - start_cycles) * 1000 / args.duration_ms
-                            ),
+                            "cycles": cycles,
+                            "cyclesPerSecond": round(cycles * 1000 / args.duration_ms),
                             "underruns": end_underruns - start_underruns,
                             "coreOverflow": core_overflow,
                             "externalRequests": len(external),
