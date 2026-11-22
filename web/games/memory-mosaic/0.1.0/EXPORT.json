@@ -1,0 +1,19 @@
+{
+  "id": "memory-mosaic",
+  "title": "MEMORY MOSAIC",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "7cf519ba27739a471a0909085272cc01098efba9b3232372c71cda5ef49c1b8a",
+  "cjr_size": 5146,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "5ceb3d2ac7efcd2af5877c9ade5079ca72120a4de55da1d08b5041b6ead640f9",
+  "hardware": "not_run",
+  "title_marker": "MEMORY MOSAIC"
+}

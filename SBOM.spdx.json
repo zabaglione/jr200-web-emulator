@@ -118,6 +118,40 @@
       "primaryPackagePurpose": "TEST"
     },
     {
+      "name": "abyss-signal",
+      "SPDXID": "SPDXRef-Package-Game-abyss-signal-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5e5344a286642d6ad248885aad694ad43ceb5fe9ff053f3e9c017b4c2f94c70c"
+        }
+      ]
+    },
+    {
+      "name": "auction-house",
+      "SPDXID": "SPDXRef-Package-Game-auction-house-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5c710b2224b5ae1d589cf001b9ceb9e5ea4308a3d978e76e19983e8cf7ddc653"
+        }
+      ]
+    },
+    {
       "name": "brick-pulse",
       "SPDXID": "SPDXRef-Package-Game-brick-pulse-0-1-0",
       "versionInfo": "0.1.0",
@@ -152,6 +186,57 @@
       ]
     },
     {
+      "name": "cargo-balance",
+      "SPDXID": "SPDXRef-Package-Game-cargo-balance-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "074f77f10b16354e469db6096785433832406cf0e46b2f2dfa233416185998c3"
+        }
+      ]
+    },
+    {
+      "name": "chain-suit",
+      "SPDXID": "SPDXRef-Package-Game-chain-suit-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "267735c4d1d15ca99e8cc8a5be1a9f0a045df4141c2f5ad636e87d0ccdc4b5f4"
+        }
+      ]
+    },
+    {
+      "name": "chrono-breach",
+      "SPDXID": "SPDXRef-Package-Game-chrono-breach-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "87f662f87d1544a261820f37be08792f321230a1fb419b3e6d19f286288fae50"
+        }
+      ]
+    },
+    {
       "name": "circuit-works",
       "SPDXID": "SPDXRef-Package-Game-circuit-works-0-1-0",
       "versionInfo": "0.1.0",
@@ -165,6 +250,23 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "6c51881031bf87f4bfc22ea3576e0256d56defe6beb95fd2bdbb8d49726cada9"
+        }
+      ]
+    },
+    {
+      "name": "compass-rose",
+      "SPDXID": "SPDXRef-Package-Game-compass-rose-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b80d56e9675cc83fbfe39c96f41d605033731b064fb895108f243cba13d92a04"
         }
       ]
     },
@@ -186,6 +288,142 @@
       ]
     },
     {
+      "name": "dice-relic",
+      "SPDXID": "SPDXRef-Package-Game-dice-relic-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "21e30ccc8ce70ed4fc1bc7644d050b042bbbdb0bf91adc8648a98f08409986fd"
+        }
+      ]
+    },
+    {
+      "name": "echo-parry",
+      "SPDXID": "SPDXRef-Package-Game-echo-parry-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "77bf62a0e99f8cb047cc1df34563067cc3fefceb891095261c2f29a4ad54f6e3"
+        }
+      ]
+    },
+    {
+      "name": "five-forge",
+      "SPDXID": "SPDXRef-Package-Game-five-forge-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a0002d227154b40035c9c283a149d304555102d3837dd9d0c9be4be4f04628c7"
+        }
+      ]
+    },
+    {
+      "name": "frost-steps",
+      "SPDXID": "SPDXRef-Package-Game-frost-steps-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7472e7a1596a81080318e4f8e9a50e51be03c5fe40ce0cdd70603ed115d70689"
+        }
+      ]
+    },
+    {
+      "name": "fuse-box",
+      "SPDXID": "SPDXRef-Package-Game-fuse-box-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "42fa53a2367527ed1efa250b0f9cecb0f653ce53575cbaabd73da03be8112644"
+        }
+      ]
+    },
+    {
+      "name": "gate-runner",
+      "SPDXID": "SPDXRef-Package-Game-gate-runner-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6a909e8b42ed3f151afa6ab809a582fe3247209947d814e6d418a3d75a94cbf8"
+        }
+      ]
+    },
+    {
+      "name": "glyph-shift",
+      "SPDXID": "SPDXRef-Package-Game-glyph-shift-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d281983f6669844db0e2d5d3254bb9f9a0ab0695cbd912c9c5f234e2c98bf873"
+        }
+      ]
+    },
+    {
+      "name": "gravity-well",
+      "SPDXID": "SPDXRef-Package-Game-gravity-well-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1637c4abfdfa11feaf5d86b4fc05168a2d6be871a9b8c057c7a009effc8d5c3a"
+        }
+      ]
+    },
+    {
       "name": "hearth-zero",
       "SPDXID": "SPDXRef-Package-Game-hearth-zero-0-1-0",
       "versionInfo": "0.1.0",
@@ -199,6 +437,40 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "79395367d52bf7750281250a58bdc71cd141475e75576979df9d73ea3792cdab"
+        }
+      ]
+    },
+    {
+      "name": "iron-script",
+      "SPDXID": "SPDXRef-Package-Game-iron-script-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "90125c5f56abb7e699865e5da93055ca49423493b00ea24b3313f5742b551035"
+        }
+      ]
+    },
+    {
+      "name": "loop-ten",
+      "SPDXID": "SPDXRef-Package-Game-loop-ten-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "794b9c79d777b1c015bb5c6c4d5685eee5ff6925f13bf97c48cb61660a8682e1"
         }
       ]
     },
@@ -220,6 +492,278 @@
       ]
     },
     {
+      "name": "lunar-touchdown",
+      "SPDXID": "SPDXRef-Package-Game-lunar-touchdown-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "13da9b60d160434652aa7b2ae66313c7855f922643675538d451b806f38d1d67"
+        }
+      ]
+    },
+    {
+      "name": "magnet-vault",
+      "SPDXID": "SPDXRef-Package-Game-magnet-vault-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f9c8f6c4170eaad13bd9799108f61ec8c1160ea326f421660132124b0a8af5c8"
+        }
+      ]
+    },
+    {
+      "name": "memory-mosaic",
+      "SPDXID": "SPDXRef-Package-Game-memory-mosaic-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7cf519ba27739a471a0909085272cc01098efba9b3232372c71cda5ef49c1b8a"
+        }
+      ]
+    },
+    {
+      "name": "metro-weave",
+      "SPDXID": "SPDXRef-Package-Game-metro-weave-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "41401e6fb286d8845c82a8a63556b9052cc1275655dd9501933a09d4f10ba954"
+        }
+      ]
+    },
+    {
+      "name": "mirror-relic",
+      "SPDXID": "SPDXRef-Package-Game-mirror-relic-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ff301c4ef9e342438093b2d24d85f38c08a93bcc0b3c62b98f71e75130f82f05"
+        }
+      ]
+    },
+    {
+      "name": "night-swarm",
+      "SPDXID": "SPDXRef-Package-Game-night-swarm-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "de7242be9242c799bf16e4a31c346515349f615c88b5767d46c75e58c9e0cf16"
+        }
+      ]
+    },
+    {
+      "name": "number-vault",
+      "SPDXID": "SPDXRef-Package-Game-number-vault-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "41b262a5ddebbe2b54886ff04db7accdb957db69a7b244ed2f1f5d2cc73f1881"
+        }
+      ]
+    },
+    {
+      "name": "orbit-dodge",
+      "SPDXID": "SPDXRef-Package-Game-orbit-dodge-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a181c01969bbc4c0b9eb00a68544057c6fc149042a1b4a260b6cb6196670ac43"
+        }
+      ]
+    },
+    {
+      "name": "orbit-draft",
+      "SPDXID": "SPDXRef-Package-Game-orbit-draft-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d130b79e4486490cf2658a5838fd05b607cb4f06d9c975092bb9ca0d56ead070"
+        }
+      ]
+    },
+    {
+      "name": "orchard-days",
+      "SPDXID": "SPDXRef-Package-Game-orchard-days-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9fd2aa23f9f69d459bafa19cc545a116de026db379529603086079ba1ceba3c4"
+        }
+      ]
+    },
+    {
+      "name": "peg-garden",
+      "SPDXID": "SPDXRef-Package-Game-peg-garden-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ccad0100acae6ce128110911157a5eef6d555a5d8ae699954e9ce2760e1ad1d0"
+        }
+      ]
+    },
+    {
+      "name": "pendulum-port",
+      "SPDXID": "SPDXRef-Package-Game-pendulum-port-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "274885990b17909519a4e545711f1c97b8279d9741fd00998d33cb702b0c0c6c"
+        }
+      ]
+    },
+    {
+      "name": "phase-pairs",
+      "SPDXID": "SPDXRef-Package-Game-phase-pairs-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "93cf4bc488d3d41175fd5caad3ea6f76af69cc885d45b116d46a860afa2d5ef0"
+        }
+      ]
+    },
+    {
+      "name": "potion-path",
+      "SPDXID": "SPDXRef-Package-Game-potion-path-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f637da392a7f7af7da7cf38b99c8011b18e7a5484ec6da4cf5c2e72f15b9528f"
+        }
+      ]
+    },
+    {
+      "name": "prism-trace",
+      "SPDXID": "SPDXRef-Package-Game-prism-trace-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "63636f604f08773a8cff8ac7647f48ced0db9b85aa8337ab072da7efd13bfc15"
+        }
+      ]
+    },
+    {
+      "name": "quiet-route",
+      "SPDXID": "SPDXRef-Package-Game-quiet-route-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f8f89697a5ed0e255c4ff3f392b216853ec82d2306deb48287f90446229bf574"
+        }
+      ]
+    },
+    {
       "name": "relic-dive",
       "SPDXID": "SPDXRef-Package-Game-relic-dive-0-1-1",
       "versionInfo": "0.1.1",
@@ -233,6 +777,91 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "16261dd1350a6b3b8b4ec76f4253039daa56f29bbe90f4ebe93b80449364c399"
+        }
+      ]
+    },
+    {
+      "name": "ribbon-snake",
+      "SPDXID": "SPDXRef-Package-Game-ribbon-snake-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "91acb859ab23bb39e4854a4cf8f673b19f8dec55409897aae020c58bed87633d"
+        }
+      ]
+    },
+    {
+      "name": "ruin-lexicon",
+      "SPDXID": "SPDXRef-Package-Game-ruin-lexicon-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5427ac931ae8a5ee54ebc92f754d0a004cc9f7b0b07b1028fd12bc05400468be"
+        }
+      ]
+    },
+    {
+      "name": "sand-rescue",
+      "SPDXID": "SPDXRef-Package-Game-sand-rescue-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ee8544b769df5ed9ad42d631ce6a0925330c576f52890b538b9ce40b6643368d"
+        }
+      ]
+    },
+    {
+      "name": "seed-merge",
+      "SPDXID": "SPDXRef-Package-Game-seed-merge-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "79497def55904a480333db39554a8f7147472f3ae72751e67ff08f6ccdaede44"
+        }
+      ]
+    },
+    {
+      "name": "shadow-archive",
+      "SPDXID": "SPDXRef-Package-Game-shadow-archive-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3539c47ee6caf0ebe87b38ba63dbd78cc23a3f2f0547c8bf8deaf3979ed8689c"
         }
       ]
     },
@@ -267,6 +896,142 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "afb7532fb0add608acc147e1c8c96600357e455fe9ae183a61484493f691816b"
+        }
+      ]
+    },
+    {
+      "name": "sigil-deck",
+      "SPDXID": "SPDXRef-Package-Game-sigil-deck-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9a0c990fa32d0d0c4c92c2f4b1077c02a020cd43ba351e9df485df35e014f17c"
+        }
+      ]
+    },
+    {
+      "name": "star-lance",
+      "SPDXID": "SPDXRef-Package-Game-star-lance-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d11120711eb72ca10623c6f3a5f9e7885e2974397346e53f503a70ebcba58f8a"
+        }
+      ]
+    },
+    {
+      "name": "stone-balance",
+      "SPDXID": "SPDXRef-Package-Game-stone-balance-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5c4b304073510d0acebc66c9ed6753bff6eaed964a31ebf1f4d59e4d1052009a"
+        }
+      ]
+    },
+    {
+      "name": "tidal-nets",
+      "SPDXID": "SPDXRef-Package-Game-tidal-nets-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "75a46f287d4e132dddf3513fac8b610bef9cb33c370150539f4a0bff9abaabbb"
+        }
+      ]
+    },
+    {
+      "name": "tide-bridge",
+      "SPDXID": "SPDXRef-Package-Game-tide-bridge-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3bd9a98dc61e8f83b417f0884f03366d92e495636165bc491dbef6b83cbd1dd0"
+        }
+      ]
+    },
+    {
+      "name": "trace-blade",
+      "SPDXID": "SPDXRef-Package-Game-trace-blade-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "76e8c94cd9fa8e3ad05f6b55832d1159cd84681ec77b96f9d497593a90b61fe4"
+        }
+      ]
+    },
+    {
+      "name": "twenty-one",
+      "SPDXID": "SPDXRef-Package-Game-twenty-one-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4dd3fd4dd3dc147bb3119c0a01ad82c35cb59c548d8fa0dad6bf28bad3381a69"
+        }
+      ]
+    },
+    {
+      "name": "word-foundry",
+      "SPDXID": "SPDXRef-Package-Game-word-foundry-0-1-0",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "108ab38ffbdaf809d30d40cd0245f99f0749826d65ea2e40f72bf43d0300f726"
         }
       ]
     }
@@ -320,6 +1085,18 @@
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-abyss-signal-0-1-0",
+      "comment": "Approved immutable Web game abyss-signal/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-auction-house-0-1-0",
+      "comment": "Approved immutable Web game auction-house/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-Package-Game-brick-pulse-0-1-0",
       "comment": "Approved immutable Web game brick-pulse/0.1.0."
     },
@@ -332,8 +1109,32 @@
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-cargo-balance-0-1-0",
+      "comment": "Approved immutable Web game cargo-balance/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-chain-suit-0-1-0",
+      "comment": "Approved immutable Web game chain-suit/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-chrono-breach-0-1-0",
+      "comment": "Approved immutable Web game chrono-breach/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-Package-Game-circuit-works-0-1-0",
       "comment": "Approved immutable Web game circuit-works/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-compass-rose-0-1-0",
+      "comment": "Approved immutable Web game compass-rose/0.1.0."
     },
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
@@ -344,8 +1145,68 @@
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-dice-relic-0-1-0",
+      "comment": "Approved immutable Web game dice-relic/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-echo-parry-0-1-0",
+      "comment": "Approved immutable Web game echo-parry/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-five-forge-0-1-0",
+      "comment": "Approved immutable Web game five-forge/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-frost-steps-0-1-0",
+      "comment": "Approved immutable Web game frost-steps/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-fuse-box-0-1-0",
+      "comment": "Approved immutable Web game fuse-box/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-gate-runner-0-1-0",
+      "comment": "Approved immutable Web game gate-runner/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-glyph-shift-0-1-0",
+      "comment": "Approved immutable Web game glyph-shift/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-gravity-well-0-1-0",
+      "comment": "Approved immutable Web game gravity-well/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-Package-Game-hearth-zero-0-1-0",
       "comment": "Approved immutable Web game hearth-zero/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-iron-script-0-1-0",
+      "comment": "Approved immutable Web game iron-script/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-loop-ten-0-1-0",
+      "comment": "Approved immutable Web game loop-ten/0.1.0."
     },
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
@@ -356,8 +1217,134 @@
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-lunar-touchdown-0-1-0",
+      "comment": "Approved immutable Web game lunar-touchdown/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-magnet-vault-0-1-0",
+      "comment": "Approved immutable Web game magnet-vault/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-memory-mosaic-0-1-0",
+      "comment": "Approved immutable Web game memory-mosaic/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-metro-weave-0-1-0",
+      "comment": "Approved immutable Web game metro-weave/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-mirror-relic-0-1-0",
+      "comment": "Approved immutable Web game mirror-relic/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-night-swarm-0-1-0",
+      "comment": "Approved immutable Web game night-swarm/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-number-vault-0-1-0",
+      "comment": "Approved immutable Web game number-vault/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-orbit-dodge-0-1-0",
+      "comment": "Approved immutable Web game orbit-dodge/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-orbit-draft-0-1-0",
+      "comment": "Approved immutable Web game orbit-draft/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-orchard-days-0-1-0",
+      "comment": "Approved immutable Web game orchard-days/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-peg-garden-0-1-0",
+      "comment": "Approved immutable Web game peg-garden/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-pendulum-port-0-1-0",
+      "comment": "Approved immutable Web game pendulum-port/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-phase-pairs-0-1-0",
+      "comment": "Approved immutable Web game phase-pairs/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-potion-path-0-1-0",
+      "comment": "Approved immutable Web game potion-path/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-prism-trace-0-1-0",
+      "comment": "Approved immutable Web game prism-trace/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-quiet-route-0-1-0",
+      "comment": "Approved immutable Web game quiet-route/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-Package-Game-relic-dive-0-1-1",
       "comment": "Approved immutable Web game relic-dive/0.1.1."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-ribbon-snake-0-1-0",
+      "comment": "Approved immutable Web game ribbon-snake/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-ruin-lexicon-0-1-0",
+      "comment": "Approved immutable Web game ruin-lexicon/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-sand-rescue-0-1-0",
+      "comment": "Approved immutable Web game sand-rescue/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-seed-merge-0-1-0",
+      "comment": "Approved immutable Web game seed-merge/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-shadow-archive-0-1-0",
+      "comment": "Approved immutable Web game shadow-archive/0.1.0."
     },
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
@@ -370,6 +1357,54 @@
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-Package-Game-side-catch-0-1-3",
       "comment": "Approved immutable Web game side-catch/0.1.3."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-sigil-deck-0-1-0",
+      "comment": "Approved immutable Web game sigil-deck/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-star-lance-0-1-0",
+      "comment": "Approved immutable Web game star-lance/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-stone-balance-0-1-0",
+      "comment": "Approved immutable Web game stone-balance/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-tidal-nets-0-1-0",
+      "comment": "Approved immutable Web game tidal-nets/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-tide-bridge-0-1-0",
+      "comment": "Approved immutable Web game tide-bridge/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-trace-blade-0-1-0",
+      "comment": "Approved immutable Web game trace-blade/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-twenty-one-0-1-0",
+      "comment": "Approved immutable Web game twenty-one/0.1.0."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-word-foundry-0-1-0",
+      "comment": "Approved immutable Web game word-foundry/0.1.0."
     }
   ],
   "hasExtractedLicensingInfos": [

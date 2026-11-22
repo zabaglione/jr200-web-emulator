@@ -1,0 +1,19 @@
+{
+  "id": "iron-script",
+  "title": "IRON SCRIPT",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "90125c5f56abb7e699865e5da93055ca49423493b00ea24b3313f5742b551035",
+  "cjr_size": 9848,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "3d6380ed499079f9181f97299c0abe0b0890b2db837bb86ad18d9e5dfd7a3515",
+  "hardware": "not_run",
+  "title_marker": "IRON SCRIPT"
+}

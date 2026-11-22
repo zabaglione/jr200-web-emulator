@@ -323,7 +323,9 @@ class PublishedSbomTests(unittest.TestCase):
         sbom = document()
         games = {item['name']: item for item in sbom['packages']
                  if item['SPDXID'].startswith('SPDXRef-Package-Game-')}
-        self.assertEqual(len(games), 7)
+        catalog = Path(__file__).resolve().parents[1] / 'web/game-catalog.json'
+        published_ids = {entry['id'] for entry in json.loads(catalog.read_text())['games']}
+        self.assertEqual(set(games), published_ids)
         self.assertEqual(games['side-catch']['licenseDeclared'], 'BSD-3-Clause')
         self.assertEqual(games['side-catch']['licenseConcluded'], 'BSD-3-Clause')
         for name in set(games) - {'side-catch'}:

@@ -1,0 +1,19 @@
+{
+  "id": "chain-suit",
+  "title": "CHAIN SUIT",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "267735c4d1d15ca99e8cc8a5be1a9f0a045df4141c2f5ad636e87d0ccdc4b5f4",
+  "cjr_size": 5004,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "ebcb29b95738eb3dabc5fea2f2ac30a811737591db07f8b93198cee8ae693e74",
+  "hardware": "not_run",
+  "title_marker": "CHAIN SUIT"
+}

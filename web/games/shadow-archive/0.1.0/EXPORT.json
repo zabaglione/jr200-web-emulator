@@ -1,0 +1,19 @@
+{
+  "id": "shadow-archive",
+  "title": "SHADOW ARCHIVE",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "3539c47ee6caf0ebe87b38ba63dbd78cc23a3f2f0547c8bf8deaf3979ed8689c",
+  "cjr_size": 5050,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "a7431860ed8be42ae3889a94ccc549aada55781fd25864767d598fb6a5fbac56",
+  "hardware": "not_run",
+  "title_marker": "SHADOW ARCHIVE"
+}

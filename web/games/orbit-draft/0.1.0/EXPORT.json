@@ -1,0 +1,19 @@
+{
+  "id": "orbit-draft",
+  "title": "ORBIT DRAFT",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "d130b79e4486490cf2658a5838fd05b607cb4f06d9c975092bb9ca0d56ead070",
+  "cjr_size": 6706,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "1f87571c392f1050a527d4cfab5c4b9355058440945db05956214298babd028d",
+  "hardware": "not_run",
+  "title_marker": "ORBIT DRAFT"
+}

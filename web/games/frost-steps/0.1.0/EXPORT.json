@@ -1,0 +1,19 @@
+{
+  "id": "frost-steps",
+  "title": "FROST STEPS",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "7472e7a1596a81080318e4f8e9a50e51be03c5fe40ce0cdd70603ed115d70689",
+  "cjr_size": 8138,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "39fed351c43f5248d86127a95821a05d1fccc72869f25dd78b3bd36d52e79c04",
+  "hardware": "not_run",
+  "title_marker": "FROST STEPS"
+}

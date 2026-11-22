@@ -1,0 +1,19 @@
+{
+  "id": "number-vault",
+  "title": "NUMBER VAULT",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "41b262a5ddebbe2b54886ff04db7accdb957db69a7b244ed2f1f5d2cc73f1881",
+  "cjr_size": 4828,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "e2c31e40d2b0b1366a5d257fba29a21f5b84c5901632991dd055b07c5d66e8f4",
+  "hardware": "not_run",
+  "title_marker": "NUMBER VAULT"
+}
