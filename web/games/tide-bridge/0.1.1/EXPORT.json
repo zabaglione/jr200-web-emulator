@@ -1,0 +1,19 @@
+{
+  "id": "tide-bridge",
+  "title": "TIDE BRIDGE",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "26f673a8ecdbb522fce8ea39b0dae7c033b67ab94e5bf05e3411e6a8700f14c5",
+  "cjr_size": 6305,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "d030cb45bc08a7d8d0feb38b8376a8ed1af6a850f4057ff08da48ed632bc277c",
+  "hardware": "not_run",
+  "title_marker": "TIDE BRIDGE"
+}

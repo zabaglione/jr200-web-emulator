@@ -1,0 +1,19 @@
+{
+  "id": "trace-blade",
+  "title": "TRACE BLADE",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "3978830c98b1f7b467898bc9c1d0920cf9151336151fde8d920aff13537816a8",
+  "cjr_size": 10278,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "a0bd9a0b42fc571630cd6d0a48278e4defaa8a1d1b1f9644e41b92781d17816c",
+  "hardware": "not_run",
+  "title_marker": "TRACE BLADE"
+}

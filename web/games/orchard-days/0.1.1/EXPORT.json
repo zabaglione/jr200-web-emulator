@@ -1,0 +1,19 @@
+{
+  "id": "orchard-days",
+  "title": "ORCHARD DAYS",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "e9daf61fe958a5b2d6af3d9bf0414c9b26ce72b27a323f41dd5af152063dda56",
+  "cjr_size": 6647,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "b3804a9d8600f92f408c65e6abcbb49b3627837d986b21e293c9b903db2c2672",
+  "hardware": "not_run",
+  "title_marker": "ORCHARD DAYS"
+}

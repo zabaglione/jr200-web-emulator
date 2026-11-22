@@ -1,0 +1,19 @@
+{
+  "id": "phase-pairs",
+  "title": "PHASE PAIRS",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "80dd8fc110d8daadb0ba2d262262a0acdd919a1cdc7ccedd6e2be6adbec3aeeb",
+  "cjr_size": 6748,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "d1b3cf4c2f824d8112309a09b0b30c71e64256f71384433bc717eba6745a0b91",
+  "hardware": "not_run",
+  "title_marker": "PHASE PAIRS"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "abyss-signal",
+  "title": "ABYSS SIGNAL",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "b737314131ae80dca971398065819e367353c130efa34077704cbb77aaa7cd8d",
+  "cjr_size": 10053,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "967a1faa828a49b35f59ce9375f7c00c0e68f48a397cb3f44332662e292db102",
+  "hardware": "not_run",
+  "title_marker": "ABYSS SIGNAL"
+}

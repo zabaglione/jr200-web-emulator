@@ -1,0 +1,19 @@
+{
+  "id": "cargo-balance",
+  "title": "CARGO BALANCE",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "0497b08d13b85786a0ddf6eef8591558c69578133c56f0f2a332f25b39c5f2f7",
+  "cjr_size": 6031,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "aa55afec4719c1135bb6acf0ab3eb0e69a5e4e6dafe7c8b19df772a89f5997f7",
+  "hardware": "not_run",
+  "title_marker": "CARGO BALANCE"
+}

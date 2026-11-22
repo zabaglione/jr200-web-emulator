@@ -1,0 +1,19 @@
+{
+  "id": "orbit-dodge",
+  "title": "ORBIT DODGE",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "f5f1b74b15b1e0bf52164080b10ca257ea4b2c2470b5cfd36b02c8460655a630",
+  "cjr_size": 7811,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "a57a4be63631fc9b76cd99e5382136b1fd62a68c9a8c2e9709ab62b6c11d12f6",
+  "hardware": "not_run",
+  "title_marker": "ORBIT DODGE"
+}

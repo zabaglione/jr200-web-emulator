@@ -1,0 +1,19 @@
+{
+  "id": "metro-weave",
+  "title": "METRO WEAVE",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "bd30eaaf732131dc91b2474e6c876cc077e38c4fd5cd458e2aea8cd6e8cda5db",
+  "cjr_size": 8426,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "43783c13aaa5d537f330e82c4413a7aa26d57e1241548a7e405ef694e8a31595",
+  "hardware": "not_run",
+  "title_marker": "METRO WEAVE"
+}

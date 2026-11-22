@@ -1,0 +1,19 @@
+{
+  "id": "circuit-works",
+  "title": "CIRCUIT WORKS",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "e83a5ae8c5bece27350b7ecb0d8a9bcaebbfd8db7d4e099a2cbb844f9b56a4c4",
+  "cjr_size": 5619,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "665c49e935b41fdaf013a0b15022c19897801f127526ec95c08e1d0fa6ca914f",
+  "hardware": "not_run",
+  "title_marker": "CIRCUIT WORKS"
+}
