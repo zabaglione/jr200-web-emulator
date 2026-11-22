@@ -292,11 +292,11 @@ def main() -> None:
                     assert placement['right'] <= linked_width, placement
                     assert placement['bottom'] <= placement['workspaceTop'], placement
                     assert placement['documentWidth'] <= linked_width, placement
-                linked.locator('#rom-combined').set_input_files({
+                linked.locator('#rom-combined:enabled').set_input_files({
                     'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
                     'buffer': bytes(ROM),
                 })
-                linked.locator('#font').set_input_files({
+                linked.locator('#font:enabled').set_input_files({
                     'name': 'synthetic-font.bin',
                     'mimeType': 'application/octet-stream', 'buffer': FONT,
                 })
@@ -304,7 +304,7 @@ def main() -> None:
                 expect(linked.locator('#machine-status')).to_contain_text('実行中')
                 expect(linked.locator('#tape-mount-state')).to_have_attribute(
                     'data-state', 'mounted')
-                linked.locator('#tape-cjr').set_input_files({
+                linked.locator('#tape-cjr:enabled').set_input_files({
                     'name': 'local.cjr', 'mimeType': 'application/octet-stream',
                     'buffer': GOLDEN,
                 })
@@ -345,21 +345,21 @@ def main() -> None:
                     'data-state', 'mounted')
                 assert linked.locator('#game-launch-cancel').is_hidden()
                 linked_catalog['games'][0]['titleMarker'] = 'TEST GAME'
-                linked.locator('#rom-combined').set_input_files({
+                linked.locator('#rom-combined:enabled').set_input_files({
                     'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
                     'buffer': bytes(ROM),
                 })
-                linked.locator('#font').set_input_files({
+                linked.locator('#font:enabled').set_input_files({
                     'name': 'synthetic-font.bin',
                     'mimeType': 'application/octet-stream', 'buffer': FONT,
                 })
                 expect(linked.locator('#machine-status')).to_contain_text('ROM未提供')
                 linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
-                linked.locator('#rom-combined').set_input_files({
+                linked.locator('#rom-combined:enabled').set_input_files({
                     'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
                     'buffer': bytes(ROM),
                 })
-                linked.locator('#font').set_input_files({
+                linked.locator('#font:enabled').set_input_files({
                     'name': 'synthetic-font.bin',
                     'mimeType': 'application/octet-stream', 'buffer': FONT,
                 })
@@ -398,11 +398,11 @@ def main() -> None:
                     '手動のカセット操作を優先')
                 linked.goto(base+'/?game=test-game&launch=1', wait_until='networkidle')
                 linked.wait_for_function('typeof window.__releaseGameCjr === "function"')
-                linked.locator('#rom-combined').set_input_files({
+                linked.locator('#rom-combined:enabled').set_input_files({
                     'name': 'synthetic.rom', 'mimeType': 'application/octet-stream',
                     'buffer': bytes(ROM),
                 })
-                linked.locator('#font').set_input_files({
+                linked.locator('#font:enabled').set_input_files({
                     'name': 'synthetic-font.bin',
                     'mimeType': 'application/octet-stream', 'buffer': FONT,
                 })
@@ -435,7 +435,7 @@ def main() -> None:
                     with zipfile.ZipFile(archive, 'w', compression=compression) as output:
                         for name, payload in pack_files.items():
                             output.writestr(name, payload)
-                    pack_page.locator('#launch-pack-zip').set_input_files({
+                    pack_page.locator('#launch-pack-zip:enabled').set_input_files({
                         'name': f'game-{compression}.zip',
                         'mimeType': 'application/zip', 'buffer': archive.getvalue(),
                     })
@@ -450,7 +450,7 @@ def main() -> None:
                     folder.mkdir()
                     for name, payload in pack_files.items():
                         (folder / name).write_bytes(payload)
-                    pack_page.locator('#launch-pack-folder').set_input_files(str(folder))
+                    pack_page.locator('#launch-pack-folder:enabled').set_input_files(str(folder))
                     expect(pack_page.locator('#launch-pack-status')).to_contain_text(
                         '自動起動はしません')
                 invalid_pack = io.BytesIO()
@@ -460,7 +460,7 @@ def main() -> None:
                     for name, payload in pack_files.items():
                         output.writestr(name, json.dumps(invalid_meta).encode()
                                         if name == 'pack.json' else payload)
-                pack_page.locator('#launch-pack-zip').set_input_files({
+                pack_page.locator('#launch-pack-zip:enabled').set_input_files({
                     'name': 'invalid.zip', 'mimeType': 'application/zip',
                     'buffer': invalid_pack.getvalue(),
                 })
@@ -477,12 +477,12 @@ def main() -> None:
                     return original.call(this);
                   };
                 }''')
-                pack_page.locator('#launch-pack-zip').set_input_files({
+                pack_page.locator('#launch-pack-zip:enabled').set_input_files({
                     'name': 'slow.zip', 'mimeType': 'application/zip',
                     'buffer': archive.getvalue(),
                 })
                 pack_page.wait_for_function('typeof window.__releasePackRead === "function"')
-                pack_page.locator('#tape-cjr').set_input_files({
+                pack_page.locator('#tape-cjr:enabled').set_input_files({
                     'name': 'manual.cjr', 'mimeType': 'application/octet-stream',
                     'buffer': GOLDEN,
                 })
@@ -492,7 +492,7 @@ def main() -> None:
                 pack_page.wait_for_timeout(250)
                 expect(pack_page.locator('#tape-mount-state')).to_have_attribute(
                     'data-state', 'pending')
-                pack_page.locator('#tape-cjr').set_input_files({
+                pack_page.locator('#tape-cjr:enabled').set_input_files({
                     'name': 'old.cjr', 'mimeType': 'application/octet-stream',
                     'buffer': bytes(SPECIAL),
                 })
@@ -509,7 +509,7 @@ def main() -> None:
                 pack_page.locator('#tape-heading').click()
                 pack_page.locator('#tape-mount').click()
                 pack_page.wait_for_function('typeof window.__releaseOldTape === "function"')
-                pack_page.locator('#launch-pack-zip').set_input_files({
+                pack_page.locator('#launch-pack-zip:enabled').set_input_files({
                     'name': 'new.zip', 'mimeType': 'application/zip',
                     'buffer': archive.getvalue(),
                 })
@@ -560,8 +560,8 @@ def main() -> None:
                     expect(local_linked.locator('#game-launch-status')).to_contain_text(
                         'ROM/FONTを確認しています' if auto_launch else
                         'LOCAL ROM TEST 0.1.0 をカセットにセット')
-                    local_linked.locator('#rom-combined').set_input_files(local_rom)
-                    local_linked.locator('#font').set_input_files(local_font)
+                    local_linked.locator('#rom-combined:enabled').set_input_files(local_rom)
+                    local_linked.locator('#font:enabled').set_input_files(local_font)
                     if not auto_launch:
                         local_linked.locator('#start').click()
                     expect(local_linked.locator('#machine-status')).to_contain_text('実行中')
@@ -619,7 +619,7 @@ def main() -> None:
                         pack_real.goto(base+'/', wait_until='networkidle')
                         expect(pack_real.locator('#asset-status li').filter(
                             has_text='（保存済み）')).to_have_count(2)
-                        pack_real.locator('#launch-pack-zip').set_input_files({
+                        pack_real.locator('#launch-pack-zip:enabled').set_input_files({
                             'name': 'local-game.zip', 'mimeType': 'application/zip',
                             'buffer': launch_zip.getvalue(),
                         })
@@ -666,12 +666,12 @@ def main() -> None:
                         '起動操作待ち')
                     assert real_audio_page.evaluate(
                         'globalThis.__nativeAudioContexts.length') == 0
-                    real_audio_page.locator('#rom-combined').set_input_files({
+                    real_audio_page.locator('#rom-combined:enabled').set_input_files({
                         'name':'real-audio.rom',
                         'mimeType':'application/octet-stream',
                         'buffer':KEYBOARD_ROM,
                     })
-                    real_audio_page.locator('#font').set_input_files({
+                    real_audio_page.locator('#font:enabled').set_input_files({
                         'name':'real-audio.bin',
                         'mimeType':'application/octet-stream',
                         'buffer':FONT,
@@ -923,12 +923,14 @@ def main() -> None:
                         persistence_page.on('pageerror', lambda error: errors.append(str(error)))
                         persistence_page.route('**/*', guard)
                         persistence_page.goto(base+'/', wait_until='networkidle')
-                        persistence_page.locator('#rom-combined').set_input_files({
+                        # IndexedDB restoration can outlast network idle. Playwright
+                        # does not wait for file inputs to become enabled on its own.
+                        persistence_page.locator('#rom-combined:enabled').set_input_files({
                             'name':'remembered.rom',
                             'mimeType':'application/octet-stream',
                             'buffer':KEYBOARD_ROM,
                         })
-                        persistence_page.locator('#font').set_input_files({
+                        persistence_page.locator('#font:enabled').set_input_files({
                             'name':'remembered.bin',
                             'mimeType':'application/octet-stream',
                             'buffer':FONT,
@@ -1135,12 +1137,12 @@ def main() -> None:
                 assert page.evaluate('globalThis.__audioContexts.length') == 0
                 expect(page.locator('#virtual-keyboard')).to_have_attribute('aria-disabled', 'true')
                 expect(page.locator('.virtual-key[data-key-id="KeyA"]')).to_be_disabled()
-                page.locator('#rom-combined').set_input_files({
+                page.locator('#rom-combined:enabled').set_input_files({
                     'name':LONG_ROM_NAME,
                     'mimeType':'application/octet-stream',
                     'buffer':KEYBOARD_ROM,
                 })
-                page.locator('#font').set_input_files({
+                page.locator('#font:enabled').set_input_files({
                     'name':LONG_FONT_NAME,
                     'mimeType':'application/octet-stream',
                     'buffer':FONT[:1024],
@@ -1149,7 +1151,7 @@ def main() -> None:
                 error_layout = layout_snapshot(page)
                 assert error_layout['width'] == 1920 and not error_layout['overlap'], error_layout
                 assert error_layout['railScrollWidth'] == error_layout['railClientWidth'], error_layout
-                page.locator('#font').set_input_files({
+                page.locator('#font:enabled').set_input_files({
                     'name':LONG_FONT_NAME,
                     'mimeType':'application/octet-stream',
                     'buffer':FONT,
@@ -1906,7 +1908,7 @@ def main() -> None:
                     page.locator('#glyph-status').inner_text(),
                 ).group(1))
 
-                page.locator('#font').set_input_files({
+                page.locator('#font:enabled').set_input_files({
                     'name':LONG_FONT_NAME,
                     'mimeType':'application/octet-stream',
                     'buffer':FONT_ALTERNATE,
@@ -1955,7 +1957,7 @@ def main() -> None:
                 page.locator('#debug-memory-read').click()
                 assert page.locator('#debug-memory').inner_text().splitlines()[0] == memory_before_form
 
-                page.locator('#rom-combined').set_input_files({'name':'synthetic.rom','mimeType':'application/octet-stream','buffer':bytes(ROM)})
+                page.locator('#rom-combined:enabled').set_input_files({'name':'synthetic.rom','mimeType':'application/octet-stream','buffer':bytes(ROM)})
                 page.locator('#start').click()
                 expect(page.locator('#emulator-notice')).to_contain_text('CPUを起動')
                 expect(page.locator('#machine-status')).to_contain_text('実行中')
@@ -2066,7 +2068,7 @@ def main() -> None:
                 expect(page.locator('#audio-status')).to_contain_text('Web Audio: 無効')
                 expect(page.locator('#audio-status')).to_contain_text('context suspended')
                 open_panel('inspect-heading')
-                page.locator('#cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
+                page.locator('#cjr:enabled').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 expect(page.locator('#result')).to_contain_text('payloadBytes')
                 summary=json.loads(page.locator('#result').inner_text())
                 assert summary['payloadBytes']==1 and summary['firstAddress']==0x7000
@@ -2088,7 +2090,7 @@ def main() -> None:
                     assert int.from_bytes(wav_bytes[34:36],'little')==16
                 expect(page.locator('#wav-status')).to_contain_text('mono 16-bit / 2400 baud')
                 expect(page.locator('#wav-status')).to_contain_text('P12で未検証')
-                page.locator('#wav-decode-input').set_input_files({'name':'roundtrip.wav','mimeType':'audio/wav','buffer':wav_bytes})
+                page.locator('#wav-decode-input:enabled').set_input_files({'name':'roundtrip.wav','mimeType':'audio/wav','buffer':wav_bytes})
                 expect(page.locator('#wav-decode-run')).to_be_enabled()
                 page.locator('#wav-decode-run').click()
                 expect(page.locator('#wav-decode-status')).to_contain_text('"verified": true')
@@ -2108,7 +2110,7 @@ def main() -> None:
                     assert decoded_output.read_bytes()==GOLDEN
                 silent_wav=bytearray(wav_bytes)
                 silent_wav[44:]=bytes(len(silent_wav)-44)
-                page.locator('#wav-decode-input').set_input_files({'name':'silence.wav','mimeType':'audio/wav','buffer':bytes(silent_wav)})
+                page.locator('#wav-decode-input:enabled').set_input_files({'name':'silence.wav','mimeType':'audio/wav','buffer':bytes(silent_wav)})
                 page.locator('#wav-decode-run').click()
                 expect(page.locator('#wav-decode-status')).to_contain_text('"errorCode": 17')
                 expect(page.locator('#wav-decode-save')).to_be_disabled()
@@ -2116,7 +2118,7 @@ def main() -> None:
                 expect(page.locator('#tape-monitor-enabled')).to_be_checked()
                 expect(page.locator('#tape-monitor-volume-value')).to_have_text('25%')
                 expect(page.locator('#tape-status')).to_contain_text('ロードモニター: ON / 25%')
-                page.locator('#tape-cjr').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
+                page.locator('#tape-cjr:enabled').set_input_files({'name':'golden.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
                 expect(page.locator('#tape-mount-state')).to_contain_text('golden.cjr（未マウント）')
                 expect(page.locator('#tape-mount')).to_have_class(re.compile(r'\bis-pending\b'))
@@ -2155,7 +2157,7 @@ def main() -> None:
                 expect(page.locator('#tape-status')).to_contain_text('状態: 停止')
                 expect(page.locator('#tape-status')).to_contain_text('payload 1 bytes')
                 expect(page.locator('#tape-status')).to_contain_text('信号位置: 0 /')
-                page.locator('#tape-cjr').set_input_files({'name':'replacement.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
+                page.locator('#tape-cjr:enabled').set_input_files({'name':'replacement.cjr','mimeType':'application/octet-stream','buffer':GOLDEN})
                 expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
                 expect(page.locator('#tape-mount-state')).to_contain_text('replacement.cjr（未マウント）')
                 expect(page.locator('#tape-mount-state')).to_contain_text('現在のマウント: golden.cjr')
@@ -2177,7 +2179,7 @@ def main() -> None:
                 page.locator('#tape-eject').click()
                 expect(page.locator('#tape-status')).to_contain_text('状態: 取出し済み')
                 expect(page.locator('#tape-mount-state')).to_have_attribute('data-state', 'pending')
-                page.locator('#tape-cjr').set_input_files({'name':'special.cjr','mimeType':'application/octet-stream','buffer':bytes(SPECIAL)})
+                page.locator('#tape-cjr:enabled').set_input_files({'name':'special.cjr','mimeType':'application/octet-stream','buffer':bytes(SPECIAL)})
                 expect(page.locator('#tape-status')).to_contain_text('対応しないCJR')
                 page.locator('#tape-mount').click()
                 expect(page.locator('#tape-status')).to_contain_text('状態: エラー')
@@ -2197,7 +2199,7 @@ def main() -> None:
                     result=page.request.get(base+'/'+name)
                     assert result.ok and len(result.body())>100, name
                 open_panel('pack-heading')
-                page.locator('#bin').set_input_files({'name':'sample.bin','mimeType':'application/octet-stream','buffer':bytes([0xab])})
+                page.locator('#bin:enabled').set_input_files({'name':'sample.bin','mimeType':'application/octet-stream','buffer':bytes([0xab])})
                 page.locator('#name').fill('X')
                 with page.expect_download() as event:
                     page.locator('#create').click()
@@ -2212,7 +2214,7 @@ def main() -> None:
                 if screenshot:
                     page.screenshot(path=screenshot, full_page=True)
                 broken=bytearray(GOLDEN); broken[40]^=1
-                page.locator('#cjr').set_input_files({'name':'broken.cjr','mimeType':'application/octet-stream','buffer':bytes(broken)})
+                page.locator('#cjr:enabled').set_input_files({'name':'broken.cjr','mimeType':'application/octet-stream','buffer':bytes(broken)})
                 expect(page.locator('#result')).to_contain_text('エラー')
                 assert '40' in page.locator('#result').inner_text()
                 final_layout = layout_snapshot(page)
