@@ -1,0 +1,19 @@
+{
+  "id": "peg-garden",
+  "title": "PEG GARDEN",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "3a9a95d692a9fabe63e9436ea1f7a36ed8d52f66ec7ae7079867b78962f6260c",
+  "cjr_size": 5738,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "c14923001ea6498015f5004d7fa131a475ed128b069edd73ab3fc56a93030c7a",
+  "hardware": "not_run",
+  "title_marker": "PEG GARDEN"
+}

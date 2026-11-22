@@ -1,0 +1,19 @@
+{
+  "id": "potion-path",
+  "title": "POTION PATH",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "71f88897eadf7276c69133289fadbe95ca2207beb09ee34508732983bbb15b7d",
+  "cjr_size": 6470,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "bcd165e253ca3b82e396c16d4ba831de36e3476352c0e8b77f14bd9ce775183a",
+  "hardware": "not_run",
+  "title_marker": "POTION PATH"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "lumen-cross",
+  "title": "LUMEN CROSS",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "24d66368da2224fda52094fffe56699f30ef1e927d7f89f918e8d1b909b3a512",
+  "cjr_size": 5332,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "436e9bb1ef4eeb0af3df3518d58fe511951c09547b06edd1b9113c1a641a6a3c",
+  "hardware": "not_run",
+  "title_marker": "LUMEN CROSS"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "prism-trace",
+  "title": "PRISM TRACE",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "6d012df51ab5125350fdcdeb80f201879c83a7b78d8b7dfcba6f0943f15700cc",
+  "cjr_size": 5870,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "7ee3a2317d8e3fef289af7a0b37b73af45496459681b56afb22d6a2a476e5bc4",
+  "hardware": "not_run",
+  "title_marker": "PRISM TRACE"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "ribbon-snake",
+  "title": "RIBBON SNAKE",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "9f5048d844fd06c47cf112278fbfe69a0a17e5a25d5923f0e5dfee9c3349e757",
+  "cjr_size": 6891,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "4dbe3062a72ef7c00286ee661efdcd5d2c2577e995b4bc8e687a7d98d4b76b2d",
+  "hardware": "not_run",
+  "title_marker": "RIBBON SNAKE"
+}

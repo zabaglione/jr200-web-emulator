@@ -1,0 +1,19 @@
+{
+  "id": "gravity-well",
+  "title": "GRAVITY WELL",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "cd1c83db153f7fcf300d33b03501f074e66c49ba7940997575178f04e66b63aa",
+  "cjr_size": 9254,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "d349569da41f8a26f72349c83ca1348a34dc3a8bee275681bbf0c811ebda0fc7",
+  "hardware": "not_run",
+  "title_marker": "GRAVITY WELL"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "mirror-relic",
+  "title": "MIRROR RELIC",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "dea4719639ff9293ac72afecc05c2acfd88fd90e47b137164ad4bd5663eb737c",
+  "cjr_size": 6592,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "240498aea9cf3a8fdcc6623deaa5827ba17a06ad213b9a3f5dc6e20429161362",
+  "hardware": "not_run",
+  "title_marker": "MIRROR RELIC"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "sigil-deck",
+  "title": "SIGIL DECK",
+  "version": "0.1.1",
+  "web_version": "0.1.1",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7f65a87ada7d620db1b360b94123aa68d8d095e1",
+  "cjr_sha256": "a1ca901baa6f3f24ff2bcb51b2daca2856365f5b190d28717838b9500383b926",
+  "cjr_size": 12447,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "a587f5d250735d955a8d7a4dc823b3fa786d9c5bc2bbb0787d7c950559532679",
+  "hardware": "not_run",
+  "title_marker": "SIGIL DECK"
+}
