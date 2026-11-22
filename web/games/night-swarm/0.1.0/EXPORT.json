@@ -1,0 +1,19 @@
+{
+  "id": "night-swarm",
+  "title": "NIGHT SWARM",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "de7242be9242c799bf16e4a31c346515349f615c88b5767d46c75e58c9e0cf16",
+  "cjr_size": 6608,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "907b4c48313dbcc660a99a3adca18949b923c13dfacdf8c9bf07723cff37500a",
+  "hardware": "not_run",
+  "title_marker": "NIGHT SWARM"
+}

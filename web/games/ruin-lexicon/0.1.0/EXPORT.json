@@ -1,0 +1,19 @@
+{
+  "id": "ruin-lexicon",
+  "title": "RUIN LEXICON",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "5427ac931ae8a5ee54ebc92f754d0a004cc9f7b0b07b1028fd12bc05400468be",
+  "cjr_size": 4469,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "20c67c0af01a7b462bf369aa03116aaaedd196e69b79ab11269bd4785d8a22b4",
+  "hardware": "not_run",
+  "title_marker": "RUIN LEXICON"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "five-forge",
+  "title": "FIVE FORGE",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "a0002d227154b40035c9c283a149d304555102d3837dd9d0c9be4be4f04628c7",
+  "cjr_size": 5167,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "fc77686c738d47cb8d65a3fb902d069f8024c20dd13b31e4b028e7f1001b495a",
+  "hardware": "not_run",
+  "title_marker": "FIVE FORGE"
+}

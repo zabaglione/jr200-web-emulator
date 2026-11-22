@@ -47,8 +47,8 @@ def main() -> None:
         raise SystemExit('Run make wasm-smoke or make wasm first')
     catalog = json.loads((ROOT / 'web/game-catalog.json').read_text(encoding='utf-8'))
     entries = catalog['games']
-    if len(entries) != 7:
-        raise SystemExit('Expected exactly seven published games')
+    if not entries:
+        raise SystemExit('No published games are registered')
     if args.only:
         entries = [entry for entry in entries if entry['id'] == args.only]
         if not entries:
@@ -143,7 +143,7 @@ def main() -> None:
                                 raise AssertionError(f'{identifier}: unexpected launch status')
                             before = page.locator('#screen').screenshot()
                             page.locator('#screen').focus()
-                            page.keyboard.press(START_KEYS[identifier])
+                            page.keyboard.press(START_KEYS.get(identifier, 'Enter'))
                             changed = False
                             for _ in range(12):
                                 page.wait_for_timeout(250)

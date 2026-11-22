@@ -1,0 +1,19 @@
+{
+  "id": "dice-relic",
+  "title": "DICE RELIC",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "21e30ccc8ce70ed4fc1bc7644d050b042bbbdb0bf91adc8648a98f08409986fd",
+  "cjr_size": 6788,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "8ab2c3d2776a07317cb8f74ed6c19aa69e732ab4420ddbbd52d875aba7871bae",
+  "hardware": "not_run",
+  "title_marker": "DICE RELIC"
+}

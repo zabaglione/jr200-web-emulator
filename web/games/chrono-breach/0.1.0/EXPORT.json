@@ -1,0 +1,19 @@
+{
+  "id": "chrono-breach",
+  "title": "CHRONO BREACH",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "87f662f87d1544a261820f37be08792f321230a1fb419b3e6d19f286288fae50",
+  "cjr_size": 7345,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "48983f4b8825b0b3c86089c567db5165a4a9d50c1c9e7678608fc58f0192e4c6",
+  "hardware": "not_run",
+  "title_marker": "CHRONO BREACH"
+}

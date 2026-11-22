@@ -1,0 +1,19 @@
+{
+  "id": "fuse-box",
+  "title": "FUSE BOX",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "42fa53a2367527ed1efa250b0f9cecb0f653ce53575cbaabd73da03be8112644",
+  "cjr_size": 4603,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "c8fe35ea040128311297ff7b29b5589b72861dbef507ab66c22a8de6de9f4084",
+  "hardware": "not_run",
+  "title_marker": "FUSE BOX"
+}

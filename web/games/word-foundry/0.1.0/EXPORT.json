@@ -1,0 +1,19 @@
+{
+  "id": "word-foundry",
+  "title": "WORD FOUNDRY",
+  "version": "0.1.0",
+  "web_version": "0.1.0",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "7d6eaabd6b04a818dd4101ccf12437a2d4cbdfff",
+  "cjr_sha256": "108ab38ffbdaf809d30d40cd0245f99f0749826d65ea2e40f72bf43d0300f726",
+  "cjr_size": 4761,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "e7318843eec1a03a80ae130716dde5ef217fb52cb22726e085de63c9a7fe32bf",
+  "hardware": "not_run",
+  "title_marker": "WORD FOUNDRY"
+}
