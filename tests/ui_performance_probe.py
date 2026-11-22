@@ -151,14 +151,14 @@ def main() -> None:
 
                 page.route("**/*", guard)
                 page.goto(base + "/", wait_until="networkidle")
-                page.locator("#rom-combined").set_input_files(
+                page.locator("#rom-combined:enabled").set_input_files(
                     {
                         "name": "performance.rom",
                         "mimeType": "application/octet-stream",
                         "buffer": bytes(ROM),
                     }
                 )
-                page.locator("#font").set_input_files(
+                page.locator("#font:enabled").set_input_files(
                     {
                         "name": "performance-font.bin",
                         "mimeType": "application/octet-stream",

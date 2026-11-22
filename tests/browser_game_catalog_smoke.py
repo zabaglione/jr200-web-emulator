@@ -112,16 +112,16 @@ def main() -> None:
                             page.goto(base + '?game=' + identifier + '&launch=1',
                                       wait_until='networkidle')
                             try:
-                                page.locator('#status').filter(
-                                    has_text='WASM起動済み').wait_for(timeout=30000)
+                                page.locator('#rom-combined:enabled').set_input_files(
+                                    str(args.rom))
+                                page.locator('#font:enabled').set_input_files(
+                                    str(args.font))
                             except PlaywrightTimeoutError as exc:
                                 raise AssertionError(
-                                    f'{identifier}: emulator initialization did not finish: '
+                                    f'{identifier}: could not select ROM and font: '
                                     f'{page.locator("#status").inner_text()}; '
                                     f'page errors: {page_errors[:3]}'
                                 ) from exc
-                            page.locator('#rom-combined').set_input_files(str(args.rom))
-                            page.locator('#font').set_input_files(str(args.font))
                             page.wait_for_timeout(1000)
                             if page_errors:
                                 raise AssertionError(
