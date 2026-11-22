@@ -1,0 +1,19 @@
+{
+  "id": "tidal-nets",
+  "title": "TIDAL NETS",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "1f6e81fb974e747e3c3dcfb7d0a229a3deff70706d46a97a828df3573149a94d",
+  "cjr_size": 5931,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "ae02453f1189ad3b9d30a867c51f10ad75a90152328827a37241c6ce08dd0fe4",
+  "hardware": "not_run",
+  "title_marker": "TIDAL NETS"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "echo-parry",
+  "title": "ECHO PARRY",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "d7b4c9b8832551b4d6981eebded1849d20c09096162a3cda033445df4b5b55c7",
+  "cjr_size": 7047,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "0dd2a47cd3a407e4a7808ce69e10135c59b2cf11d3aa43f7b4119dc6fe9cf4d5",
+  "hardware": "not_run",
+  "title_marker": "ECHO PARRY"
+}

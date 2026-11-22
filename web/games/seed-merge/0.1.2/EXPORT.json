@@ -1,0 +1,19 @@
+{
+  "id": "seed-merge",
+  "title": "SEED MERGE",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "f33340d9804833cf29cc114f7c85c2a14779a585a6ff4fbc060f295295249cd2",
+  "cjr_size": 4900,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "e99ce1ff85d6e28d2dab5de0d1291406db4c43b14970bb9a846048262eebc042",
+  "hardware": "not_run",
+  "title_marker": "SEED MERGE"
+}

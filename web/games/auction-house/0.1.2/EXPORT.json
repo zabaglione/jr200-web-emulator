@@ -1,0 +1,19 @@
+{
+  "id": "auction-house",
+  "title": "AUCTION HOUSE",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "2d29fc394b861a2463b1b21ece45024ac2bd1db5c749b9f1a81a82a724d47046",
+  "cjr_size": 6450,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "35e01e276d5fe201d5877b18c3e601115b95208f1336f582c6cd377453ef24f8",
+  "hardware": "not_run",
+  "title_marker": "AUCTION HOUSE"
+}

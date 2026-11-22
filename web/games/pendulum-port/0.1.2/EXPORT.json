@@ -1,0 +1,19 @@
+{
+  "id": "pendulum-port",
+  "title": "PENDULUM PORT",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "b037dc418c097386efc5998b71b0a23e3b7dc6b522e407a3a5a2e700c57f16ed",
+  "cjr_size": 6414,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "ac7bfdbfdaa1b782eca9d14f2ff2158e6f3ecbca95727073184c1d788f1c61d3",
+  "hardware": "not_run",
+  "title_marker": "PENDULUM PORT"
+}
