@@ -1,0 +1,19 @@
+{
+  "id": "lunar-touchdown",
+  "title": "LUNAR TOUCHDOWN",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "38cddd35e9780423143336baa6275b37caf119e1968c8fb9df78317c784ca32a",
+  "cjr_size": 6761,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "b00f9538e3d1cf5a0d5275aa8dbda2bedf8fa24051b3cd0e9267c5318d0e7951",
+  "hardware": "not_run",
+  "title_marker": "LUNAR TOUCHDOWN"
+}

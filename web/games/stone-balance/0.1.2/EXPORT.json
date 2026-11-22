@@ -1,0 +1,19 @@
+{
+  "id": "stone-balance",
+  "title": "STONE BALANCE",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "d518e19b46f54ca83a440266ff28ecaccf9affaf6e771061aaa6335ee9ae991d",
+  "cjr_size": 5941,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "ccc22baee9891ef6e6db96e4cf561dbacfaae976132c824ffd27de03384ecc36",
+  "hardware": "not_run",
+  "title_marker": "STONE BALANCE"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "twenty-one",
+  "title": "TWENTY ONE",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "93f02a26674db052226125b60ea5e8e9e63be3483def0eb5f9cad1c0d1663982",
+  "cjr_size": 6933,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "cc15a242c5b0bb7cb03c2f564b1039227825412e87677d9903fd41782eb09a2a",
+  "hardware": "not_run",
+  "title_marker": "TWENTY ONE"
+}

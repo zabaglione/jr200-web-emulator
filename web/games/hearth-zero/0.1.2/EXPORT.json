@@ -1,0 +1,19 @@
+{
+  "id": "hearth-zero",
+  "title": "HEARTH ZERO",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "bda01856d4a333495b6a7e2d1dfb3ccddbc5c245d3acba07f7b7ac395a919eef",
+  "cjr_size": 5657,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "bbf3fcd909fd7059e7efc6406e47eaee74b6d6660a7195b82835c1d3af7e4ac7",
+  "hardware": "not_run",
+  "title_marker": "HEARTH ZERO"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "sand-rescue",
+  "title": "SAND RESCUE",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "9c259e421d929ef1e1660f4912627e9e48a4725b3c485a741785b43f0bd9ef91",
+  "cjr_size": 8074,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "d6d47a451e6e29398a649bf3fb7df3b92318bde508242fae5b6ffa6537e81160",
+  "hardware": "not_run",
+  "title_marker": "SAND RESCUE"
+}

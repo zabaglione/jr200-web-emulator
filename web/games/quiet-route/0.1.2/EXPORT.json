@@ -1,0 +1,19 @@
+{
+  "id": "quiet-route",
+  "title": "QUIET ROUTE",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "5e5da9c2af7fa34d91360d700992f69b1fa60f2c6b72959e0d44be1883c794a4",
+  "cjr_size": 5335,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "0dd42ee2163cc3bc385522ad3631f57d13e6b26b92ac2530e7583008d89f4343",
+  "hardware": "not_run",
+  "title_marker": "QUIET ROUTE"
+}

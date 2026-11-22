@@ -1,0 +1,19 @@
+{
+  "id": "magnet-vault",
+  "title": "MAGNET VAULT",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "ce760853a65bb1ebbebdda79a136496f21cdaa7d4841c082b4187e156bc3cf50",
+  "cjr_size": 9440,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "ab60264b8f22b04f52df3c03844401be2eb4dc7d71b92f73bec724c0fc2c8710",
+  "hardware": "not_run",
+  "title_marker": "MAGNET VAULT"
+}

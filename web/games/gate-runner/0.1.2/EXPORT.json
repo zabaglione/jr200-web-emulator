@@ -1,0 +1,19 @@
+{
+  "id": "gate-runner",
+  "title": "GATE RUNNER",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "3bd0f99944cf5702fe6ee2ca661b8b0012daa979add656fb2ec0e2f4ef7711b7",
+  "cjr_size": 7874,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "54c034b349bd240e9cd1bd7cb01d0858fdc54f0a87965578beea4acc9b030cbc",
+  "hardware": "not_run",
+  "title_marker": "GATE RUNNER"
+}

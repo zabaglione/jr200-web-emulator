@@ -1,0 +1,19 @@
+{
+  "id": "glyph-shift",
+  "title": "GLYPH SHIFT",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "291c5a893e3752af1f6c69ebe5248d21910c385e555fe8719fd1b8fa2c9ad4b2",
+  "cjr_size": 9308,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "1739cdd69123f2991f89b6cc260797064a1f6f739a6ee1bbad82bff1a1ed4c13",
+  "hardware": "not_run",
+  "title_marker": "GLYPH SHIFT"
+}

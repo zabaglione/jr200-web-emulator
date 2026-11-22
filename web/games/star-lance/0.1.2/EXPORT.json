@@ -1,0 +1,19 @@
+{
+  "id": "star-lance",
+  "title": "STAR LANCE",
+  "version": "0.1.2",
+  "web_version": "0.1.2",
+  "mode": "release",
+  "license": "MIT",
+  "source_commit": "57ea6a25c2a955cbeb6cb005de6ef27ca1ef792b",
+  "cjr_sha256": "3d24ff7a928e9480a73e5ba570124abd5c8e5ffdbc554c781745349ba0c239be",
+  "cjr_size": 9111,
+  "entry_address": "0x1000",
+  "run_command": "A=USR($1000)",
+  "runner_contract": 1,
+  "sdk_contract": 1,
+  "minimum_runner_version": "0.3.0",
+  "package_sha256": "07f1049132f7fda3cbfc299e72e96d3b19b667088532d3f8ada3ed367418e4e4",
+  "hardware": "not_run",
+  "title_marker": "STAR LANCE"
+}
