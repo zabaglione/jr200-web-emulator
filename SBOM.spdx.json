@@ -2090,6 +2090,23 @@
       ]
     },
     {
+      "name": "ribbon-snake",
+      "SPDXID": "SPDXRef-Package-Game-ribbon-snake-0-1-3",
+      "versionInfo": "0.1.3",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT AND BSD-3-Clause",
+      "licenseDeclared": "MIT",
+      "copyrightText": "See game LICENSE.txt",
+      "primaryPackagePurpose": "APPLICATION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eae46c53d703c40eb0d9ef0a8441606ea92f21a2ad49324899ee935cb3d8affd"
+        }
+      ]
+    },
+    {
       "name": "ruin-lexicon",
       "SPDXID": "SPDXRef-Package-Game-ruin-lexicon-0-1-0",
       "versionInfo": "0.1.0",
@@ -3494,6 +3511,12 @@
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-Package-Game-ribbon-snake-0-1-2",
       "comment": "Approved immutable Web game ribbon-snake/0.1.2."
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-Package-Game-ribbon-snake-0-1-3",
+      "comment": "Approved immutable Web game ribbon-snake/0.1.3."
     },
     {
       "spdxElementId": "SPDXRef-Package-jr200-web-emulator",
