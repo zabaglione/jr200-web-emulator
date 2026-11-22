@@ -263,6 +263,21 @@ make check
 
 `make sanitize`にはClang、`make wasm-smoke`にはWASM対応Clang、`wasm-ld`、Node.jsが必要です。`make browser-setup`は固定済みPlaywrightをリポジトリ内のGit対象外`.venv/`へ一度だけ導入し、[requirements-ci.txt](requirements-ci.txt)が変わるまで再インストールしません。`make browser-smoke`は既存のChrome／Chromiumを優先して使います。
 
+### 実ROMでの BRICK PULSE 音声性能測定
+
+Emscripten版をビルドし、インストール済みのGoogle Chromeで第1面を3秒測定します。
+`ROM_DIR` には手元の `ROM1.bin`、`ROM2.bin`、`FONT.bin` があるディレクトリを指定します。Chromeのウィンドウを前面に保ち、既定の出力デバイスで効果音を再生します。
+
+```sh
+make wasm
+make browser-setup
+.venv/bin/python tests/ui_performance_probe.py --site build/site --brick-pulse-rom-dir "$ROM_DIR"
+```
+
+JSONにはCPUサイクル数、音声アンダーラン、観測した音声ブロック数と有音区間が含まれます。
+音声は出力直前にAudioWorkletの呼び出し順で記録し、Chromeで重複することがあるフレーム番号も数えます。
+`--brick-pulse-rom-dir` を省略すると、CIと同じ合成ROMによる測定を実行します。
+
 現状と検証結果は、次の文書を正とします。
 
 | 文書 | 内容 |
