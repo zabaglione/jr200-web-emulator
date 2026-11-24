@@ -409,9 +409,9 @@
     {
       "id": "star-lance",
       "title": "STAR LANCE",
-      "version": "0.1.2",
-      "path": "games/star-lance/0.1.2/star-lance.cjr",
-      "sha256": "3d24ff7a928e9480a73e5ba570124abd5c8e5ffdbc554c781745349ba0c239be",
+      "version": "0.1.3",
+      "path": "games/star-lance/0.1.3/star-lance.cjr",
+      "sha256": "533e148de9746d8d6746b54bb6fa6f0596a3bbfe0af30dab905a8757bf887f0b",
       "runCommand": "A=USR($1000)",
       "titleMarker": "STAR LANCE"
     },
